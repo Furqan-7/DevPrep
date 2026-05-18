@@ -168,8 +168,8 @@ export default function DSAPage() {
                                 key={company}
                                 onClick={() => setSelectedCompany(company)}
                                 className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 border ${selectedCompany === company
-                                        ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                                        : "bg-white/[0.03] text-brand-muted border-white/10 hover:border-white/30 hover:text-white"
+                                    ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                                    : "bg-white/[0.03] text-brand-muted border-white/10 hover:border-white/30 hover:text-white"
                                     }`}
                             >
                                 {company}
@@ -334,8 +334,8 @@ function ProblemRow({ problem, index, isSolved, onToggle, note, isEditingNote, o
                     <button
                         onClick={onToggle}
                         className={`w-5 h-5 rounded-md border transition-all duration-300 flex items-center justify-center ${isSolved
-                                ? "bg-white border-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]"
-                                : "border-white/10 hover:border-white/30 text-transparent"
+                            ? "bg-white border-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                            : "border-white/10 hover:border-white/30 text-transparent"
                             }`}
                     >
                         <CheckCircle2 size={12} />

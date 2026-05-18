@@ -11,15 +11,18 @@ import {
   Star
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const Button = ({
   children,
   variant = "primary",
-  className = ""
+  className = "",
+  onClick
 }: {
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "ghost";
   className?: string;
+  onClick?: () => void;
 }) => {
   const baseStyles = "px-4 py-1.5 rounded-full font-medium transition-all duration-200 text-sm inline-flex items-center gap-2";
   const variants = {
@@ -44,6 +47,7 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 const Nav = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -59,17 +63,17 @@ const Nav = () => {
             <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
               <div className="w-3 h-3 bg-black rounded-sm" />
             </div>
-            TechPrep
+            DevPrep
           </div>
           <div className="hidden md:flex items-center gap-5 text-xs text-brand-muted">
             {["Jobs", "DSA", "Calendar", "Subjects", "Blog"].map((link) => (
-              <a key={link} href={`#${link.toLowerCase()}`} className="hover:text-white transition-colors">{link}</a>
+              <a key={link} onClick={() => router.push(`/${link.toLowerCase()}`)} className="hover:text-white transition-colors hover:cursor-pointer">{link}</a>
             ))}
           </div>
         </div>
         <div className="hidden md:flex items-center gap-2">
-          <Button variant="ghost" className="text-xs">Sign in</Button>
-          <Button className="text-xs">Get Started Free</Button>
+          <Button onClick={() => { router.push("/auth/signin") }} variant="ghost" className="text-xs hover:cursor-pointer">Sign in</Button>
+          <Button onClick={() => { router.push("/auth/signup") }} className="text-xs hover:cursor-pointer">Get Started Free</Button>
         </div>
         <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -78,11 +82,11 @@ const Nav = () => {
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-brand-bg border-b border-brand-border p-5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4">
           {["Jobs", "DSA", "Calendar", "Subjects", "Blog"].map((link) => (
-            <a key={link} href={`#${link.toLowerCase()}`} className="text-base text-brand-muted active:text-white" onClick={() => setMobileMenuOpen(false)}>{link}</a>
+            <a key={link} onClick={() => { router.push(`/${link.toLowerCase()}`); setMobileMenuOpen(false); }} className="text-base text-brand-muted active:text-white hover:cursor-pointer">{link}</a>
           ))}
           <div className="flex flex-col gap-3 pt-4 border-t border-brand-border">
-            <Button variant="ghost" className="justify-center">Sign in</Button>
-            <Button className="justify-center">Get Started Free</Button>
+            <Button onClick={() => { setMobileMenuOpen(false); router.push("/auth/signin"); }} variant="ghost" className="justify-center">Sign in</Button>
+            <Button onClick={() => { setMobileMenuOpen(false); router.push("/auth/signup"); }} className="justify-center">Get Started Free</Button>
           </div>
         </div>
       )}
@@ -132,13 +136,14 @@ const MockupCard = ({ className = "" }: { className?: string }) => (
 );
 
 export default function App() {
+  const router = useRouter();
   return (
     <div id="tech-prep-app" className="relative min-h-screen selection:bg-white selection:text-black dot-background">
       <Nav />
 
       {/* Hero */}
-      <section id="hero" className="pt-24 pb-14 md:pt-32 md:pb-20 px-6 overflow-hidden relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[300px] bg-white opacity-[0.03] blur-[120px] rounded-full -z-10" />
+      <section id="hero" className="pt-24 pb-14 md:pt-32 md:pb-20 px-6 relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[300px] bg-white opacity-[0.03] blur-[120px] rounded-full -z-10 pointer-events-none" />
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col items-start gap-5 max-w-xl">
             <motion.div
@@ -177,8 +182,10 @@ export default function App() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="flex flex-wrap items-center gap-3 pt-1"
             >
-              <Button className="text-sm px-6 py-2.5">Start Preparing Free</Button>
-              <Button variant="secondary" className="text-sm px-6 py-2.5 group">
+              <Button onClick={() => {
+                router.push("/auth/signup")
+              }} className="text-sm px-6 py-2.5 hover:cursor-pointer">Start Preparing Free</Button>
+              <Button variant="secondary" className="text-sm px-6 py-2.5 group hover:cursor-pointer">
                 See what's inside <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </Button>
             </motion.div>
@@ -226,7 +233,7 @@ export default function App() {
             <SectionLabel>The Problem</SectionLabel>
             <h2 className="text-2xl md:text-3xl font-display font-bold mb-3 tracking-tight">Your prep is scattered. <br className="hidden md:block" /> Your time isn't.</h2>
             <p className="text-sm text-brand-muted max-w-md px-4">
-              You're jumping between 10 tabs — LeetCode for DSA, LinkedIn for jobs, random PDFs for DBMS, and a group chat for hiring dates. TechPrep ends that.
+              You're jumping between 10 tabs — LeetCode for DSA, LinkedIn for jobs, random PDFs for DBMS, and a group chat for hiring dates. DevPrep ends that.
             </p>
           </div>
 
@@ -406,7 +413,7 @@ export default function App() {
 
           <div className="grid md:grid-cols-3 gap-4">
             {[
-              { name: "Arjun S.", role: "Placed at Flipkart", text: "I used to spend 30 minutes every morning just finding what to study. TechPrep cut that to zero." },
+              { name: "Arjun S.", role: "Placed at Flipkart", text: "I used to spend 30 minutes every morning just finding what to study. DevPrep cut that to zero." },
               { name: "Sneha R.", role: "Placed at Atlassian India", text: "The hiring calendar alone saved me. I almost missed Atlassian's window. It's a game changer." },
               { name: "Rahul M.", role: "SDE Intern at Razorpay", text: "Finally a platform that feels like it was built for Indian placements, not just American FAANG grind." }
             ].map((t) => (
@@ -438,7 +445,7 @@ export default function App() {
             <div className="relative z-10 max-w-lg space-y-5">
               <h2 className="text-3xl md:text-5xl font-display font-bold tracking-tighter leading-none">Your placement <br /> season starts now</h2>
               <p className="text-sm md:text-base font-medium opacity-70">
-                Join 10,000+ students who are preparing smarter, not harder. TechPrep is all you need.
+                Join 10,000+ students who are preparing smarter, not harder. DevPrep is all you need.
               </p>
               <div className="flex flex-wrap gap-3 pt-1">
                 <button className="bg-black text-white px-7 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl text-sm">
@@ -471,7 +478,7 @@ export default function App() {
                 <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
                   <div className="w-3 h-3 bg-black rounded-sm" />
                 </div>
-                TechPrep
+                DevPrep
               </div>
               <p className="text-xs text-brand-muted max-w-xs leading-relaxed">
                 The all-in-one platform for Indian engineering students to conquer placements. Built with passion for the grind.
@@ -504,7 +511,7 @@ export default function App() {
           </div>
 
           <div className="pt-5 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-brand-muted font-medium">© 2026 TechPrep. Built for Indian placements.</p>
+            <p className="text-xs text-brand-muted font-medium">© 2026 DevPrep. Built for Indian placements.</p>
             <div className="flex gap-5 text-xs text-brand-muted font-medium">
               <span className="hover:text-white transition-colors cursor-pointer">Privacy</span>
               <span className="hover:text-white transition-colors cursor-pointer">Terms</span>
