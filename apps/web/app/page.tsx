@@ -32,7 +32,7 @@ const Button = ({
   };
 
   return (
-    <button className={`${baseStyles} ${variants[variant]} ${className}`}>
+    <button onClick={onClick} className={`${baseStyles} ${variants[variant]} ${className}`}>
       {children}
     </button>
   );

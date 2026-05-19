@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // --- Logo ---
 const Logo = () => (
@@ -90,10 +91,12 @@ const OrDivider = () => (
 
 // --- Main Page ---
 export default function SignInPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [serverError, setServerError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const validate = () => {
@@ -111,9 +114,27 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    setServerError("");
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    setIsLoading(false);
+    try {
+      const res = await fetch("http://localhost:3001/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.username ?? "");
+        router.push("/dsa");
+      } else {
+        setServerError(data.message || "Sign in failed. Please try again.");
+      }
+    } catch {
+      setServerError("Cannot connect to server. Make sure the backend is running.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -135,6 +156,11 @@ export default function SignInPage() {
           <div className="h-px bg-white/[0.07] mb-8" />
 
           {/* Form */}
+          {serverError && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400 font-medium">
+              {serverError}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <InputField
               label="Email"

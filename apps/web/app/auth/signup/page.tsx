@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Eye, EyeOff, ArrowRight, Loader2, CheckSquare, Square } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 
 // --- Logo ---
 const Logo = () => (
@@ -133,6 +135,7 @@ const OrDivider = () => (
 
 // --- Main Page ---
 export default function SignUpPage() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -141,6 +144,7 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
   const [errors, setErrors] = useState<{
     fullName?: string; email?: string; password?: string; confirmPassword?: string;
   }>({});
@@ -158,9 +162,32 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate() || !termsAccepted) return;
+    setServerError("");
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    setIsLoading(false);
+    try {
+
+      const res = await axios.post("http://localhost:3001/signup", {
+        data: {
+          username: fullName,
+          email,
+          password
+        }
+      });
+
+      const data = res.data;
+      console.log(data);
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.username ?? "");
+        router.push("/dsa");
+      } else {
+        setServerError(data.message || "Sign up failed. Please try again.");
+      }
+    } catch {
+      setServerError("Cannot connect to server. Make sure the backend is running.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const isSubmitDisabled = !termsAccepted || isLoading;
@@ -188,6 +215,11 @@ export default function SignUpPage() {
 
           <div className="h-px bg-white/[0.07] mb-8" />
 
+          {serverError && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400 font-medium">
+              {serverError}
+            </div>
+          )}
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <InputField
@@ -256,8 +288,8 @@ export default function SignUpPage() {
                 type="button"
                 onClick={() => setTermsAccepted((v) => !v)}
                 className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${termsAccepted
-                    ? "bg-white border-white text-black"
-                    : "bg-white/[0.03] border-white/20 group-hover:border-white/40"
+                  ? "bg-white border-white text-black"
+                  : "bg-white/[0.03] border-white/20 group-hover:border-white/40"
                   }`}
               >
                 {termsAccepted && (
@@ -295,6 +327,7 @@ export default function SignUpPage() {
                 </>
               ) : (
                 <>
+
                   Create Account
                   <ArrowRight size={14} />
                 </>
