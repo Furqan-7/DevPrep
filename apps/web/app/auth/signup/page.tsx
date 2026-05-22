@@ -165,13 +165,13 @@ export default function SignUpPage() {
     setServerError("");
     setIsLoading(true);
     try {
+      console.log(fullName, email, password);
+
 
       const res = await axios.post("http://localhost:3001/signup", {
-        data: {
-          username: fullName,
-          email,
-          password
-        }
+        username: fullName,
+        email,
+        password
       });
 
       const data = res.data;
@@ -314,7 +314,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={isSubmitDisabled}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 mt-2
+              className={`w-full flex items-center hover:cursor-pointer justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 mt-2
                 ${isSubmitDisabled
                   ? "bg-white/20 text-white/40 cursor-not-allowed"
                   : "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-white/90 active:scale-[0.98]"

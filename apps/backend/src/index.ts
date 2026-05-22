@@ -1,16 +1,27 @@
 import express from "express";
+import dotenv from "dotenv";
+import path from "path";
+
+// Load DATABASE_URL from the database package .env at runtime
+dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
+
 import { prisma } from "@repo/database";
 import { signinSchema, signupSchema } from "./types";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.post("/signup", async (req, res) => {
     const Response = signupSchema.safeParse(req.body);
 
+    console.log(req.body);
+
     if (!Response.success) {
+        console.log("Error", Response.error);
         return res.status(411).json({
             message: "Invalid input",
             success: false
