@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
+import { config } from "dotenv";
+config();
 
 // Load DATABASE_URL from the database package .env at runtime
 dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
@@ -31,6 +33,8 @@ app.post("/signup", async (req, res) => {
     const username = req.body.username;
     const email = req.body.email;
     const password = req.body.password;
+
+
 
     const HashedPassword = await bcrypt.hash(password, 10);
 
@@ -81,6 +85,7 @@ app.post("/signup", async (req, res) => {
 
 app.post("/signin", async (require, res) => {
     const Response = signinSchema.safeParse(require.body);
+    console.log("Reached at signin ");
     if (!Response.success) {
         return res.status(411).json({
             message: "Invalid Format",
@@ -116,6 +121,8 @@ app.post("/signin", async (require, res) => {
             })
         };
 
+        console.log("Reached at JWT Token" + process.env.JWT_TOKEN);
+
         const token = jwt.sign({
             userId: user.id, username: user.username
         }, process.env.JWT_TOKEN as string, {
@@ -131,6 +138,7 @@ app.post("/signin", async (require, res) => {
         });
 
     } catch (e) {
+        console.log("Error" + e);
         return res.status(500).json({
             message: "Internal Server Error",
             success: false

@@ -328,6 +328,170 @@ function FilterChip({ active, onClick, icon, label }: { active: boolean; onClick
     );
 }
 
+// ── Embeddable jobs UI (used by dashboard) ───────────────────────────────────
+export function JobsContent() {
+    const [activeFilter, setActiveFilter] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredJobs = useMemo(() => {
+        return JOBS.filter((j) => {
+            const searchable = [j.title, j.company, j.location, j.description, ...(j.tags || [])].join(" ").toLowerCase();
+            if (searchQuery && !searchable.includes(searchQuery.toLowerCase())) return false;
+            if (activeFilter === "remote") return j.isRemote;
+            if (activeFilter === "internship") return j.title.toLowerCase().includes("intern") || j.type === "contract";
+            if (activeFilter === "fulltime") return j.type === "full_time";
+            if (activeFilter === "contract") return j.type === "contract" || j.type === "freelance";
+            if (activeFilter === "adzuna") return j.source === "adzuna";
+            if (activeFilter === "remotive") return j.source === "remotive";
+            if (activeFilter === "jsearch") return j.source === "jsearch";
+            return true;
+        });
+    }, [activeFilter, searchQuery]);
+
+    return (
+        <div className="relative min-h-full selection:bg-white selection:text-black" style={{ background: "#141416" }}>
+            {/* Hero */}
+            <section className="pt-8 pb-6 px-6 relative">
+                <div className="flex flex-col items-start gap-3">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" />
+                        <span className="text-brand-muted">Live feed · Updated daily</span>
+                    </div>
+                    <h2 className="text-2xl font-display font-bold tracking-tight text-white">Job &amp; Internship Board</h2>
+                    <p className="text-sm text-brand-muted max-w-md leading-relaxed">
+                        Live listings from Adzuna, Remotive, and JSearch — normalized into one clean feed for developers.
+                    </p>
+                </div>
+            </section>
+
+            <div className="px-6 pb-16 space-y-5">
+                {/* Search */}
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-brand-muted">
+                        <Search size={15} className="group-focus-within:text-white transition-colors duration-200" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search role, company, skill..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3.5 pl-11 pr-11 text-sm text-white placeholder-brand-muted outline-none focus:border-white/30 focus:ring-1 focus:ring-white/10 transition-all duration-300"
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-4 flex items-center text-brand-muted hover:text-white transition-colors">
+                            <X size={15} />
+                        </button>
+                    )}
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-wrap gap-4">
+                    <div className="flex items-center gap-2 overflow-x-auto py-1">
+                        {[
+                            { key: "all", icon: <LayoutGrid size={12} />, label: "All" },
+                            { key: "remote", icon: <Wifi size={12} />, label: "Remote" },
+                            { key: "internship", icon: <GraduationCap size={12} />, label: "Internships" },
+                            { key: "fulltime", icon: <Briefcase size={12} />, label: "Full-time" },
+                            { key: "contract", icon: <FileText size={12} />, label: "Contract" },
+                            { key: "adzuna", icon: <CircleDot size={12} />, label: "Adzuna" },
+                            { key: "remotive", icon: <CircleDot size={12} />, label: "Remotive" },
+                            { key: "jsearch", icon: <CircleDot size={12} />, label: "JSearch" },
+                        ].map((f) => (
+                            <FilterChip key={f.key} active={activeFilter === f.key} onClick={() => setActiveFilter(f.key)} icon={f.icon} label={f.label} />
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-brand-muted font-mono">
+                        <span>{filteredJobs.length} active opportunities</span>
+                        <span className="opacity-30">|</span>
+                        <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/60">
+                            <TrendingUp size={11} /> Live Sync
+                        </span>
+                    </div>
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <AnimatePresence mode="popLayout">
+                        {filteredJobs.length > 0 ? filteredJobs.map((j, i) => (
+                            <motion.div
+                                key={j.id} layout
+                                initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{ duration: 0.25, delay: i * 0.03 }}
+                                className="bg-white/[0.03] border border-white/10 hover:border-white/25 rounded-xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_4px_30px_rgba(255,255,255,0.05)] group relative overflow-hidden card-gradient"
+                            >
+                                <div className="space-y-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center font-mono font-semibold text-white/70 text-xs shrink-0">
+                                                {initials(j.company)}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-sm text-white line-clamp-1">{j.title}</h3>
+                                                <p className="text-xs text-brand-muted font-medium">{j.company}</p>
+                                            </div>
+                                        </div>
+                                        <SourceBadge source={j.source} />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {j.isRemote && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-white/60 border border-white/10">
+                                                <Wifi size={9} /> Remote
+                                            </span>
+                                        )}
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-white/60 border border-white/10">
+                                            {typeLabel(j.type)}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-brand-muted">
+                                            <MapPin size={9} /> {j.location}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-brand-muted leading-relaxed line-clamp-3">{j.description}</p>
+                                    {j.tags && j.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {j.tags.map((tag) => (
+                                                <span key={tag} className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] text-white/40 border border-white/[0.07]">{tag}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="mt-5 pt-4 border-t border-white/[0.07] flex items-center justify-between gap-4">
+                                    <div className="text-[11px] font-mono">
+                                        {j.salary ? <span className="font-bold text-white/80">{j.salary}</span> : <span className="text-brand-muted italic">Salary Negotiable</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-[10px] text-brand-muted">
+                                        <span>{timeAgo(j.postedAt)}</span>
+                                        <button onClick={() => window.open(j.applyUrl, "_blank")}
+                                            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-white text-black hover:bg-gray-200 transition-all duration-200 cursor-pointer active:scale-95">
+                                            Apply <ExternalLink size={10} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )) : (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4">
+                                <div className="w-16 h-16 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center text-brand-muted">
+                                    <SlidersHorizontal size={22} />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="font-bold text-base text-white">No roles match your query</h3>
+                                    <p className="text-xs text-brand-muted max-w-sm">Try clearing your search or choosing a different filter.</p>
+                                </div>
+                                <button onClick={() => { setActiveFilter("all"); setSearchQuery(""); }}
+                                    className="text-xs font-semibold px-5 py-2 bg-white text-black rounded-full hover:bg-gray-200 transition-colors">
+                                    Clear All Filters
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Full standalone page ──────────────────────────────────────────────────────
 export default function JobsPage() {
     const [activeFilter, setActiveFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");

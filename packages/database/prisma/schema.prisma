@@ -14,11 +14,10 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
+  id       Int       @id @default(autoincrement())
   username String
-  email    String  @unique
+  email    String    @unique
   password String?
-
   accounts Account[]
 }
 
@@ -37,59 +36,50 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 model Problem {
-  id String @id @default(uuid())
-
-  lcId Int @unique
-
-  title String
-
-  difficulty String
-
-  topic String?
-
-  acceptanceRate Int?
-
-  leetcodeUrl String
-
-  createdAt DateTime @default(now())
+  id             String     @id @default(uuid())
+  lcId           Int        @unique
+  title          String
+  difficulty     Difficulty
+  topic          String?
+  acceptanceRate Float?
+  leetcodeUrl    String
+  createdAt      DateTime   @default(now())
 
   companies ProblemCompany[]
 }
 
 model Company {
-  id String @id @default(uuid())
-
-  name String
-
-  slug String @unique
-
-  domain String?
-
-  logoUrl String?
-
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  domain    String?
+  logoUrl   String?
   createdAt DateTime @default(now())
 
   problems ProblemCompany[]
 }
 
 model ProblemCompany {
-  id String @id @default(uuid())
-
-  frequency Int?
-
+  id         String   @id @default(uuid())
+  frequency  Int?
   timeWindow String?
-
-  source String?
-
-  createdAt DateTime @default(now())
+  source     String?
+  createdAt  DateTime @default(now())
 
   problemId String
   companyId String
 
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
-
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([problemId, companyId, timeWindow])
+  @@index([problemId])
+  @@index([companyId])
 }
