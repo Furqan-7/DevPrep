@@ -44,7 +44,7 @@ const problems: Problem[] = [
     { id: 11, name: "Coin Change", difficulty: "Medium", topic: "DP", frequency: 2, companies: ["Amazon", "Microsoft", "Razorpay"], leetcode: "https://leetcode.com/problems/coin-change", gfg: "https://www.geeksforgeeks.org/coin-change-dp-7/" },
     { id: 12, name: "Word Break", difficulty: "Medium", topic: "DP", frequency: 2, companies: ["Google", "Meta"], leetcode: "https://leetcode.com/problems/word-break", gfg: "https://www.geeksforgeeks.org/word-break-problem-dp-32/" },
     { id: 13, name: "LRU Cache", difficulty: "Hard", topic: "Linked Lists", frequency: 3, companies: ["Google", "Amazon", "Flipkart", "Razorpay"], leetcode: "https://leetcode.com/problems/lru-cache", gfg: "https://www.geeksforgeeks.org/lru-cache-implementation/" },
-    { id: 14, name: "Median of Two Sorted Arrays", difficulty: "Hard", topic: "Binary Search", frequency: 2, companies: ["Google", "Meta", "Amazon"], leetcode: "https://leetcode.com/problems/median-of-two-sorted-arrays", gfg: "https://www.geeksforgeeks.org/median-of-two-sorted-arrays/" },
+    { id: 14, name: "Median of Sorted Arrays", difficulty: "Hard", topic: "Binary Search", frequency: 2, companies: ["Google", "Meta", "Amazon"], leetcode: "https://leetcode.com/problems/median-of-two-sorted-arrays", gfg: "https://www.geeksforgeeks.org/median-of-two-sorted-arrays/" },
     { id: 15, name: "Trapping Rain Water", difficulty: "Hard", topic: "Arrays", frequency: 3, companies: ["Google", "Amazon", "Microsoft", "Adobe"], leetcode: "https://leetcode.com/problems/trapping-rain-water", gfg: "https://www.geeksforgeeks.org/trapping-rain-water/" },
 ];
 
