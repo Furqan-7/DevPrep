@@ -3,6 +3,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import JobsGrid from "@/components/jobs/JobsGrid";
 import { HARDCODED_JOBS } from "@/data/jobs";
 import DSAPage from "@/app/DSA/page";
+import CSCorePage from "@/app/CSCore/page";
 
 const NAV_TITLES: Record<string, string> = {
   "All Jobs": "Live Job Openings",
@@ -59,6 +60,11 @@ export default function DashboardPage() {
         // Show DSA page for "Company Question Sets"
         if (activeNav === "questions") {
           return <DSAPage />;
+        }
+
+        // Show CS Core page
+        if (activeNav === "cs-core") {
+          return <CSCorePage />;
         }
 
         return (

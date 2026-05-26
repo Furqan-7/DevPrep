@@ -147,6 +147,24 @@ export default function Sidebar({
           >
             Company Question Sets
           </button>
+
+          <button
+            onClick={() => onNavChange("cs-core")}
+            style={{
+              width: "100%", display: "flex", alignItems: "center",
+              background: activeNav === "cs-core" ? "rgba(255,255,255,0.07)" : "none",
+              border: "none",
+              color: activeNav === "cs-core" ? "#ffffff" : "#8a8f98",
+              fontSize: 12, padding: "5px 8px", cursor: "pointer",
+              borderRadius: 5, textAlign: "left", fontFamily: "inherit",
+              fontWeight: activeNav === "cs-core" ? 600 : 400,
+              transition: "background 0.1s",
+            }}
+            onMouseEnter={(e) => { if (activeNav !== "cs-core") e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+            onMouseLeave={(e) => { if (activeNav !== "cs-core") e.currentTarget.style.background = "none"; }}
+          >
+            CS Core
+          </button>
         </div>
       </nav>
 
