@@ -7,23 +7,9 @@ interface DashboardShellProps {
 
 export default function DashboardShell({ children }: DashboardShellProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        background: "#000103",
-        fontFamily: "Inter, system-ui, sans-serif",
-        color: "#ffffff",
-      }}
-    >
+    <div className="flex flex-col min-h-screen bg-brand-bg text-white font-sans">
       <TopBar />
-      <main
-        style={{
-          flex: 1,
-          overflowY: "auto",
-        }}
-      >
+      <main className="flex-1 pt-16 overflow-y-auto">
         {children}
       </main>
     </div>

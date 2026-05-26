@@ -1,6 +1,6 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, ChevronDown, LogOut, Settings } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -18,8 +18,26 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // Determine active nav: match the current pathname
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("#profile-menu")) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const isActive = (href: string) => {
     if (href === "/dashboard/jobs") {
       return pathname === "/dashboard" || pathname === "/dashboard/jobs";
@@ -28,266 +46,105 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
   };
 
   return (
-    <header
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 28px",
-        height: 56,
-        background: "rgba(0, 1, 3, 0.92)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-        fontFamily: "Inter, system-ui, sans-serif",
-      }}
+    <nav
+      id="dashboard-top-nav"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? "glass py-2" : "bg-brand-bg/90 backdrop-blur-md border-b border-brand-border py-3.5"
+      }`}
     >
-      {/* Left: Logo */}
-      <div
-        onClick={() => router.push("/dashboard")}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          cursor: "pointer",
-          userSelect: "none",
-        }}
-      >
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 7,
-            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 13,
-            fontWeight: 800,
-            color: "#fff",
-            flexShrink: 0,
-          }}
-        >
-          D
+      <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
+
+        {/* Left: Logo + Nav Links */}
+        <div className="flex items-center gap-6">
+          {/* Logo */}
+          <div
+            id="dashboard-logo"
+            onClick={() => router.push("/dashboard")}
+            className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter cursor-pointer select-none"
+          >
+            <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
+              <div className="w-3 h-3 bg-black rounded-sm" />
+            </div>
+            DevPrep
+          </div>
+
+          {/* Nav links */}
+          <div className="hidden md:flex items-center gap-5 text-xs text-brand-muted">
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <a
+                  key={item.label}
+                  onClick={() => router.push(item.href)}
+                  className={`transition-colors hover:cursor-pointer hover:text-white ${
+                    active ? "text-white font-semibold" : ""
+                  }`}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
+          </div>
         </div>
-        <span
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#ffffff",
-            letterSpacing: 0.3,
-          }}
-        >
-          DevPrep
-        </span>
-      </div>
 
-      {/* Center: Nav Links */}
-      <nav
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-        }}
-      >
-        {NAV_ITEMS.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <button
-              key={item.label}
-              onClick={() => router.push(item.href)}
-              style={{
-                background: active
-                  ? "rgba(99, 102, 241, 0.15)"
-                  : "transparent",
-                border: active
-                  ? "1px solid rgba(99, 102, 241, 0.35)"
-                  : "1px solid transparent",
-                color: active ? "#a5b4fc" : "#8a8f98",
-                fontSize: 13,
-                fontWeight: active ? 600 : 400,
-                padding: "5px 14px",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                transition: "all 0.15s ease",
-                letterSpacing: 0.1,
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                if (!active) {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                  e.currentTarget.style.color = "#d1d5db";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!active) {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "#8a8f98";
-                }
-              }}
-            >
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Right: Profile */}
-      <div style={{ position: "relative" }}>
-        <button
-          onClick={() => setProfileOpen((o) => !o)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 8,
-            padding: "5px 10px 5px 6px",
-            cursor: "pointer",
-            color: "#ffffff",
-            fontFamily: "inherit",
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-          }}
-        >
-          <div
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg,#f59e0b,#ef4444)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 11,
-              fontWeight: 700,
-              color: "#fff",
-              flexShrink: 0,
-            }}
+        {/* Right: Profile */}
+        <div id="profile-menu" className="relative">
+          <button
+            id="profile-toggle"
+            onClick={() => setProfileOpen((o) => !o)}
+            className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 cursor-pointer text-white font-medium transition-all duration-200 hover:bg-white/10 text-xs"
           >
-            {username[0].toUpperCase()}
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#ffffff" }}>
-            {username}
-          </span>
-          <ChevronDown
-            size={13}
-            color="rgba(255,255,255,0.4)"
-            style={{
-              transform: profileOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.15s",
-            }}
-          />
-        </button>
+            {/* Avatar */}
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-red-500 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+              {username[0].toUpperCase()}
+            </div>
+            <span>{username}</span>
+            <ChevronDown
+              size={12}
+              className={`text-white/40 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
+            />
+          </button>
 
-        {/* Dropdown */}
-        {profileOpen && (
-          <div
-            style={{
-              position: "absolute",
-              top: "calc(100% + 8px)",
-              right: 0,
-              width: 180,
-              background: "#0d0e10",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 10,
-              overflow: "hidden",
-              boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
-              zIndex: 200,
-            }}
-          >
-            <div
-              style={{
-                padding: "10px 12px 8px",
-                borderBottom: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#ffffff" }}>
-                {username}
-              </p>
-              <p style={{ margin: "2px 0 0", fontSize: 10, color: "#6b7280" }}>
-                Free plan
-              </p>
+          {/* Dropdown */}
+          {profileOpen && (
+            <div className="absolute top-[calc(100%+8px)] right-0 w-44 bg-[#0d0e10] border border-white/10 rounded-xl overflow-hidden shadow-[0_16px_48px_rgba(0,0,0,0.6)] z-[200]">
+              {/* User info */}
+              <div className="px-3 py-2.5 border-b border-white/[0.07]">
+                <p className="text-xs font-semibold text-white m-0">{username}</p>
+                <p className="text-[10px] text-brand-muted mt-0.5">Free plan</p>
+              </div>
+
+              {/* Menu items */}
+              {[
+                { icon: User, label: "Profile" },
+                { icon: Settings, label: "Settings" },
+              ].map(({ icon: Icon, label }) => (
+                <button
+                  key={label}
+                  className="w-full flex items-center gap-2 bg-transparent border-none text-brand-muted text-xs px-3 py-2 cursor-pointer text-left font-[inherit] transition-all duration-100 hover:bg-white/5 hover:text-white"
+                >
+                  <Icon size={13} />
+                  {label}
+                </button>
+              ))}
+
+              {/* Sign out */}
+              <div className="border-t border-white/[0.07]">
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("token");
+                    router.push("/");
+                  }}
+                  className="w-full flex items-center gap-2 bg-transparent border-none text-red-400 text-xs px-3 py-2 cursor-pointer text-left font-[inherit] transition-all duration-100 hover:bg-red-400/10"
+                >
+                  <LogOut size={13} />
+                  Sign out
+                </button>
+              </div>
             </div>
-            {[
-              { icon: User, label: "Profile" },
-              { icon: Settings, label: "Settings" },
-            ].map(({ icon: Icon, label }) => (
-              <button
-                key={label}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "none",
-                  border: "none",
-                  color: "#8a8f98",
-                  fontSize: 12,
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  textAlign: "left",
-                  transition: "background 0.1s, color 0.1s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                  e.currentTarget.style.color = "#ffffff";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                  e.currentTarget.style.color = "#8a8f98";
-                }}
-              >
-                <Icon size={13} />
-                {label}
-              </button>
-            ))}
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-              <button
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  router.push("/");
-                }}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "none",
-                  border: "none",
-                  color: "#f87171",
-                  fontSize: 12,
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  textAlign: "left",
-                  transition: "background 0.1s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(248,113,113,0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                }}
-              >
-                <LogOut size={13} />
-                Sign out
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </header>
+    </nav>
   );
 }
