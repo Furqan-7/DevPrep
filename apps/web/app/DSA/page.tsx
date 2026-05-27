@@ -223,10 +223,10 @@ export default function DSAPage() {
 
                 {/* Stats Bar */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatChip label="Easy" solved={stats.easy} total={180} color="text-emerald-400" bg="bg-emerald-400/5" border="border-emerald-400/10" />
-                    <StatChip label="Medium" solved={stats.medium} total={210} color="text-amber-400" bg="bg-amber-400/5" border="border-amber-400/10" />
-                    <StatChip label="Hard" solved={stats.hard} total={60} color="text-rose-400" bg="bg-rose-400/5" border="border-rose-400/10" />
-                    <StatChip label="Total" solved={stats.total} total={450} color="text-white" bg="bg-white/5" border="border-white/10" />
+                    <StatChip label="Easy" solved={stats.easy} total={180} color="text-emerald-400" />
+                    <StatChip label="Medium" solved={stats.medium} total={210} color="text-amber-400" />
+                    <StatChip label="Hard" solved={stats.hard} total={60} color="text-rose-400" />
+                    <StatChip label="Total" solved={stats.total} total={450} color="text-white" />
                 </div>
 
                 {/* Problem List Table */}
@@ -283,18 +283,19 @@ export default function DSAPage() {
     );
 }
 
-function StatChip({ label, solved, total, color, bg, border }: { label: string, solved: number, total: number, color: string, bg: string, border: string }) {
+function StatChip({ label, solved, total, color }: { label: string, solved: number, total: number, color: string }) {
     return (
-        <div className={`p-4 rounded-xl border ${bg} ${border} flex items-center justify-between group overflow-hidden relative`}>
+        <div className="p-4 rounded-xl bg-white/[0.03] flex items-center justify-between group overflow-hidden relative">
             <div className="space-y-1 relative z-10">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-brand-muted/70 group-hover:text-white/40 transition-colors">{label}</div>
-                <div className={`text-lg font-display font-bold ${color}`}>
-                    {solved} <span className="text-xs opacity-50 font-normal">/ {total}</span>
+                <div className="text-lg font-display font-bold">
+                    <span className={color}>{solved}</span>
+                    <span className="text-xs text-brand-muted/50 font-normal"> / {total}</span>
                 </div>
             </div>
             <div
-                className="absolute bottom-0 left-0 h-1 bg-current opacity-20 transition-all duration-1000 ease-out"
-                style={{ width: `${(solved / total) * 100}%`, color: 'currentColor' }}
+                className="absolute bottom-0 left-0 h-px transition-all duration-1000 ease-out opacity-30"
+                style={{ width: `${(solved / total) * 100}%`, background: 'currentColor' }}
             />
         </div>
     );

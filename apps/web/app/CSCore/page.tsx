@@ -211,8 +211,8 @@ export default function CSCorePage() {
               onClick={() => { setTopic(t); setAnswers({}); setChecked({}); }}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 border ${
                 topic === t
-                  ? "bg-white/10 text-white border-white/30 shadow-[0_0_10px_rgba(255,255,255,0.08)]"
-                  : "bg-white/[0.03] text-brand-muted border-white/10 hover:border-white/30 hover:text-white"
+                  ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+                  : "bg-transparent text-brand-muted border-white/10 hover:border-white/30 hover:text-white"
               }`}
             >
               {t}
@@ -230,8 +230,8 @@ export default function CSCorePage() {
                 disabled={locked}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 border ${
                   d === "Easy"
-                    ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                    : "bg-white/[0.02] text-brand-muted/40 border-white/[0.06] cursor-not-allowed"
+                    ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+                    : "bg-transparent text-brand-muted/30 border-white/[0.06] cursor-not-allowed"
                 }`}
               >
                 {locked && <Lock size={10} className="opacity-50" />}

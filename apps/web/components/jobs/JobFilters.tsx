@@ -93,32 +93,28 @@ export default function JobFilters({
 
         {/* Right controls group */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          {/* Show categories checkbox */}
-          <label
+          {/* Show categories pill toggle */}
+          <button
+            onClick={() => setShowCategories(!showCategories)}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              cursor: "pointer",
+              gap: 5,
+              padding: "5px 11px",
+              borderRadius: 20,
+              border: `1px solid ${showCategories ? "#ffffff" : "rgba(255,255,255,0.1)"}`,
+              background: showCategories ? "#ffffff" : "rgba(255,255,255,0.03)",
+              color: showCategories ? "#000103" : "#8a8f98",
               fontSize: 12,
-              color: "#8a8f98",
+              fontWeight: showCategories ? 700 : 500,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "all 0.15s",
               whiteSpace: "nowrap",
-              userSelect: "none",
             }}
           >
-            <input
-              type="checkbox"
-              checked={showCategories}
-              onChange={(e) => setShowCategories(e.target.checked)}
-              style={{
-                accentColor: "#6366f1",
-                cursor: "pointer",
-                width: 13,
-                height: 13,
-              }}
-            />
-            Show categories
-          </label>
+            Categories
+          </button>
 
           {/* Separator */}
           <div
@@ -130,52 +126,49 @@ export default function JobFilters({
             }}
           />
 
-          {/* Refresh hiring button */}
+          {/* Refresh hiring pill */}
           <button
             onClick={handleRefresh}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              padding: "6px 10px",
-              borderRadius: 7,
+              gap: 5,
+              padding: "5px 11px",
+              borderRadius: 20,
               border: "1px solid rgba(255,255,255,0.1)",
               background: "rgba(255,255,255,0.03)",
               color: "#8a8f98",
               fontSize: 12,
+              fontWeight: 500,
               cursor: "pointer",
               fontFamily: "inherit",
-              transition: "background 0.15s, color 0.15s",
+              transition: "all 0.15s",
               whiteSpace: "nowrap",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "rgba(255,255,255,0.08)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.3)";
               (e.currentTarget as HTMLButtonElement).style.color = "#ffffff";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "rgba(255,255,255,0.03)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.1)";
               (e.currentTarget as HTMLButtonElement).style.color = "#8a8f98";
             }}
           >
             <RefreshCw
-              size={12}
+              size={11}
               style={{
                 transition: "transform 0.65s ease",
                 transform: refreshSpin ? "rotate(360deg)" : "rotate(0deg)",
               }}
             />
-            Refresh hiring
-            {/* Orange live dot */}
+            Refresh
             <span
               style={{
-                width: 6,
-                height: 6,
+                width: 5,
+                height: 5,
                 borderRadius: "50%",
                 background: "#f97316",
                 flexShrink: 0,
-                boxShadow: "0 0 4px rgba(249,115,22,0.7)",
               }}
             />
           </button>
@@ -202,15 +195,12 @@ export default function JobFilters({
                 width: 30,
                 height: 30,
                 borderRadius: "6px 0 0 6px",
-                borderTop: `1px solid ${viewMode === "grid" ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.1)"}`,
-                borderLeft: `1px solid ${viewMode === "grid" ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.1)"}`,
-                borderBottom: `1px solid ${viewMode === "grid" ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.1)"}`,
+                borderTop: `1px solid ${viewMode === "grid" ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)"}`,
+                borderLeft: `1px solid ${viewMode === "grid" ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)"}`,
+                borderBottom: `1px solid ${viewMode === "grid" ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)"}`,
                 borderRight: "none",
-                background:
-                  viewMode === "grid"
-                    ? "rgba(99,102,241,0.15)"
-                    : "rgba(255,255,255,0.03)",
-                color: viewMode === "grid" ? "#6366f1" : "#8a8f98",
+                background: viewMode === "grid" ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.03)",
+                color: viewMode === "grid" ? "#ffffff" : "#8a8f98",
                 cursor: "pointer",
                 transition: "all 0.15s",
               }}
@@ -227,16 +217,9 @@ export default function JobFilters({
                 width: 30,
                 height: 30,
                 borderRadius: "0 6px 6px 0",
-                border: `1px solid ${
-                  viewMode === "list"
-                    ? "rgba(99,102,241,0.5)"
-                    : "rgba(255,255,255,0.1)"
-                }`,
-                background:
-                  viewMode === "list"
-                    ? "rgba(99,102,241,0.15)"
-                    : "rgba(255,255,255,0.03)",
-                color: viewMode === "list" ? "#6366f1" : "#8a8f98",
+                border: `1px solid ${viewMode === "list" ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)"}`,
+                background: viewMode === "list" ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.03)",
+                color: viewMode === "list" ? "#ffffff" : "#8a8f98",
                 cursor: "pointer",
                 transition: "all 0.15s",
               }}
@@ -261,7 +244,7 @@ export default function JobFilters({
           max={300}
           value={value.salaryMax}
           onChange={(e) => set({ salaryMax: Number(e.target.value) })}
-          style={{ flex: 1, accentColor: "#6366f1" }}
+          style={{ flex: 1, accentColor: "white" }}
         />
       </div>
 
