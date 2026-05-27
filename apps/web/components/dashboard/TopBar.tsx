@@ -52,7 +52,7 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
         scrolled ? "glass py-2" : "bg-brand-bg/90 backdrop-blur-md border-b border-brand-border py-3.5"
       }`}
     >
-      <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-10 flex items-center justify-between">
 
         {/* Left: Logo + Nav Links */}
         <div className="flex items-center gap-6">

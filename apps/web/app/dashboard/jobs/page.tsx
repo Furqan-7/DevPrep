@@ -5,7 +5,7 @@ import { HARDCODED_JOBS } from "@/data/jobs";
 export default function JobsPage() {
   return (
     <DashboardShell>
-      <div style={{ padding: "24px 28px", fontFamily: "Inter, system-ui, sans-serif" }}>
+      <div className="max-w-7xl mx-auto px-10 pt-6 pb-12" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
         <div style={{ marginBottom: 24 }}>
           <h1
             style={{

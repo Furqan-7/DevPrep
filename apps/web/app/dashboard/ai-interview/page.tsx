@@ -1,6 +1,7 @@
 "use client";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, Mic, Clock, ChevronRight } from "lucide-react";
 
 const ROLES = [
@@ -83,6 +84,15 @@ const FILTER_MAP: Record<string, string[]> = {
   Product: ["Product Manager"],
   Behavioral: ["Behavioral Round"],
 };
+
+function titleToSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[&]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 export default function AIInterviewPage() {
   const [query, setQuery] = useState("");
@@ -202,10 +212,13 @@ function RoleCard({
 }: {
   role: { title: string; duration: number; skills: string[] };
 }) {
+  const router = useRouter();
   const [hovered, setHovered] = useState(false);
+  const slug = titleToSlug(role.title);
 
   return (
     <div
+      onClick={() => router.push(`/dashboard/ai-interview/${slug}`)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={`group flex flex-col justify-between rounded-2xl border bg-white/[0.02] p-5 transition-all duration-200 cursor-pointer ${
@@ -239,7 +252,7 @@ function RoleCard({
 
       {/* CTA */}
       <button className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-semibold text-white/70 transition-all duration-150 group-hover:bg-white/10 group-hover:border-white/30 group-hover:text-white">
-        Take practice interview
+        View questions
         <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
       </button>
     </div>

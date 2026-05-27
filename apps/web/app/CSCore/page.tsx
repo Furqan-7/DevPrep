@@ -169,7 +169,7 @@ export default function CSCorePage() {
 
       {/* ── Page Header ── */}
       <header className="pt-10 pb-8 border-b border-white/5 bg-brand-bg/50 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-6 space-y-6">
+        <div className="max-w-7xl mx-auto px-10 space-y-6">
           <div className="space-y-1">
             <nav className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-muted font-bold">
               <span className="hover:text-white transition-colors cursor-pointer">DevPrep</span>
@@ -201,7 +201,7 @@ export default function CSCorePage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 mt-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-10 mt-8 space-y-6">
 
         {/* Topic Chips */}
         <div className="flex items-center gap-2 flex-wrap">

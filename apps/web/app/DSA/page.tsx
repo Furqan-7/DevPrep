@@ -127,7 +127,7 @@ export default function DSAPage() {
         <div className="min-h-screen bg-brand-bg text-white dot-background selection:bg-white selection:text-black pb-20">
             {/* Page Header */}
             <header className="pt-10 pb-8 border-b border-white/5 bg-brand-bg/50 backdrop-blur-xl sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-6 space-y-6">
+                <div className="max-w-7xl mx-auto px-10 space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-1">
                             <nav className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-muted font-bold">
@@ -158,7 +158,7 @@ export default function DSAPage() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
+            <main className="max-w-7xl mx-auto px-10 mt-8 space-y-8">
 
                 {/* Company Filter Row */}
                 <div className="relative group">
