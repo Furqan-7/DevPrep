@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  Mic, MicOff, ChevronDown, Clock3, PhoneOff, AlertOctagon,
-  VideoOff, CheckCircle2,
+  Mic, MicOff, Clock3, PhoneOff, AlertOctagon,
+  VideoOff, CheckCircle2, ChevronDown,
 } from "lucide-react";
 import { ROLE_DATA } from "../../data";
 
@@ -85,26 +85,38 @@ export default function InterviewSessionPage() {
 
   // ── SETUP ────────────────────────────────────────────────────────────────────
   if (phase === "setup") return (
-    <div className="min-h-screen bg-[#060816] text-white overflow-hidden relative flex flex-col items-center justify-center">
-      <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_center,#7c3aed_0%,transparent_60%)]" />
-      <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full px-6">
-        <h1 className="text-5xl font-black tracking-tight leading-none mb-10">
-          DevPrep<span className="text-[#7C6CFF]">.</span>
-        </h1>
+    <div className="min-h-screen bg-brand-bg text-white flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Subtle radial glow */}
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-white/[0.03] blur-[120px]" />
+
+      <div className="relative z-10 flex flex-col items-center text-center max-w-sm w-full px-6">
+        {/* Logo */}
+        <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter mb-10">
+          <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
+            <div className="w-3 h-3 bg-black rounded-sm" />
+          </div>
+          DevPrep
+        </div>
 
         {/* Mini orb */}
         <div className="relative flex items-center justify-center mb-8">
-          <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2.5 }}
-            className="absolute w-[160px] h-[160px] rounded-full bg-[#7C6CFF]/30 blur-3xl" />
-          <motion.div animate={{ scale: [1, 1.04, 1] }} transition={{ repeat: Infinity, duration: 2 }}
-            className="relative w-[100px] h-[100px] rounded-full bg-gradient-to-b from-white to-[#d8d7ff] shadow-[0_0_60px_rgba(124,108,255,0.6)] flex items-center justify-center border border-white/50">
-            <div className="absolute inset-3 rounded-full bg-white/70 blur-xl" />
-            <h2 className="relative z-10 text-4xl font-black text-black">D<span className="text-[#7C6CFF]">.</span></h2>
+          <motion.div
+            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ repeat: Infinity, duration: 3 }}
+            className="absolute w-[120px] h-[120px] rounded-full bg-white/10 blur-2xl"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.04, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="relative w-[72px] h-[72px] rounded-full bg-gradient-to-b from-white to-[#e0e0ff] shadow-[0_0_40px_rgba(255,255,255,0.2)] flex items-center justify-center border border-white/30"
+          >
+            <div className="absolute inset-2 rounded-full bg-white/40 blur-lg" />
+            <span className="relative z-10 text-xl font-black text-black">D<span className="text-[#7C6CFF]">.</span></span>
           </motion.div>
         </div>
 
-        <h2 className="text-2xl font-bold tracking-tight mb-2">Ready for your interview?</h2>
-        <p className="text-zinc-400 text-sm leading-relaxed mb-8">
+        <h1 className="text-2xl font-display font-bold tracking-tight mb-2">Ready for your interview?</h1>
+        <p className="text-brand-muted text-sm leading-relaxed mb-8">
           Starting a <span className="text-white font-semibold">{data.title}</span> practice interview —{" "}
           {data.questions.length} questions, ~{data.duration} mins.
         </p>
@@ -116,19 +128,23 @@ export default function InterviewSessionPage() {
             'Click "Submit & Next" to move to the next question',
             "You can end the interview at any time",
           ].map(tip => (
-            <div key={tip} className="flex items-start gap-2.5 text-xs text-zinc-400">
-              <CheckCircle2 size={13} className="text-[#7C6CFF] mt-0.5 flex-shrink-0" />
+            <div key={tip} className="flex items-start gap-2.5 text-xs text-brand-muted">
+              <CheckCircle2 size={13} className="text-white/50 mt-0.5 flex-shrink-0" />
               {tip}
             </div>
           ))}
         </div>
 
-        <button onClick={startSession}
-          className="w-full py-4 rounded-2xl bg-[#7C6CFF] text-white font-bold text-base hover:bg-[#6a5de8] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-[0_0_40px_rgba(124,108,255,0.4)]">
-          <Mic size={16} />Start Interview
+        <button
+          onClick={startSession}
+          className="w-full py-3 rounded-full bg-white text-black font-bold text-sm hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+        >
+          <Mic size={14} /> Start Interview
         </button>
-        <button onClick={() => router.push(`/dashboard/ai-interview/${slug}`)}
-          className="mt-4 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+        <button
+          onClick={() => router.push(`/dashboard/ai-interview/${slug}`)}
+          className="mt-4 text-xs text-brand-muted hover:text-white transition-colors"
+        >
           Go back
         </button>
       </div>
@@ -137,35 +153,49 @@ export default function InterviewSessionPage() {
 
   // ── DONE ─────────────────────────────────────────────────────────────────────
   if (phase === "done") return (
-    <div className="min-h-screen bg-[#060816] text-white overflow-hidden relative flex flex-col items-center justify-center px-6">
-      <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(circle_at_center,#22c55e_0%,transparent_60%)]" />
-      <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full">
-        <h1 className="text-5xl font-black tracking-tight mb-8">DevPrep<span className="text-[#7C6CFF]">.</span></h1>
-        <div className="w-16 h-16 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center mb-6">
-          <CheckCircle2 size={28} className="text-green-400" />
+    <div className="min-h-screen bg-brand-bg text-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] rounded-full bg-green-500/5 blur-[120px]" />
+      <div className="relative z-10 flex flex-col items-center text-center max-w-sm w-full">
+        {/* Logo */}
+        <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter mb-10">
+          <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
+            <div className="w-3 h-3 bg-black rounded-sm" />
+          </div>
+          DevPrep
         </div>
-        <h2 className="text-2xl font-bold">Interview Complete!</h2>
-        <p className="mt-2 text-sm text-zinc-400">
-          {answered.size} of {data.questions.length} questions answered in <span className="text-white">{formatTime(elapsed)}</span>.
+
+        <div className="w-12 h-12 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center mb-5">
+          <CheckCircle2 size={22} className="text-green-400" />
+        </div>
+        <h2 className="text-2xl font-display font-bold tracking-tight mb-1">Interview Complete!</h2>
+        <p className="text-sm text-brand-muted">
+          {answered.size} of {data.questions.length} questions answered in{" "}
+          <span className="text-white">{formatTime(elapsed)}</span>.
         </p>
-        <div className="mt-8 w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5">
-          <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-3">Questions covered</p>
+
+        <div className="mt-8 w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left">
+          <p className="text-[10px] uppercase tracking-widest text-brand-muted font-bold mb-3">Questions covered</p>
           <div className="space-y-2">
             {data.questions.map((q, i) => (
-              <div key={i} className="flex items-start gap-2.5 text-xs text-zinc-500">
-                <CheckCircle2 size={12} className={`mt-0.5 flex-shrink-0 ${answered.has(i) ? "text-green-400" : "text-zinc-700"}`} />
+              <div key={i} className="flex items-start gap-2.5 text-xs text-brand-muted">
+                <CheckCircle2 size={12} className={`mt-0.5 flex-shrink-0 ${answered.has(i) ? "text-green-400" : "text-white/20"}`} />
                 <span className="line-clamp-1">{q}</span>
               </div>
             ))}
           </div>
         </div>
+
         <div className="mt-6 flex gap-3 w-full">
-          <button onClick={() => router.push("/dashboard/ai-interview")}
-            className="flex-1 py-3 rounded-2xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-zinc-400 hover:text-white hover:border-white/30 transition-all">
+          <button
+            onClick={() => router.push("/dashboard/ai-interview")}
+            className="flex-1 py-2.5 rounded-full border border-white/10 bg-white/[0.03] text-xs font-semibold text-brand-muted hover:text-white hover:border-white/30 transition-all"
+          >
             Back to roles
           </button>
-          <button onClick={() => { setPhase("setup"); setCurrentQ(0); setAnswered(new Set()); setElapsed(0); setIsRecording(false); }}
-            className="flex-1 py-3 rounded-2xl bg-[#7C6CFF] text-white text-sm font-bold hover:bg-[#6a5de8] active:scale-95 transition-all">
+          <button
+            onClick={() => { setPhase("setup"); setCurrentQ(0); setAnswered(new Set()); setElapsed(0); setIsRecording(false); }}
+            className="flex-1 py-2.5 rounded-full bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-95 transition-all"
+          >
             Retry
           </button>
         </div>
@@ -177,34 +207,40 @@ export default function InterviewSessionPage() {
   const topicTabs = data.skills.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#060816] text-white overflow-hidden relative">
+    <div className="min-h-screen bg-brand-bg text-white overflow-hidden relative flex flex-col">
       {/* Background glow */}
-      <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_center,#7c3aed_0%,transparent_60%)]" />
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] rounded-full bg-white/[0.025] blur-[160px]" />
 
       {/* ── TOP NAV ── */}
-      <div className="flex items-center justify-between px-10 pt-8 relative z-10">
-        {/* Logo */}
-        <div>
-          <h1 className="text-5xl font-black tracking-tight leading-none">
-            DevPrep<span className="text-[#7C6CFF]">.</span>
-          </h1>
-          <div className="flex items-center gap-2 mt-6 text-lg">
-            <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="text-zinc-300">{data.title}</span>
+      <div className="flex items-center justify-between px-10 pt-5 pb-4 border-b border-white/[0.06] relative z-10 flex-shrink-0">
+        {/* Logo + role */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-1.5 font-display text-sm font-bold tracking-tighter">
+            <div className="w-5 h-5 bg-white rounded-md flex items-center justify-center">
+              <div className="w-2.5 h-2.5 bg-black rounded-sm" />
+            </div>
+            DevPrep
+          </div>
+          <div className="flex items-center gap-1.5 text-xs">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            <span className="text-brand-muted">{data.title}</span>
           </div>
         </div>
 
         {/* Progress tabs */}
-        <div className="flex gap-8">
+        <div className="hidden md:flex gap-6">
           {topicTabs.map((item, i) => (
             <div key={i}>
-              <p className="text-sm text-zinc-300 mb-2 truncate max-w-[140px]">{item}</p>
-              <div className="w-40 h-2 rounded-full bg-white/10 overflow-hidden border border-white/10">
-                {i < currentQ && <div className="w-full h-full bg-[#7C6CFF]/70" />}
+              <p className="text-xs text-brand-muted mb-1.5 truncate max-w-[120px]">{item}</p>
+              <div className="w-28 h-1 rounded-full bg-white/10 overflow-hidden">
+                {i < currentQ && <div className="w-full h-full bg-white/50" />}
                 {i === Math.min(currentQ, topicTabs.length - 1) && (
-                  <motion.div className="h-full bg-[#7C6CFF]"
-                    initial={{ width: "0%" }} animate={{ width: isRecording ? "70%" : "25%" }}
-                    transition={{ duration: 0.6 }} />
+                  <motion.div
+                    className="h-full bg-white"
+                    initial={{ width: "0%" }}
+                    animate={{ width: isRecording ? "70%" : "25%" }}
+                    transition={{ duration: 0.6 }}
+                  />
                 )}
               </div>
             </div>
@@ -212,58 +248,66 @@ export default function InterviewSessionPage() {
         </div>
 
         {/* Timer */}
-        <div className="border border-white/10 bg-white/5 backdrop-blur-xl rounded-3xl px-6 py-5 flex items-center gap-3 shadow-[0_0_40px_rgba(124,108,255,0.15)]">
-          <Clock3 className="text-[#7C6CFF]" />
-          <span className="text-4xl font-medium">{formatTime(elapsed)}</span>
+        <div className="border border-white/10 bg-white/[0.04] backdrop-blur-xl rounded-xl px-4 py-2 flex items-center gap-2">
+          <Clock3 size={13} className="text-brand-muted" />
+          <span className="text-sm font-mono font-medium">{formatTime(elapsed)}</span>
         </div>
       </div>
 
       {/* ── MAIN 2-COL ── */}
-      <div className="grid grid-cols-2 gap-16 px-10 mt-16 relative z-10 pb-32">
+      <div className="grid grid-cols-2 gap-8 px-10 pt-6 pb-24 relative z-10 flex-1 min-h-0">
 
         {/* LEFT – camera */}
-        <div>
+        <div className="flex flex-col gap-4 min-h-0">
           {/* Mic bar */}
-          <div className="border border-white/10 rounded-3xl bg-white/[0.03] backdrop-blur-xl px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Mic className={micOn ? "text-[#7C6CFF]" : "text-red-400"} />
-              <p className="text-xl text-zinc-200">{micOn ? "Mic: Active" : "Mic: Muted"}</p>
+          <div className="border border-white/[0.08] rounded-xl bg-white/[0.02] px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <Mic size={14} className={micOn ? "text-white/60" : "text-red-400"} />
+              <p className="text-xs text-brand-muted">{micOn ? "Mic: Active" : "Mic: Muted"}</p>
             </div>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-4">
               <button onClick={toggleMic}>
-                {micOn ? <Mic className="w-5 h-5 text-zinc-400" /> : <MicOff className="w-5 h-5 text-red-400" />}
+                {micOn ? <Mic size={13} className="text-brand-muted" /> : <MicOff size={13} className="text-red-400" />}
               </button>
               {micOn && (
-                <div className="flex gap-[5px] items-end h-6">
-                  {[8, 16, 10, 18, 12, 15].map((h, i) => (
-                    <motion.div key={i} animate={{ height: [h, h + 8, h] }}
+                <div className="flex gap-[3px] items-end h-4">
+                  {[6, 12, 8, 14, 10, 12].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      animate={{ height: [h, h + 6, h] }}
                       transition={{ repeat: Infinity, duration: 1, delay: i * 0.1 }}
-                      className="w-[4px] rounded-full bg-[#7C6CFF]" style={{ height: h }} />
+                      className="w-[3px] rounded-full bg-white/40"
+                      style={{ height: h }}
+                    />
                   ))}
                 </div>
               )}
-              <button onClick={toggleCam}><ChevronDown className="text-zinc-400" /></button>
+              <button onClick={toggleCam}><ChevronDown size={13} className="text-brand-muted" /></button>
             </div>
           </div>
 
           {/* Camera feed */}
-          <div className="mt-5 rounded-[34px] border border-white/10 p-4 bg-white/[0.03] backdrop-blur-xl">
-            <div className="rounded-[28px] overflow-hidden bg-black aspect-video relative">
-              <video ref={videoRef} autoPlay muted playsInline
-                className={`w-full h-full object-cover ${camOn ? "opacity-90" : "opacity-0"}`} />
-              {(!camOn || camError) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-zinc-600">
-                  <VideoOff size={32} /><span className="text-sm">Camera off</span>
-                </div>
-              )}
-            </div>
+          <div className="flex-1 rounded-2xl border border-white/[0.08] overflow-hidden bg-black relative min-h-0">
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className={`w-full h-full object-cover ${camOn ? "opacity-90" : "opacity-0"}`}
+            />
+            {(!camOn || camError) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-brand-muted">
+                <VideoOff size={24} />
+                <span className="text-xs">Camera off</span>
+              </div>
+            )}
           </div>
 
           {/* Status */}
-          <div className="flex items-center gap-3 mt-5">
-            <div className={`w-3 h-3 rounded-full ${camError ? "bg-amber-400" : "bg-green-500"}`} />
-            <p className="text-zinc-300 text-lg">
-              {camError ? "Camera denied — audio only" : "Camera and microphone are working properly"}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className={`w-1.5 h-1.5 rounded-full ${camError ? "bg-amber-400" : "bg-green-500"}`} />
+            <p className="text-brand-muted text-xs">
+              {camError ? "Camera denied — audio only" : "Camera and microphone active"}
             </p>
           </div>
         </div>
@@ -271,30 +315,42 @@ export default function InterviewSessionPage() {
         {/* RIGHT – AI + question */}
         <div className="flex flex-col items-center justify-center relative">
           {/* AI Orb */}
-          <div className="relative flex items-center justify-center mb-14">
-            <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.5, 1, 0.5] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-              className="absolute w-[230px] h-[230px] rounded-full bg-[#7C6CFF]/30 blur-3xl" />
-            <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.8, 0.3] }}
+          <div className="relative flex items-center justify-center mb-8">
+            <motion.div
+              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
               transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-              className="absolute w-[180px] h-[180px] rounded-full border border-[#8b7cff]/40" />
+              className="absolute w-[160px] h-[160px] rounded-full bg-white/10 blur-3xl"
+            />
+            <motion.div
+              animate={{ scale: [1, 1.08, 1], opacity: [0.2, 0.5, 0.2] }}
+              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+              className="absolute w-[120px] h-[120px] rounded-full border border-white/10"
+            />
             <motion.div
               animate={{ scale: aiSpeaking ? [1, 1.1, 0.98, 1] : [1, 1.04, 1] }}
               transition={{ repeat: Infinity, duration: aiSpeaking ? 0.5 : 2, ease: "easeInOut" }}
-              className="relative w-[140px] h-[140px] rounded-full bg-gradient-to-b from-white to-[#d8d7ff] shadow-[0_0_80px_rgba(124,108,255,0.6)] flex items-center justify-center border border-white/50">
-              <div className="absolute inset-3 rounded-full bg-white/70 blur-xl" />
-              <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ repeat: Infinity, duration: 1.5 }} className="relative z-10">
-                <h2 className="text-6xl font-black text-black">D<span className="text-[#7C6CFF]">.</span></h2>
+              className="relative w-[90px] h-[90px] rounded-full bg-gradient-to-b from-white to-[#e0e0ff] shadow-[0_0_50px_rgba(255,255,255,0.15)] flex items-center justify-center border border-white/30"
+            >
+              <div className="absolute inset-2 rounded-full bg-white/40 blur-lg" />
+              <motion.div
+                animate={{ scale: [1, 1.06, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="relative z-10"
+              >
+                <span className="text-2xl font-black text-black">D<span className="text-[#7C6CFF]">.</span></span>
               </motion.div>
             </motion.div>
           </div>
 
           {/* Question text */}
-          <div className="max-w-xl w-full">
-            <motion.p key={currentQ} initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: showText ? 1 : 0, y: showText ? 0 : 8 }}
+          <div className="max-w-lg w-full mb-6">
+            <motion.p
+              key={currentQ}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: showText ? 1 : 0, y: showText ? 0 : 6 }}
               transition={{ duration: 0.4 }}
-              className="text-2xl leading-relaxed text-zinc-100">
+              className="text-base leading-relaxed text-white"
+            >
               {currentQ === 0 && !answered.has(0)
                 ? <>Hi, I&apos;m Zara, your AI interviewer at DevPrep.<br /><br />{data.questions[0]}</>
                 : data.questions[currentQ]}
@@ -304,44 +360,54 @@ export default function InterviewSessionPage() {
           {/* Recording / Start button */}
           {isRecording ? (
             <motion.div
-              animate={{ boxShadow: ["0 0 0px rgba(255,0,0,0)", "0 0 30px rgba(255,0,0,0.15)", "0 0 0px rgba(255,0,0,0)"] }}
+              animate={{ boxShadow: ["0 0 0px rgba(255,0,0,0)", "0 0 20px rgba(255,0,0,0.1)", "0 0 0px rgba(255,0,0,0)"] }}
               transition={{ repeat: Infinity, duration: 2 }}
-              className="mt-10 w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl px-8 py-7 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <motion.div animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
+              className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4 flex items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <motion.div
+                  animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
                   transition={{ repeat: Infinity, duration: 1 }}
-                  className="w-4 h-4 rounded-full bg-red-500" />
-                <span className="text-3xl text-zinc-100">Recording...</span>
+                  className="w-2.5 h-2.5 rounded-full bg-red-500"
+                />
+                <span className="text-sm text-white/80">Recording...</span>
               </div>
-              <button onClick={submitAnswer}
-                className="px-6 py-3 rounded-2xl bg-[#7C6CFF] text-white font-bold text-sm hover:bg-[#6a5de8] active:scale-95 transition-all whitespace-nowrap">
+              <button
+                onClick={submitAnswer}
+                className="px-4 py-2 rounded-full bg-white text-black font-bold text-xs hover:bg-white/90 active:scale-95 transition-all whitespace-nowrap"
+              >
                 {currentQ < data.questions.length - 1 ? "Submit & Next →" : "Finish Interview"}
               </button>
             </motion.div>
           ) : (
-            <button onClick={() => setIsRecording(true)} disabled={!showText}
-              className="mt-10 w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl px-8 py-7 flex items-center justify-center gap-4 hover:bg-[#7C6CFF]/10 hover:border-[#7C6CFF]/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
-              <Mic className="text-[#7C6CFF] w-6 h-6" />
-              <span className="text-3xl text-zinc-100">Start Answering</span>
+            <button
+              onClick={() => setIsRecording(true)}
+              disabled={!showText}
+              className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4 flex items-center justify-center gap-3 hover:bg-white/[0.06] hover:border-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Mic size={14} className="text-white/60" />
+              <span className="text-sm text-white">Start Answering</span>
             </button>
           )}
 
-          <p className="mt-4 text-sm text-zinc-600 font-mono">
+          <p className="mt-3 text-xs text-brand-muted font-mono">
             Question {currentQ + 1} of {data.questions.length}
           </p>
         </div>
       </div>
 
       {/* ── BOTTOM ACTIONS ── */}
-      <div className="fixed bottom-8 right-10 flex gap-5 z-20">
-        <button onClick={endInterview}
-          className="px-8 py-5 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl flex items-center gap-3 hover:bg-red-500/10 hover:border-red-500/30 transition-all">
-          <PhoneOff className="text-red-500" />
-          <span className="text-xl">End Interview</span>
+      <div className="fixed bottom-6 right-8 flex gap-3 z-20">
+        <button
+          onClick={endInterview}
+          className="px-4 py-2.5 rounded-xl border border-white/[0.08] bg-brand-bg/80 backdrop-blur-xl flex items-center gap-2 hover:bg-red-500/10 hover:border-red-500/20 transition-all text-xs"
+        >
+          <PhoneOff size={13} className="text-red-500" />
+          <span>End Interview</span>
         </button>
-        <button className="px-8 py-5 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl flex items-center gap-3 hover:bg-white/5 transition-all">
-          <AlertOctagon className="text-[#7C6CFF]" />
-          <span className="text-xl">Having trouble?</span>
+        <button className="px-4 py-2.5 rounded-xl border border-white/[0.08] bg-brand-bg/80 backdrop-blur-xl flex items-center gap-2 hover:bg-white/[0.04] transition-all text-xs">
+          <AlertOctagon size={13} className="text-brand-muted" />
+          <span className="text-brand-muted">Having trouble?</span>
         </button>
       </div>
     </div>
