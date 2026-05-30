@@ -12,6 +12,7 @@ import { signinSchema, signupSchema } from "./types";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
+import { success } from "zod";
 
 const app = express();
 app.use(express.json());
@@ -145,6 +146,109 @@ app.post("/signin", async (require, res) => {
         });
     }
 });
+
+app.get("/api/dsa/problems", async (req, res) => {
+    const userId = res.locals.userId;
+
+    try {
+        const problems = await prisma.problem.findMany({
+            include: {
+                companies: true
+            },
+        });
+
+        return res.status(200).json({
+            success: true,
+            problems,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error
+        });
+    }
+
+});
+
+app.get("/api/dsa/problems", async (req, res) => {
+    const compony = req.body.compony;
+
+    try {
+        const ComponyProblems = await prisma.problem.findMany({
+            include: {
+                companies: compony,
+            },
+        });
+
+        return res.status(200).json({
+            success: true,
+            ComponyProblems: ComponyProblems
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error
+        });
+    }
+});
+
+app.get("/api/dsa/progress", async (req, res) => {
+    const userId = res.locals.userId;
+
+
+    try {
+
+    } catch (error) {
+
+    }
+});
+
+
+app.get("/api/cscore/questions", async (req, res) => {
+
+
+    try {
+
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error
+        });
+    }
+});
+
+app.get("/api/cscore/progress", async (req, res) => {
+    const userId = res.locals.userId;
+
+
+    try {
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error
+        });
+    }
+})
+
+
+
+app.post("/api/interview/generate", async (req, res) => {
+
+});
+
+app.get("/api/interview/feedback", async (req, res) => {
+
+});
+
+
+
 
 
 
