@@ -235,7 +235,23 @@ app.get("/api/cscore/progress", async (req, res) => {
             error
         });
     }
-})
+});
+
+app.get("/api/jobs", async (req, res) => {
+    try {
+
+        const jobs1 = 
+
+
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error
+        });
+    }
+});
 
 
 
