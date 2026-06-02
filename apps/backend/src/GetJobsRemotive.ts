@@ -5,7 +5,7 @@ config();
 export default async function GetJobsRemotive() {
     try {
         const jobs = await axios.get(`${process.env.REMOTIVE_API_KEY}`);
-        return jobs;
+        return jobs.data.jobs;
     } catch (error) {
         throw new Error("Falied at Fetching Jobs" + error);
     }

@@ -2,7 +2,10 @@ import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import { config } from "dotenv";
+import { CronJob } from "cron";
+import axios from "axios";
 config();
+
 
 // Load DATABASE_URL from the database package .env at runtime
 dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
@@ -12,7 +15,9 @@ import { signinSchema, signupSchema } from "./types";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
-import { success } from "zod";
+import { promise, success } from "zod";
+import GetJobsRemotive from "./GetJobsRemotive";
+import GetJobsRapid from "./GetJobsRapid";
 
 const app = express();
 app.use(express.json());
@@ -237,12 +242,74 @@ app.get("/api/cscore/progress", async (req, res) => {
     }
 });
 
-app.get("/api/jobs", async (req, res) => {
+
+
+
+
+
+const jobs = new CronJob("0 */8 * * *", async () => {
+    try {
+        const response = await Promise.allSettled([
+            GetJobsRemotive(),
+            GetJobsRapid(),
+        ]);
+
+
+        console.log(response);
+
+
+
+        const remotiveResult = response[0];
+        const rapidResult = response[1];
+
+        let remotiveJobs: any[] = [];
+        let rapidJobs: any[] = [];
+
+        if (remotiveResult.status === "fulfilled") {
+            remotiveJobs = remotiveResult.value;
+        } else {
+            console.error("❌ Remotive API failed:", remotiveResult.reason);
+        }
+
+        if (rapidResult.status === "fulfilled") {
+            rapidJobs = rapidResult.value;
+        } else {
+            console.error("❌ Rapid API failed:", rapidResult.reason);
+        }
+
+
+
+        // TODO: Save to database and deduplicate
+
+        console.log(remotiveJobs);
+        console.log(rapidJobs);
+
+    } catch (error) {
+        throw new Error("[JOB ERROR]" + error);
+    }
+
+});
+
+jobs.start();
+
+const Meww = new CronJob("*/5 * * * * *", async () => {
     try {
 
-        const jobs1 = 
+        console.log("Hello World");
+
+    }
+    catch (err) {
+        throw new Error("[MEWW ERROR]" + err);
+    }
+});
+
+Meww.start();
 
 
+app.get("/api/jobs", async (req, res) => {
+
+    try {
+        // make a db call here to fetch the jobs 
 
     } catch (error) {
         console.log(error);

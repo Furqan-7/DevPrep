@@ -36,6 +36,41 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+enum jobType {
+  full_time
+  part_time
+  contract
+  internship
+  other
+}
+
+enum JobCategory {
+  startup
+  faang
+  company
+  hft
+  other
+}
+
+model Job {
+  id            String      @id @default(uuid())
+  title         String
+  company       String
+  companyLetter String
+  location      String
+  salary        Int?
+  salaryMin     Int?
+  salaryMax     Int?
+  type          jobType
+  category      JobCategory
+  description   String
+  skills        String[]
+  applyUrl      String
+  postedAt      String
+  isVerified    Boolean
+  isSaved       Boolean
+}
+
 enum Difficulty {
   EASY
   MEDIUM
@@ -43,27 +78,25 @@ enum Difficulty {
 }
 
 model Problem {
-  id             String     @id @default(uuid())
-  lcId           Int        @unique
+  id             String           @id @default(uuid())
+  lcId           Int              @unique
   title          String
   difficulty     Difficulty
   topic          String?
   acceptanceRate Float?
   leetcodeUrl    String
-  createdAt      DateTime   @default(now())
-
-  companies ProblemCompany[]
+  createdAt      DateTime         @default(now())
+  companies      ProblemCompany[]
 }
 
 model Company {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   name      String
-  slug      String   @unique
+  slug      String           @unique
   domain    String?
   logoUrl   String?
-  createdAt DateTime @default(now())
-
-  problems ProblemCompany[]
+  createdAt DateTime         @default(now())
+  problems  ProblemCompany[]
 }
 
 model ProblemCompany {

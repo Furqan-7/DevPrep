@@ -12,6 +12,12 @@ export const signinSchema = z.object({
     password: z.string().min(6),
 });
 
+
+const InterviewSchema = z.object({
+    role: z.string(),
+    level: z.string(),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type SigninInput = z.infer<typeof signinSchema>;
 
