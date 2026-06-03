@@ -1,4 +1,5 @@
 import { PrismaClient } from "./generated/prisma";
+export * from "./generated/prisma";
 // Use globalThis for broader environment compatibility
 const globalForPrisma = globalThis as typeof globalThis & {
     prisma?: PrismaClient;

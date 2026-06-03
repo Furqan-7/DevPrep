@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import path from "path";
 import { config } from "dotenv";
 import { CronJob } from "cron";
-import axios from "axios";
 config();
 
 
@@ -18,6 +17,7 @@ import cors from "cors";
 import { promise, success } from "zod";
 import GetJobsRemotive from "./GetJobsRemotive";
 import GetJobsRapid from "./GetJobsRapid";
+import { mapRapidJob, mapRemotiveJob } from "./MapJobs";
 
 const app = express();
 app.use(express.json());
@@ -244,10 +244,8 @@ app.get("/api/cscore/progress", async (req, res) => {
 
 
 
+async function TempJobs() {
 
-
-
-const jobs = new CronJob("0 */8 * * *", async () => {
     try {
         const response = await Promise.allSettled([
             GetJobsRemotive(),
@@ -256,8 +254,6 @@ const jobs = new CronJob("0 */8 * * *", async () => {
 
 
         console.log(response);
-
-
 
         const remotiveResult = response[0];
         const rapidResult = response[1];
@@ -277,33 +273,87 @@ const jobs = new CronJob("0 */8 * * *", async () => {
             console.error("❌ Rapid API failed:", rapidResult.reason);
         }
 
+        let MappedRemotive = [];
+        let MappedRapidJob = [];
 
+        for (let i = 0; i < remotiveJobs.length; i++) {
+            MappedRemotive.push(mapRemotiveJob(remotiveJobs[i]));
+        }
 
-        // TODO: Save to database and deduplicate
+        for (let i = 0; i < rapidJobs.length; i++) {
+            MappedRapidJob.push(mapRapidJob(rapidJobs[i]));
+        }
 
-        console.log(remotiveJobs);
-        console.log(rapidJobs);
+        const jobs = [...MappedRemotive, ...MappedRapidJob];
+
+        await prisma.job.createMany({
+            data: jobs,
+            skipDuplicates: true
+        });
 
     } catch (error) {
         throw new Error("[JOB ERROR]" + error);
     }
+}
 
-});
+TempJobs();
 
-jobs.start();
 
-const Meww = new CronJob("*/5 * * * * *", async () => {
-    try {
+// const jobs = new CronJob("0 */8 * * *", async () => {
+//     try {
+//         const response = await Promise.allSettled([
+//             GetJobsRemotive(),
+//             GetJobsRapid(),
+//         ]);
 
-        console.log("Hello World");
 
-    }
-    catch (err) {
-        throw new Error("[MEWW ERROR]" + err);
-    }
-});
+//         console.log(response);
 
-Meww.start();
+//         const remotiveResult = response[0];
+//         const rapidResult = response[1];
+
+//         let remotiveJobs: any[] = [];
+//         let rapidJobs: any[] = [];
+
+//         if (remotiveResult.status === "fulfilled") {
+//             remotiveJobs = remotiveResult.value;
+//         } else {
+//             console.error("❌ Remotive API failed:", remotiveResult.reason);
+//         }
+
+//         if (rapidResult.status === "fulfilled") {
+//             rapidJobs = rapidResult.value;
+//         } else {
+//             console.error("❌ Rapid API failed:", rapidResult.reason);
+//         }
+
+//         let MappedRemotive = []; 
+//         let MappedRapidJob = [];
+
+//         for(let i = 0;i<remotiveJobs.length;i++){
+//             MappedRemotive.push(mapRemotiveJob(remotiveJobs[i]));
+//         }
+
+//         for(let i = 0;i< rapidJobs.length;i++){
+//              MappedRapidJob.push(mapRapidJob(rapidJobs[i]));
+//         }
+
+//         const jobs = [...MappedRemotive, ...MappedRapidJob];
+
+//         await prisma.job.createMany({
+//             data:jobs,
+//             skipDuplicates:true   
+//         });
+
+
+
+//     } catch (error) {
+//         throw new Error("[JOB ERROR]" + error);
+//     }
+
+// });
+// jobs.start();
+
 
 
 app.get("/api/jobs", async (req, res) => {
