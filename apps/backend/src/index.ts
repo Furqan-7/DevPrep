@@ -292,7 +292,7 @@ async function TempJobs() {
         });
 
     } catch (error) {
-        throw new Error("[JOB ERROR]" + error);
+        console.log("Error while Fetching jobs " + error);
     }
 }
 
