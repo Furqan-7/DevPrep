@@ -11,30 +11,38 @@ import { ROLE_DATA } from "../../data";
 
 type Phase = "setup" | "active" | "done";
 
+
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
   return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
 export default function InterviewSessionPage() {
-  const params  = useParams();
-  const router  = useRouter();
-  const slug    = Array.isArray(params.role) ? params.role[0] : (params.role ?? "");
-  const data    = ROLE_DATA[slug];
+  const params = useParams();
+  const router = useRouter();
+  const slug = Array.isArray(params.role) ? params.role[0] : (params.role ?? "");
+  const data = ROLE_DATA[slug];
 
-  const videoRef  = useRef<HTMLVideoElement>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
-  const [phase,       setPhase]       = useState<Phase>("setup");
-  const [currentQ,    setCurrentQ]    = useState(0);
-  const [micOn,       setMicOn]       = useState(true);
-  const [camOn,       setCamOn]       = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [elapsed,     setElapsed]     = useState(0);
-  const [answered,    setAnswered]    = useState<Set<number>>(new Set());
-  const [camError,    setCamError]    = useState(false);
-  const [aiSpeaking,  setAiSpeaking]  = useState(false);
-  const [showText,    setShowText]    = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [phase, setPhase] = useState<Phase>("setup");
+  const [currentQ, setCurrentQ] = useState(0);
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
+  const [elapsed, setElapsed] = useState(0);
+  const [answered, setAnswered] = useState<Set<number>>(new Set());
+  const [camError, setCamError] = useState(false);
+  const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [showText, setShowText] = useState(false);
 
   // Timer
   useEffect(() => {
@@ -53,31 +61,89 @@ export default function InterviewSessionPage() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [currentQ, phase]);
 
-  // Cleanup
-  useEffect(() => () => { streamRef.current?.getTracks().forEach(t => t.stop()); }, []);
+  // ── Auto-acquire mic on page load so the browser indicator is always on ───────
+  useEffect(() => {
+    let mounted = true;
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        if (!mounted) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+      })
+      .catch(() => setError("Microphone access denied. Check browser permissions."));
+    return () => {
+      mounted = false;
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    };
+  }, []);
 
-  const startSession = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play().catch(() => {}); }
-    } catch { setCamError(true); }
-    setPhase("active");
+  // ── Start recording the current question's answer ────────────────────────────
+  const startQuestionRecording = () => {
+    if (!streamRef.current) { setError("Microphone not available."); return; }
+    setTranscript(null);
+    setError(null);
+    chunksRef.current = [];
+
+    const recorder = new MediaRecorder(streamRef.current);
+    mediaRecorderRef.current = recorder;
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const formData = new FormData();
+      formData.append("audio", blob, "recording.webm");
+      setIsTranscribing(true);
+      try {
+        const res = await fetch("/api/transcribe", { method: "POST", body: formData });
+        const json = await res.json();
+        if (!res.ok) { setError(json.error ?? "Transcription failed."); return; }
+        setTranscript(json.transcript);
+      } catch {
+        setError("Network error during transcription.");
+      } finally {
+        setIsTranscribing(false);
+      }
+    };
+
+    recorder.start();
+    setIsRecording(true);
   };
 
   const toggleMic = () => { streamRef.current?.getAudioTracks().forEach(t => (t.enabled = !micOn)); setMicOn(m => !m); };
   const toggleCam = () => { streamRef.current?.getVideoTracks().forEach(t => (t.enabled = !camOn)); setCamOn(c => !c); };
 
+  // ── Stop current recording, transcribe, advance to next question ──────────────
   const submitAnswer = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop(); // triggers onstop → transcription
+    }
     setAnswered(prev => new Set([...prev, currentQ]));
     setIsRecording(false);
+    setTranscript(null);
     if (!data) return;
-    if (currentQ < data.questions.length - 1) { setCurrentQ(q => q + 1); }
-    else { streamRef.current?.getTracks().forEach(t => t.stop()); setPhase("done"); }
+    if (currentQ < data.questions.length - 1) {
+      setCurrentQ(q => q + 1);
+    } else {
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      setPhase("done");
+    }
   };
 
+  // ── End interview — kill recorder silently (no transcription) + release mic ───
   const endInterview = () => {
+    // Null out handlers BEFORE stop() so no transcription fires after navigation
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      if (mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+    }
     streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
     router.push(`/dashboard/ai-interview/${slug}`);
   };
 
@@ -136,7 +202,7 @@ export default function InterviewSessionPage() {
         </div>
 
         <button
-          onClick={startSession}
+          onClick={() => setPhase("active")}
           className="w-full py-3 rounded-full bg-white text-black font-bold text-sm hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
         >
           <Mic size={14} /> Start Interview
@@ -381,13 +447,41 @@ export default function InterviewSessionPage() {
             </motion.div>
           ) : (
             <button
-              onClick={() => setIsRecording(true)}
+              onClick={startQuestionRecording}
               disabled={!showText}
               className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4 flex items-center justify-center gap-3 hover:bg-white/[0.06] hover:border-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Mic size={14} className="text-white/60" />
               <span className="text-sm text-white">Start Answering</span>
             </button>
+          )}
+
+          {/* Transcript display */}
+          {isTranscribing && (
+            <div className="w-full max-w-lg mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-4 flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white/70 flex-shrink-0"
+              />
+              <span className="text-xs text-brand-muted">Transcribing your answer…</span>
+            </div>
+          )}
+          {!isTranscribing && transcript && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              className="w-full max-w-lg mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-4"
+            >
+              <p className="text-[10px] uppercase tracking-widest text-brand-muted font-bold mb-2">Your answer</p>
+              <p className="text-sm text-white/80 leading-relaxed">{transcript}</p>
+            </motion.div>
+          )}
+          {!isTranscribing && error && (
+            <div className="w-full max-w-lg mt-4 rounded-2xl border border-red-500/20 bg-red-500/[0.04] px-5 py-3">
+              <p className="text-xs text-red-400">{error}</p>
+            </div>
           )}
 
           <p className="mt-3 text-xs text-brand-muted font-mono">
