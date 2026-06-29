@@ -1,3 +1,5 @@
+import { Difficulty } from "@repo/database";
+import { report } from "node:process";
 import { z } from "zod";
 
 
@@ -13,11 +15,25 @@ export const signinSchema = z.object({
 });
 
 
-const InterviewSchema = z.object({
+export const InterviewSessionSchema = z.object({
     role: z.string(),
-    level: z.string(),
+    difficulty: z.string(),
+    status: z.string(),
+    currentQues: z.string(),
+    questions: z.array,
+    report: z.optional
 });
+
+export const InterviewQuestions = z.object({
+    sessionId: z.string(),
+    question: z.string(),
+    answer: z.string(),
+    score: z.number(),
+    feedback: z.string(),
+    order: z.number()
+})
 
 export type SignupInput = z.infer<typeof signupSchema>;
 export type SigninInput = z.infer<typeof signinSchema>;
-
+export type InterviewSessionInput = z.infer<typeof InterviewSessionSchema>;
+export type InterviewQuestionsInput = z.infer<typeof InterviewQuestions>;
