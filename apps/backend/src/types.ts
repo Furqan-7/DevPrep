@@ -19,6 +19,7 @@ export const InterviewSessionSchema = z.object({
     role: z.string(),
     difficulty: z.string(),
     status: z.string(),
+    introduction: z.string(),
     currentQues: z.string(),
     questions: z.array,
     report: z.optional
@@ -26,11 +27,7 @@ export const InterviewSessionSchema = z.object({
 
 export const InterviewQuestions = z.object({
     sessionId: z.string(),
-    question: z.string(),
-    answer: z.string(),
-    score: z.number(),
-    feedback: z.string(),
-    order: z.number()
+    answer: z.string()
 })
 
 export type SignupInput = z.infer<typeof signupSchema>;

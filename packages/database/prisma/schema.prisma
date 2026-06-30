@@ -36,6 +36,48 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+model InterviewSession {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  role        String
+  difficulty  String
+  status      String   @default("active") // "active" | "completed"
+  currentQues Int      @default(0) // 0 = intro stage, 1-10 = questions
+  createdAt   DateTime @default(now())
+
+  questions InterviewQuestion[]
+  report    InterviewReport?
+}
+
+model InterviewQuestion {
+  id        Int              @id @default(autoincrement())
+  sessionId Int
+  session   InterviewSession @relation(fields: [sessionId], references: [id])
+  question  String           @db.Text
+  answer    String?          @db.Text
+  score     Int?
+  feedback  String?          @db.Text
+  order     Int // 0 = intro, 1-10 = actual questions
+  createdAt DateTime         @default(now())
+
+  @@unique([sessionId, order])
+}
+
+model InterviewReport {
+  id            Int              @id @default(autoincrement())
+  sessionId     Int              @unique
+  session       InterviewSession @relation(fields: [sessionId], references: [id])
+  overallScore  Int
+  communication Int
+  technical     Int // fixed typo: "tecnical" → "technical"
+  confidence    Int
+  summary       String           @db.Text
+  improvements  String           @db.Text
+  createdAt     DateTime         @default(now())
+}
+
+// Jobs Schema 
+
 enum jobType {
   full_time
   part_time
@@ -53,23 +95,37 @@ enum JobCategory {
 }
 
 model Job {
-  id            String      @id @default(uuid())
+  id String @id @default(uuid())
+
+  externalId String? @unique
+  source     String
+
   title         String
   company       String
   companyLetter String
   location      String
-  salary        Int?
-  salaryMin     Int?
-  salaryMax     Int?
-  type          jobType
-  category      JobCategory
-  description   String
-  skills        String[]
-  applyUrl      String
-  postedAt      String
-  isVerified    Boolean
-  isSaved       Boolean
+
+  salary    Int?
+  salaryMin Int?
+  salaryMax Int?
+
+  type     jobType
+  category JobCategory
+
+  description String
+  skills      String[]
+
+  applyUrl String
+
+  postedAt DateTime
+
+  isVerified Boolean @default(false)
+  isSaved    Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
+
+// DSA Schema
 
 enum Difficulty {
   EASY

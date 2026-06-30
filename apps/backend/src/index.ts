@@ -1,4 +1,4 @@
-import express from "express";
+import express, { response } from "express";
 import dotenv from "dotenv";
 import path from "path";
 import { config } from "dotenv";
@@ -10,20 +10,24 @@ config();
 dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
 
 import { prisma } from "@repo/database";
-import { signinSchema, signupSchema, InterviewQuestionsInput } from "./types";
+import { signinSchema, signupSchema, InterviewQuestionsInput, InterviewSessionSchema, InterviewQuestions } from "./types";
 import type { InterviewSessionInput } from "./types";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
-import { promise, success } from "zod";
+import { includes, promise, success } from "zod";
 import GetJobsRemotive from "./GetJobsRemotive";
 import GetJobsRapid from "./GetJobsRapid";
 import { mapRapidJob, mapRemotiveJob } from "./MapJobs";
 import { MiddleWhere } from "./Middlewhere";
+import { error } from "console";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+
+const TOTAL_QUESTIONS = 10;
 
 app.post("/signup", async (req, res) => {
     const Response = signupSchema.safeParse(req.body);
@@ -375,21 +379,204 @@ app.get("/api/jobs", async (req, res) => {
 
 
 app.post("/api/interview/generate", MiddleWhere, async (req, res) => {
-    const userId = res.locals.userId;
 
-    const Response = InterviewSessionSchema.safeParse(req.body);
-    if (!Response.success) {
-        return res.status(411).json({
-            message: "Invalid Format",
-            success: false
-        })
-    };
+    try {
+        const userId = res.locals.userId;
+        const Response = await InterviewSessionSchema.safeParse(req.body);
+        if (!Response.success) {
+            return res.status(411).json({
+                message: "Invalid Format",
+                success: false
+            })
+        };
+        const { role, difficulty, introduction } = Response.data;
+        //@ts-ignore
+        const session = await prisma.interviewSession.create({
+            data: {
+                userId: userId,
+                role: role,
+                difficulty: difficulty,
+                introduction: introduction,
+                status: "active",
+                currentQues: 0,
+            }
+        });
 
+        //@ts-ignore
+        await prisma.interviewQuestion.create({
+            data: {
+                sessionId: session.id,
+                order: 0,
+                question: "Tell me about yourself.",
+                answer: introduction ?? null,
+            }
+        });
 
+        const prompt = `
+You are a senior technical interviewer for a "${role}" role at "${difficulty}" difficulty.
+The candidate just introduced themselves: "${introduction || "(no introduction given)"}"
 
+Generate the FIRST real interview question (order 1), using their introduction as light
+context if relevant. Keep it focused and not overly long.
 
+Respond ONLY with valid JSON, no markdown, no preamble:
+{ "question": "string" }
+        `.trim();
 
+        const question = {};
+
+        //@ts-ignore
+        await prisma.interviewQuesion.create({
+            data: { sessionId: session.id, order: 1, question },
+        });
+
+        //@ts-ignore
+        await prisma.interviewSession.update({
+            where: { id: session.id },
+            data: { currentQues: 1 },
+        });
+
+        return res.status(200).json({
+            success: true,
+            questionNum: 1,
+            totalQuestions: TOTAL_QUESTIONS,
+            question
+        });
+
+    } catch (error) {
+        console.log("Error" + error);
+        return res.status(500).json({
+            success: false,
+            error
+        });
+    }
 });
+
+
+
+app.post("/api/interview/answer", MiddleWhere, async (req, res) => {
+    try {
+        const userId = res.locals.userId;
+        const Response = InterviewQuestions.safeParse(req.body);
+
+        if (!Response.success) {
+            return res.status(402).json({
+                success: false,
+                error: Response.error
+            });
+        }
+
+        const { sessionId, answer } = Response.data;
+
+        const session = await prisma.interviewSession.findUnique({
+            where: { sessionId },
+            includes: { questions: { orderBy: { "order": "asc" } } },
+        });
+
+
+        if (!session) return res.status(404).json({
+            success: false,
+            error: "Session Not Found"
+        });
+
+        if (session.status === "completed") {
+            return res.status(400).json({
+                success: false,
+                error: "Session Already Completed"
+            });
+        }
+
+        const currentQues = session.questions.find(
+            (q: any) => q.order === session.currentQues
+        );
+
+        if (!currentQues) {
+            return res.status(500).json({
+                success: false,
+                error: "No Question Found"
+            });
+        }
+
+        const isLastQuestion = session.currentQue >= TOTAL_QUESTIONS;
+
+        const history = session.questions
+            .filter((q: any) => q.order > 0 && q.answer)
+            .map((q: any) => `Q${q.order}: ${q.question}\nA${q.order}: ${q.answer}`)
+            .join("\n\n");
+
+
+        const prompt = `
+You are a senior technical interviewer for a "${session.role}" role at "${session.difficulty}" difficulty.
+
+Conversation so far:
+${history || "(this is the first question)"}
+
+Current question: "${currentQuestion.question}"
+Candidate's answer: "${answer}"
+
+Tasks:
+1. Evaluate the answer. Give a score from 0-10 and concise, constructive feedback (2-3 sentences).
+2. ${isLastQuestion
+                ? "This was the FINAL question. Set nextQuestion to null."
+                : "Generate the NEXT interview question, building naturally on the conversation, slightly increasing difficulty. Avoid repeating topics already covered."
+            }
+
+Respond ONLY with valid JSON, no markdown, no preamble:
+{ "score": number, "feedback": "string", "nextQuestion": "string | null" }
+        `.trim();
+
+
+
+        // get the response form gemini
+        const result = 0;
+        await prisma.interviewQuestion.update({
+            where: { id: currentQuestion.id },
+            data: { answer, score: result.score, feedback: result.feedback },
+        });
+
+        if (isLastQuestion) {
+            await prisma.interviewSession.update({
+                where: { id: session.id },
+                data: { status: "completed" },
+            });
+
+            return res.json({
+                isComplete: true,
+                evaluation: { score: result.score, feedback: result.feedback },
+                sessionId: session.id,
+            });
+        }
+
+        const nextOrder = session.currentQues + 1;
+
+        await prisma.interviewQuestion.create({
+            data: { sessionId: session.id, order: nextOrder, question: result.nextQuestion! },
+        });
+
+        await prisma.interviewSession.update({
+            where: { id: session.id },
+            data: { currentQues: nextOrder },
+        });
+
+        return res.json({
+            isComplete: false,
+            evaluation: { score: result.score, feedback: result.feedback },
+            questionNum: nextOrder,
+            totalQuestions: TOTAL_QUESTIONS,
+            question: result.nextQuestion,
+        });
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            error: error
+        });
+
+    }
+
+
+
+})
 
 app.get("/api/interview/feedback", async (req, res) => {
 
