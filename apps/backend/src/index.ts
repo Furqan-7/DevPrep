@@ -1,4 +1,4 @@
-import express, { response } from "express";
+import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import { config } from "dotenv";
@@ -15,7 +15,7 @@ import type { InterviewSessionInput } from "./types";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
-import { includes, promise, success } from "zod";
+
 import GetJobsRemotive from "./GetJobsRemotive";
 import GetJobsRapid from "./GetJobsRapid";
 import { mapRapidJob, mapRemotiveJob } from "./MapJobs";
@@ -188,7 +188,7 @@ app.get("/api/dsa/problems", async (req, res) => {
     try {
         const ComponyProblems = await prisma.problem.findMany({
             include: {
-                companies: compony,
+                companies: true,
             },
         });
 
@@ -382,7 +382,7 @@ app.post("/api/interview/generate", MiddleWhere, async (req, res) => {
 
     try {
         const userId = res.locals.userId;
-        const Response = await InterviewSessionSchema.safeParse(req.body);
+        const Response = InterviewSessionSchema.safeParse(req.body);
         if (!Response.success) {
             return res.status(411).json({
                 message: "Invalid Format",
@@ -390,10 +390,10 @@ app.post("/api/interview/generate", MiddleWhere, async (req, res) => {
             })
         };
         const { role, difficulty, introduction } = Response.data;
-        //@ts-ignore
+
         const session = await prisma.interviewSession.create({
             data: {
-                userId: userId,
+                userId: parseInt(userId, 10),
                 role: role,
                 difficulty: difficulty,
                 introduction: introduction,
@@ -402,7 +402,6 @@ app.post("/api/interview/generate", MiddleWhere, async (req, res) => {
             }
         });
 
-        //@ts-ignore
         await prisma.interviewQuestion.create({
             data: {
                 sessionId: session.id,
@@ -423,14 +422,12 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 { "question": "string" }
         `.trim();
 
-        const question = {};
+        const question = "Tell me about a challenging project you have worked on.";
 
-        //@ts-ignore
-        await prisma.interviewQuesion.create({
+        await prisma.interviewQuestion.create({
             data: { sessionId: session.id, order: 1, question },
         });
 
-        //@ts-ignore
         await prisma.interviewSession.update({
             where: { id: session.id },
             data: { currentQues: 1 },
@@ -468,9 +465,10 @@ app.post("/api/interview/answer", MiddleWhere, async (req, res) => {
 
         const { sessionId, answer } = Response.data;
 
-        //@ts-ignore
+
+        const sessionIdNum = parseInt(sessionId, 10);
         const session = await prisma.interviewSession.findUnique({
-            where: { sessionId },
+            where: { id: sessionIdNum },
             include: { questions: { orderBy: { "order": "asc" } } },
         });
 
@@ -498,7 +496,7 @@ app.post("/api/interview/answer", MiddleWhere, async (req, res) => {
             });
         }
 
-        const isLastQuestion = session.currentQue >= TOTAL_QUESTIONS;
+        const isLastQuestion = session.currentQues >= TOTAL_QUESTIONS;
 
         const history = session.questions
             .filter((q: any) => q.order > 0 && q.answer)
@@ -578,10 +576,7 @@ Respond ONLY with valid JSON, no markdown, no preamble:
         });
 
     }
-
-
-
-})
+});
 
 app.get("/api/interview/feedback", async (req, res) => {
 

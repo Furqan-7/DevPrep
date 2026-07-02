@@ -18,11 +18,7 @@ export const signinSchema = z.object({
 export const InterviewSessionSchema = z.object({
     role: z.string(),
     difficulty: z.string(),
-    status: z.string(),
-    introduction: z.string(),
-    currentQues: z.string(),
-    questions: z.array,
-    report: z.optional
+    introduction: z.string().optional(),
 });
 
 export const InterviewQuestions = z.object({

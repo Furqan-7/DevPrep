@@ -13,6 +13,7 @@
         "@types/express": "^5.0.6"
     },
     "dependencies": {
+        "@google/generative-ai": "^0.24.1",
         "@types/bcrypt": "^6.0.0",
         "@types/cors": "^2.8.19",
         "@types/jsonwebtoken": "^9.0.10",

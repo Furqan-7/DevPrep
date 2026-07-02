@@ -37,13 +37,14 @@ model Account {
 }
 
 model InterviewSession {
-  id          Int      @id @default(autoincrement())
-  userId      String
-  role        String
-  difficulty  String
-  status      String   @default("active") // "active" | "completed"
-  currentQues Int      @default(0) // 0 = intro stage, 1-10 = questions
-  createdAt   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  role         String
+  difficulty   String
+  introduction String?  @db.Text
+  status       String   @default("active") // "active" | "completed"
+  currentQues  Int      @default(0) // 0 = intro stage, 1-10 = questions
+  createdAt    DateTime @default(now())
 
   questions InterviewQuestion[]
   report    InterviewReport?

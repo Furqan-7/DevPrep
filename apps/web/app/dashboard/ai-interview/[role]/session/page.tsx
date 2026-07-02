@@ -23,6 +23,8 @@ export default function InterviewSessionPage() {
   const slug = Array.isArray(params.role) ? params.role[0] : (params.role ?? "");
   const data = ROLE_DATA[slug];
 
+  console.log(data);
+
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
