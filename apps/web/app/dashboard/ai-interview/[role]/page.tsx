@@ -285,6 +285,14 @@ export default function RoleInterviewPage() {
 
   /** Call the backend to create a session, then navigate to session page. */
   async function handleStartInterview() {
+    // Guard: make sure the user is actually logged in before hitting the API.
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      setStartError("You must be signed in to start an interview. Redirecting to sign in…");
+      setTimeout(() => router.push("/auth/signin"), 1500);
+      return;
+    }
+
     setStarting(true);
     setStartError(null);
     try {

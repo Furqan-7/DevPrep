@@ -21,6 +21,7 @@ import GetJobsRapid from "./GetJobsRapid";
 import { mapRapidJob, mapRemotiveJob } from "./MapJobs";
 import { MiddleWhere } from "./Middlewhere";
 import { error } from "console";
+import { generateJSON } from "./lib/gemini";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,16 @@ app.use(cors());
 
 
 const TOTAL_QUESTIONS = 10;
+
+interface NextQuestionResponse {
+    question: string;
+}
+
+interface EvalResponse {
+    score: number;
+    feedback: string;
+    nextQuestion: string | null;
+}
 
 app.post("/signup", async (req, res) => {
     const Response = signupSchema.safeParse(req.body);
@@ -382,6 +393,8 @@ app.post("/api/interview/generate", MiddleWhere, async (req, res) => {
 
     try {
         const userId = res.locals.userId;
+        console.log("[generate] raw userId from locals:", userId, "| parsed:", parseInt(userId, 10));
+
         const Response = InterviewSessionSchema.safeParse(req.body);
         if (!Response.success) {
             return res.status(411).json({
@@ -424,7 +437,7 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 { "question": "string" }
         `.trim();
 
-        const question = "Tell me about a challenging project you have worked on.";
+        const { question } = await generateJSON<NextQuestionResponse>(prompt);
 
         await prisma.interviewQuestion.create({
             data: { sessionId: session.id, order: 1, question },
@@ -442,11 +455,12 @@ Respond ONLY with valid JSON, no markdown, no preamble:
             question
         });
 
-    } catch (error) {
-        console.log("Error" + error);
+    } catch (error: any) {
+        console.error("[/api/interview/generate] ERROR:", error?.message ?? error);
         return res.status(500).json({
             success: false,
-            error
+            message: error?.message ?? "Internal server error",
+            detail: error?.code ?? null,        // Prisma error code e.g. P2003
         });
     }
 });
@@ -529,7 +543,7 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 
 
         // get the response form gemini
-        const result = 0 as unknown as { score: number; feedback: string; nextQuestion: string | null };
+        const result = await generateJSON<EvalResponse>(prompt);
         //@ts-ignore
         await prisma.interviewQuestion.update({
             where: { id: currentQues.id },
