@@ -7,7 +7,13 @@ import {
   Mic, MicOff, Clock3, PhoneOff, AlertOctagon,
   VideoOff, CheckCircle2, ChevronDown,
 } from "lucide-react";
-import { ROLE_DATA } from "../../data";
+import type { RoleData } from "../../data";
+
+type SessionData = RoleData & {
+  sessionId?: number;
+  firstQuestion?: string;
+  totalQuestions?: number;
+};
 
 type Phase = "setup" | "active" | "done";
 
@@ -21,9 +27,26 @@ export default function InterviewSessionPage() {
   const params = useParams();
   const router = useRouter();
   const slug = Array.isArray(params.role) ? params.role[0] : (params.role ?? "");
-  const data = ROLE_DATA[slug];
 
-  console.log(data);
+  const [data, setData] = useState<SessionData | null>(null);
+
+  // Hydrate session data that was written by the role page after the backend
+  // POST /api/interview/generate call.
+  useEffect(() => {
+    const raw = sessionStorage.getItem(`interview_session_${slug}`);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as SessionData;
+        // If the backend returned a firstQuestion, inject it as questions[0]
+        if (parsed.firstQuestion && (!parsed.questions || parsed.questions.length === 0)) {
+          parsed.questions = [parsed.firstQuestion];
+        }
+        setData(parsed);
+      } catch {
+        // malformed – will show the loading/fallback state
+      }
+    }
+  }, [slug]);
 
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -149,7 +172,13 @@ export default function InterviewSessionPage() {
     router.push(`/dashboard/ai-interview/${slug}`);
   };
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-brand-bg text-white flex items-center justify-center">
+        <p className="text-brand-muted text-sm">Loading session…</p>
+      </div>
+    );
+  }
 
   // ── SETUP ────────────────────────────────────────────────────────────────────
   if (phase === "setup") return (

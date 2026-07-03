@@ -391,6 +391,8 @@ app.post("/api/interview/generate", MiddleWhere, async (req, res) => {
         };
         const { role, difficulty, introduction } = Response.data;
 
+        console.log("user Id " + userId + " data " + Response.data);
+
         const session = await prisma.interviewSession.create({
             data: {
                 userId: parseInt(userId, 10),
