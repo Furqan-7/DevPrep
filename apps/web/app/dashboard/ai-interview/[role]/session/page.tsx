@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   Mic, MicOff, Clock3, PhoneOff, AlertOctagon,
-  VideoOff, CheckCircle2, ChevronDown,
+  VideoOff, CheckCircle2, ChevronDown, Volume2,
 } from "lucide-react";
 import type { RoleData } from "../../data";
+import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 
 type SessionData = RoleData & {
   sessionId?: number;
@@ -59,6 +60,9 @@ export default function InterviewSessionPage() {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Speech Synthesis ─────────────────────────────────────────────────────────
+  const { isSupported: ttsSupported, isSpeaking, speak, cancel: cancelSpeech } = useSpeechSynthesis();
+
   const [phase, setPhase] = useState<Phase>("setup");
   const [currentQ, setCurrentQ] = useState(0);
   const [micOn, setMicOn] = useState(true);
@@ -66,7 +70,10 @@ export default function InterviewSessionPage() {
   const [elapsed, setElapsed] = useState(0);
   const [answered, setAnswered] = useState<Set<number>>(new Set());
   const [camError, setCamError] = useState(false);
-  const [aiSpeaking, setAiSpeaking] = useState(false);
+  // aiSpeaking is now driven by real TTS state; fallback to a brief timeout
+  // when TTS is not available so the orb still animates.
+  const [aiSpeakingFallback, setAiSpeakingFallback] = useState(false);
+  const aiSpeaking = ttsSupported ? isSpeaking : aiSpeakingFallback;
   const [showText, setShowText] = useState(false);
 
   // Timer
@@ -76,14 +83,33 @@ export default function InterviewSessionPage() {
     return () => clearInterval(id);
   }, [phase]);
 
-  // AI speaking animation on question change
+  // ── Speak the current question whenever it changes (or phase becomes active) ─
   useEffect(() => {
-    if (phase !== "active") return;
+    if (phase !== "active" || !data) return;
+
     setShowText(false);
-    setAiSpeaking(true);
-    const t1 = setTimeout(() => setAiSpeaking(false), 1800);
-    const t2 = setTimeout(() => setShowText(true), 1400);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+
+    // Build the text to speak for this question.
+    const questionText =
+      currentQ === 0 && !answered.has(0)
+        ? `Hi, I'm Zara, your AI interviewer at DevPrep. ${data.questions[currentQ]}`
+        : data.questions[currentQ];
+
+    if (ttsSupported) {
+      // The TTS engine's onstart/onend drive aiSpeaking via isSpeaking.
+      speak(questionText, { rate: 0.92, pitch: 1.05 });
+      // Reveal text slightly before TTS ends (feels more natural).
+      const revealDelay = Math.min(questionText.length * 40, 1800);
+      const t = setTimeout(() => setShowText(true), revealDelay);
+      return () => clearTimeout(t);
+    } else {
+      // Fallback animation when TTS is unavailable.
+      setAiSpeakingFallback(true);
+      const t1 = setTimeout(() => setAiSpeakingFallback(false), 1800);
+      const t2 = setTimeout(() => setShowText(true), 1400);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQ, phase]);
 
   // ── Auto-acquire mic on page load so the browser indicator is always on ───────
@@ -159,6 +185,8 @@ export default function InterviewSessionPage() {
 
   // ── End interview — kill recorder silently (no transcription) + release mic ───
   const endInterview = () => {
+    // Stop any TTS that may be playing.
+    cancelSpeech();
     // Null out handlers BEFORE stop() so no transcription fires after navigation
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.ondataavailable = null;
@@ -307,6 +335,14 @@ export default function InterviewSessionPage() {
     <div className="min-h-screen bg-brand-bg text-white overflow-hidden relative flex flex-col">
       {/* Background glow */}
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] rounded-full bg-white/[0.025] blur-[160px]" />
+
+      {/* ── TTS not-supported banner (shown once, non-blocking) ── */}
+      {!ttsSupported && (
+        <div className="relative z-20 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-400">
+          <Volume2 size={12} />
+          Your browser doesn&apos;t support text-to-speech — questions will appear as text only.
+        </div>
+      )}
 
       {/* ── TOP NAV ── */}
       <div className="flex items-center justify-between px-10 pt-5 pb-4 border-b border-white/[0.06] relative z-10 flex-shrink-0">
