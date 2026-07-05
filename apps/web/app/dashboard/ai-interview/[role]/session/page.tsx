@@ -79,7 +79,11 @@ export default function InterviewSessionPage() {
   const [totalQuestions, setTotalQuestions] = useState<number>(10);
 
   // ── Speech Synthesis ─────────────────────────────────────────────────────────
-  const { isSupported: ttsSupported, isSpeaking, speak, cancel: cancelSpeech } = useSpeechSynthesis();
+  const { isSupported: ttsSupported, cancel: cancelSpeech } = useSpeechSynthesis();
+
+  // displayedText drives both the on-screen text AND the aiSpeaking animation.
+  // It is populated word-by-word via onboundary and cleared on onend.
+  const [displayedText, setDisplayedText] = useState("");
 
   const [phase, setPhase] = useState<Phase>("setup");
   const [currentQ, setCurrentQ] = useState(0);
@@ -88,10 +92,30 @@ export default function InterviewSessionPage() {
   const [elapsed, setElapsed] = useState(0);
   const [answered, setAnswered] = useState<Set<number>>(new Set());
   const [camError, setCamError] = useState(false);
-  // aiSpeaking is driven by real TTS state; fallback timeout when TTS unavailable
-  const [aiSpeakingFallback, setAiSpeakingFallback] = useState(false);
-  const aiSpeaking = ttsSupported ? isSpeaking : aiSpeakingFallback;
+  // aiSpeaking: true while displayedText is non-empty (Zara is speaking)
+  const aiSpeaking = displayedText !== "";
   const [showText, setShowText] = useState(false);
+
+  // ── Word-by-word speak via onboundary ────────────────────────────────────────
+  const speakWithBoundary = (text: string, onDone?: () => void) => {
+    if (!ttsSupported || typeof window === "undefined") { onDone?.(); return; }
+    window.speechSynthesis.cancel();
+    setDisplayedText("");
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.onboundary = (event) => {
+      if (event.name !== "word") return;
+      const spokenSoFar = text.slice(0, event.charIndex + event.charLength);
+      setDisplayedText(spokenSoFar);
+    };
+    utterance.onend = () => {
+      setDisplayedText("");
+      onDone?.();
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
 
   // Timer
   useEffect(() => {
@@ -100,20 +124,15 @@ export default function InterviewSessionPage() {
     return () => clearInterval(id);
   }, [phase]);
 
-  // ── Speak the current question whenever it changes (or phase becomes active) ─
+  // ── Speak the current question whenever it changes (or phase becomes active) ──
   useEffect(() => {
     if (phase !== "active" || !data) return;
 
-    // If interviewerMessage already voiced the next question, skip to avoid double-speak.
+    // If interviewerMessage already voiced the next question, skip (don't double-speak).
     if (skipNextSpeakRef.current) {
       skipNextSpeakRef.current = false;
-      // Still need to reveal the display text
-      const revealDelay = Math.min((data.questions[currentQ]?.length ?? 80) * 40, 1800);
-      const t = setTimeout(() => setShowText(true), revealDelay);
-      return () => clearTimeout(t);
+      return;
     }
-
-    setShowText(false);
 
     // Build the text to speak for this question.
     const questionText =
@@ -121,17 +140,7 @@ export default function InterviewSessionPage() {
         ? `Hi, I'm Zara, your AI interviewer at DevPrep. ${data.questions[currentQ]}`
         : data.questions[currentQ];
 
-    if (ttsSupported) {
-      speak(questionText, { rate: 0.92, pitch: 1.05 });
-      const revealDelay = Math.min(questionText.length * 40, 1800);
-      const t = setTimeout(() => setShowText(true), revealDelay);
-      return () => clearTimeout(t);
-    } else {
-      setAiSpeakingFallback(true);
-      const t1 = setTimeout(() => setAiSpeakingFallback(false), 1800);
-      const t2 = setTimeout(() => setShowText(true), 1400);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
+    speakWithBoundary(questionText);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQ, phase]);
 
@@ -200,11 +209,11 @@ export default function InterviewSessionPage() {
 
         if (result.isComplete) {
           streamRef.current?.getTracks().forEach(t => t.stop());
-          // Speak Zara's closing message before showing done screen
           if (result.interviewerMessage) {
-            speak(result.interviewerMessage, { rate: 0.92, pitch: 1.05 });
+            speakWithBoundary(result.interviewerMessage, () => setPhase("done"));
+          } else {
+            setPhase("done");
           }
-          setPhase("done");
           return;
         }
 
@@ -219,7 +228,7 @@ export default function InterviewSessionPage() {
         // Set the skip flag so useEffect([currentQ]) doesn't double-speak.
         if (result.interviewerMessage && ttsSupported) {
           skipNextSpeakRef.current = true;
-          speak(result.interviewerMessage, { rate: 0.92, pitch: 1.05 });
+          speakWithBoundary(result.interviewerMessage);
         }
         setCurrentQ(q => q + 1);
       } catch (e: any) {
@@ -237,16 +246,17 @@ export default function InterviewSessionPage() {
   };
 
   // ── Auto-start recording the moment Zara finishes speaking ───────────────────
-  // Watches the falling edge of isSpeaking (true → false) and fires startQuestionRecording.
-  // The eslint-disable is intentional: we only want to re-run on isSpeaking changes.
+  // Watches the falling edge of aiSpeaking (displayedText: non-empty → empty)
+  // and fires startQuestionRecording.
   useEffect(() => {
     const wasSpeak = prevIsSpeakingRef.current;
-    prevIsSpeakingRef.current = isSpeaking;
-    if (wasSpeak && !isSpeaking && phase === "active" && !isRecording && !isSubmitting) {
+    prevIsSpeakingRef.current = aiSpeaking;
+    if (wasSpeak && !aiSpeaking && phase === "active" && !isRecording && !isSubmitting) {
       startQuestionRecording();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSpeaking]);
+  }, [aiSpeaking]);
+
 
   const toggleMic = () => { streamRef.current?.getAudioTracks().forEach(t => (t.enabled = !micOn)); setMicOn(m => !m); };
   const toggleCam = () => { streamRef.current?.getVideoTracks().forEach(t => (t.enabled = !camOn)); setCamOn(c => !c); };
@@ -628,29 +638,29 @@ export default function InterviewSessionPage() {
             </motion.div>
           </div>
 
-          {/* Question text — Zara's voice, styled distinctly */}
-          <div className="max-w-lg w-full mb-6">
-            <motion.div
-              key={currentQ}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: showText ? 1 : 0, y: showText ? 0 : 6 }}
-              transition={{ duration: 0.4 }}
-            >
-              {currentQ === 0 && !answered.has(0) && (
-                <p className="text-[11px] font-mono tracking-widest text-white/40 uppercase mb-3">
-                  Zara · AI Interviewer
-                </p>
-              )}
-              <p
-                className="text-[13px] leading-[1.8] tracking-wide"
-                style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.82)" }}
+          {/* Question text — word-by-word via onboundary */}
+          {displayedText && (
+            <div className="max-w-lg w-full mb-6">
+              <motion.div
+                key={currentQ}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                {currentQ === 0 && !answered.has(0)
-                  ? <>Hi, I&apos;m Zara, your AI interviewer at DevPrep.<br /><br />{data.questions[0]}</>
-                  : data.questions[currentQ]}
-              </p>
-            </motion.div>
-          </div>
+                {currentQ === 0 && !answered.has(0) && (
+                  <p className="text-[11px] font-mono tracking-widest text-white/40 uppercase mb-3">
+                    Zara · AI Interviewer
+                  </p>
+                )}
+                <p
+                  className="text-[13px] leading-[1.8] tracking-wide"
+                  style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.82)" }}
+                >
+                  {displayedText}
+                </p>
+              </motion.div>
+            </div>
+          )}
 
           {/* Recording status — auto-starts when Zara finishes; auto-submits on silence */}
           {isSubmitting ? (
@@ -715,28 +725,7 @@ export default function InterviewSessionPage() {
             </div>
           )}
 
-          {/* Transcript display */}
-          {isTranscribing && (
-            <div className="w-full max-w-lg mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-4 flex items-center gap-3">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white/70 flex-shrink-0"
-              />
-              <span className="text-xs text-brand-muted">Transcribing your answer…</span>
-            </div>
-          )}
-          {!isTranscribing && transcript && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35 }}
-              className="w-full max-w-lg mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-4"
-            >
-              <p className="text-[10px] uppercase tracking-widest text-brand-muted font-bold mb-2">Your answer</p>
-              <p className="text-sm text-white/80 leading-relaxed">{transcript}</p>
-            </motion.div>
-          )}
+
           {!isTranscribing && error && (
             <div className="w-full max-w-lg mt-4 rounded-2xl border border-red-500/20 bg-red-500/[0.04] px-5 py-3">
               <p className="text-xs text-red-400">{error}</p>
