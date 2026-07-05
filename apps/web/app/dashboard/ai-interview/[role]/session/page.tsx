@@ -61,6 +61,10 @@ export default function InterviewSessionPage() {
   // When interviewerMessage is spoken (it already contains the next question),
   // skip the duplicate speak() that useEffect([currentQ]) would otherwise fire.
   const skipNextSpeakRef = useRef(false);
+  // Silence detection — Web Audio API
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const silenceRafRef = useRef<number | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -223,6 +227,8 @@ export default function InterviewSessionPage() {
 
     recorder.start();
     setIsRecording(true);
+    // Start silence detection — auto-submits after 2 s of quiet
+    startSilenceDetection(streamRef.current);
   };
 
   // ── Auto-start recording the moment Zara finishes speaking ───────────────────
@@ -240,13 +246,59 @@ export default function InterviewSessionPage() {
   const toggleMic = () => { streamRef.current?.getAudioTracks().forEach(t => (t.enabled = !micOn)); setMicOn(m => !m); };
   const toggleCam = () => { streamRef.current?.getVideoTracks().forEach(t => (t.enabled = !camOn)); setCamOn(c => !c); };
 
+  // ── Silence detection — auto-submits after 2 s of continuous quiet ────────────
+  const SILENCE_THRESHOLD = 8;    // RMS below this = silence
+  const SILENCE_DELAY_MS  = 2000; // ms of silence before auto-submit
+
+  const stopSilenceDetection = () => {
+    if (silenceRafRef.current !== null) { cancelAnimationFrame(silenceRafRef.current); silenceRafRef.current = null; }
+    if (silenceTimerRef.current !== null) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+  };
+
+  const startSilenceDetection = (stream: MediaStream) => {
+    stopSilenceDetection();
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+
+      const checkSilence = () => {
+        analyser.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (let i = 0; i < buf.length; i++) { const v = buf[i] - 128; sum += v * v; }
+        const rms = Math.sqrt(sum / buf.length);
+
+        if (rms < SILENCE_THRESHOLD) {
+          if (silenceTimerRef.current === null) {
+            silenceTimerRef.current = setTimeout(() => {
+              stopSilenceDetection();
+              stopAndSubmit();
+            }, SILENCE_DELAY_MS);
+          }
+        } else {
+          if (silenceTimerRef.current !== null) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        }
+        silenceRafRef.current = requestAnimationFrame(checkSilence);
+      };
+      silenceRafRef.current = requestAnimationFrame(checkSilence);
+    } catch {
+      // AudioContext unavailable — silence detection skipped gracefully
+    }
+  };
+
   // ── Stop recording → triggers onstop → transcribe → submit to backend ─────────
   const stopAndSubmit = () => {
+    stopSilenceDetection();
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
   };
+
 
   // ── End interview — kill recorder silently (no transcription) + release mic ───
   const endInterview = () => {
@@ -484,8 +536,8 @@ export default function InterviewSessionPage() {
             </div>
           </div>
 
-          {/* Camera feed */}
-          <div className="flex-1 rounded-2xl border border-white/[0.08] overflow-hidden bg-black relative min-h-0">
+          {/* Camera feed — compact fixed size matching reference */}
+          <div className="w-full h-[280px] rounded-2xl border border-white/[0.08] overflow-hidden bg-black relative flex-shrink-0">
             <video
               ref={videoRef}
               autoPlay
@@ -564,56 +616,64 @@ export default function InterviewSessionPage() {
             </motion.div>
           </div>
 
-          {/* Recording status — auto-starts when Zara finishes speaking */}
+          {/* Recording status — auto-starts when Zara finishes; auto-submits on silence */}
           {isSubmitting ? (
-            <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-4 flex items-center gap-3">
+            <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-3.5 flex items-center gap-3">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white/70 flex-shrink-0"
+                className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 flex-shrink-0"
               />
-              <span className="text-xs text-brand-muted">Evaluating your answer…</span>
+              <span
+                className="text-[13px] tracking-wide"
+                style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.5)" }}
+              >
+                Evaluating your answer…
+              </span>
             </div>
           ) : isRecording ? (
-            <motion.div
-              animate={{ boxShadow: ["0 0 0px rgba(255,0,0,0)", "0 0 20px rgba(255,0,0,0.1)", "0 0 0px rgba(255,0,0,0)"] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4 flex items-center justify-between gap-4"
-            >
-              <div className="flex items-center gap-3">
-                <motion.div
-                  animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
-                  transition={{ repeat: Infinity, duration: 1 }}
-                  className="w-2.5 h-2.5 rounded-full bg-red-500"
-                />
-                <span className="text-sm text-white/80">Listening…</span>
-              </div>
-              <button
-                onClick={stopAndSubmit}
-                className="px-4 py-2 rounded-full bg-white text-black font-bold text-xs hover:bg-white/90 active:scale-95 transition-all whitespace-nowrap"
+            <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-3.5 flex items-center gap-3">
+              <motion.div
+                animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
+                transition={{ repeat: Infinity, duration: 1 }}
+                className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
+              />
+              <span
+                className="text-[13px] tracking-wide"
+                style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.82)" }}
               >
-                Done →
-              </button>
-            </motion.div>
+                Recording…
+              </span>
+            </div>
           ) : (
-            <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-white/[0.01] px-5 py-4 flex items-center gap-3">
+            <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-white/[0.01] px-5 py-3.5 flex items-center gap-3">
               {aiSpeaking ? (
                 <>
                   <motion.div
                     animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
                     transition={{ repeat: Infinity, duration: 1.2 }}
-                    className="w-2 h-2 rounded-full bg-indigo-400"
+                    className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0"
                   />
-                  <span className="text-xs text-brand-muted">Zara is speaking…</span>
+                  <span
+                    className="text-[13px] tracking-wide"
+                    style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.4)" }}
+                  >
+                    Zara is speaking…
+                  </span>
                 </>
               ) : (
                 <>
                   <motion.div
                     animate={{ opacity: [0.4, 0.9, 0.4] }}
                     transition={{ repeat: Infinity, duration: 1.8 }}
-                    className="w-2 h-2 rounded-full bg-white/30"
+                    className="w-2 h-2 rounded-full bg-white/30 flex-shrink-0"
                   />
-                  <span className="text-xs text-brand-muted">Waiting for microphone…</span>
+                  <span
+                    className="text-[13px] tracking-wide"
+                    style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.4)" }}
+                  >
+                    Waiting for microphone…
+                  </span>
                 </>
               )}
             </div>
