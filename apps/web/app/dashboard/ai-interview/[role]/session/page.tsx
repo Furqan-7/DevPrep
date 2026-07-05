@@ -65,6 +65,11 @@ export default function InterviewSessionPage() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const silenceRafRef = useRef<number | null>(null);
+  // Adaptive noise-floor calibration
+  const noiseFloorRef = useRef<number | null>(null);
+  const calibrationSamples = useRef<number[]>([]);
+  const recordingStartTime = useRef<number>(0);
+  const silenceStartTime = useRef<number | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,9 +251,10 @@ export default function InterviewSessionPage() {
   const toggleMic = () => { streamRef.current?.getAudioTracks().forEach(t => (t.enabled = !micOn)); setMicOn(m => !m); };
   const toggleCam = () => { streamRef.current?.getVideoTracks().forEach(t => (t.enabled = !camOn)); setCamOn(c => !c); };
 
-  // ── Silence detection — auto-submits after 2 s of continuous quiet ────────────
-  const SILENCE_THRESHOLD = 8;    // RMS below this = silence
-  const SILENCE_DELAY_MS  = 2000; // ms of silence before auto-submit
+  // ── Silence detection — adaptive threshold ──────────────────────────────────
+  // Calibrates noise floor during first 1000 ms, then sets threshold at
+  // 1.5× ambient level. Auto-submits after 10 s silence (<60 s recording)
+  // or 5 s silence (≥60 s recording).
 
   const stopSilenceDetection = () => {
     if (silenceRafRef.current !== null) { cancelAnimationFrame(silenceRafRef.current); silenceRafRef.current = null; }
@@ -257,6 +263,12 @@ export default function InterviewSessionPage() {
 
   const startSilenceDetection = (stream: MediaStream) => {
     stopSilenceDetection();
+    // Reset calibration state for this recording session
+    noiseFloorRef.current = null;
+    calibrationSamples.current = [];
+    silenceStartTime.current = null;
+    recordingStartTime.current = Date.now();
+
     try {
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
@@ -264,27 +276,47 @@ export default function InterviewSessionPage() {
       analyser.fftSize = 256;
       source.connect(analyser);
       analyserRef.current = analyser;
-      const buf = new Uint8Array(analyser.frequencyBinCount);
 
-      const checkSilence = () => {
-        analyser.getByteTimeDomainData(buf);
-        let sum = 0;
-        for (let i = 0; i < buf.length; i++) { const v = buf[i] - 128; sum += v * v; }
-        const rms = Math.sqrt(sum / buf.length);
+      const tick = () => {
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
 
-        if (rms < SILENCE_THRESHOLD) {
-          if (silenceTimerRef.current === null) {
-            silenceTimerRef.current = setTimeout(() => {
-              stopSilenceDetection();
-              stopAndSubmit();
-            }, SILENCE_DELAY_MS);
-          }
-        } else {
-          if (silenceTimerRef.current !== null) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        const totalRecording = Date.now() - recordingStartTime.current;
+
+        // CALIBRATION PHASE — first 1000 ms, just observe
+        if (totalRecording < 1000) {
+          calibrationSamples.current.push(avg);
+          silenceRafRef.current = requestAnimationFrame(tick);
+          return;
         }
-        silenceRafRef.current = requestAnimationFrame(checkSilence);
+
+        // SET NOISE FLOOR — once, right after calibration ends
+        if (noiseFloorRef.current === null) {
+          const samples = calibrationSamples.current;
+          const measured = samples.reduce((a, b) => a + b, 0) / samples.length;
+          noiseFloorRef.current = measured * 1.5; // 50% headroom above ambient noise
+        }
+
+        const threshold = noiseFloorRef.current;
+
+        // SILENCE DETECTION — adaptive threshold
+        if (avg > threshold) {
+          silenceStartTime.current = null;
+        } else {
+          if (silenceStartTime.current === null) {
+            silenceStartTime.current = Date.now();
+          }
+          const silenceDuration = Date.now() - silenceStartTime.current;
+
+          if (totalRecording < 60000 && silenceDuration >= 10000) stopAndSubmit();
+          if (totalRecording >= 60000 && silenceDuration >= 5000) stopAndSubmit();
+        }
+
+        silenceRafRef.current = requestAnimationFrame(tick);
       };
-      silenceRafRef.current = requestAnimationFrame(checkSilence);
+
+      silenceRafRef.current = requestAnimationFrame(tick);
     } catch {
       // AudioContext unavailable — silence detection skipped gracefully
     }
@@ -293,6 +325,10 @@ export default function InterviewSessionPage() {
   // ── Stop recording → triggers onstop → transcribe → submit to backend ─────────
   const stopAndSubmit = () => {
     stopSilenceDetection();
+    // Reset adaptive calibration state
+    noiseFloorRef.current = null;
+    calibrationSamples.current = [];
+    silenceStartTime.current = null;
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
