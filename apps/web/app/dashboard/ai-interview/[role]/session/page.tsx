@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { RoleData } from "../../data";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import api from "@/lib/api";
 
 type SessionData = RoleData & {
   sessionId?: number;
@@ -42,6 +43,7 @@ export default function InterviewSessionPage() {
         if (parsed.firstQuestion && (!parsed.questions || parsed.questions.length === 0)) {
           parsed.questions = [parsed.firstQuestion];
         }
+        if (parsed.totalQuestions) setTotalQuestions(parsed.totalQuestions);
         setData(parsed);
       } catch {
         // malformed – will show the loading/fallback state
@@ -54,11 +56,18 @@ export default function InterviewSessionPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  // Track previous isSpeaking to detect the falling edge (Zara finished → auto-record)
+  const prevIsSpeakingRef = useRef(false);
+  // When interviewerMessage is spoken (it already contains the next question),
+  // skip the duplicate speak() that useEffect([currentQ]) would otherwise fire.
+  const skipNextSpeakRef = useRef(false);
 
   const [isRecording, setIsRecording] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [totalQuestions, setTotalQuestions] = useState<number>(10);
 
   // ── Speech Synthesis ─────────────────────────────────────────────────────────
   const { isSupported: ttsSupported, isSpeaking, speak, cancel: cancelSpeech } = useSpeechSynthesis();
@@ -70,8 +79,7 @@ export default function InterviewSessionPage() {
   const [elapsed, setElapsed] = useState(0);
   const [answered, setAnswered] = useState<Set<number>>(new Set());
   const [camError, setCamError] = useState(false);
-  // aiSpeaking is now driven by real TTS state; fallback to a brief timeout
-  // when TTS is not available so the orb still animates.
+  // aiSpeaking is driven by real TTS state; fallback timeout when TTS unavailable
   const [aiSpeakingFallback, setAiSpeakingFallback] = useState(false);
   const aiSpeaking = ttsSupported ? isSpeaking : aiSpeakingFallback;
   const [showText, setShowText] = useState(false);
@@ -87,6 +95,15 @@ export default function InterviewSessionPage() {
   useEffect(() => {
     if (phase !== "active" || !data) return;
 
+    // If interviewerMessage already voiced the next question, skip to avoid double-speak.
+    if (skipNextSpeakRef.current) {
+      skipNextSpeakRef.current = false;
+      // Still need to reveal the display text
+      const revealDelay = Math.min((data.questions[currentQ]?.length ?? 80) * 40, 1800);
+      const t = setTimeout(() => setShowText(true), revealDelay);
+      return () => clearTimeout(t);
+    }
+
     setShowText(false);
 
     // Build the text to speak for this question.
@@ -96,20 +113,17 @@ export default function InterviewSessionPage() {
         : data.questions[currentQ];
 
     if (ttsSupported) {
-      // The TTS engine's onstart/onend drive aiSpeaking via isSpeaking.
       speak(questionText, { rate: 0.92, pitch: 1.05 });
-      // Reveal text slightly before TTS ends (feels more natural).
       const revealDelay = Math.min(questionText.length * 40, 1800);
       const t = setTimeout(() => setShowText(true), revealDelay);
       return () => clearTimeout(t);
     } else {
-      // Fallback animation when TTS is unavailable.
       setAiSpeakingFallback(true);
       const t1 = setTimeout(() => setAiSpeakingFallback(false), 1800);
       const t2 = setTimeout(() => setShowText(true), 1400);
       return () => { clearTimeout(t1); clearTimeout(t2); };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQ, phase]);
 
   // ── Auto-acquire mic on page load so the browser indicator is always on ───────
@@ -143,44 +157,95 @@ export default function InterviewSessionPage() {
     };
 
     recorder.onstop = async () => {
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const formData = new FormData();
-      formData.append("audio", blob, "recording.webm");
       setIsTranscribing(true);
+      let userAnswer = "";
       try {
-        const res = await fetch("/api/transcribe", { method: "POST", body: formData });
-        const json = await res.json();
-        if (!res.ok) { setError(json.error ?? "Transcription failed."); return; }
-        setTranscript(json.transcript);
+        // Step 1: transcribe audio
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const formData = new FormData();
+        formData.append("audio", blob, "recording.webm");
+        const transRes = await fetch("/api/transcribe", { method: "POST", body: formData });
+        const transJson = await transRes.json();
+        if (!transRes.ok) { setError(transJson.error ?? "Transcription failed."); return; }
+        userAnswer = transJson.transcript ?? "";
+        setTranscript(userAnswer);
       } catch {
         setError("Network error during transcription.");
+        return;
       } finally {
         setIsTranscribing(false);
       }
+
+      // Step 2: send answer to backend → get next question
+      setIsSubmitting(true);
+      try {
+        const sessionId = String(data?.sessionId ?? "");
+        if (!sessionId) { setError("Session ID missing."); return; }
+        const { data: result } = await api.post<{
+          isComplete: boolean;
+          interviewerMessage?: string;  // Zara's spoken reply + transition
+          question?: string;
+          questionNum?: number;
+          totalQuestions?: number;
+        }>("/api/interview/answer", { sessionId, answer: userAnswer });
+
+        if (result.isComplete) {
+          streamRef.current?.getTracks().forEach(t => t.stop());
+          // Speak Zara's closing message before showing done screen
+          if (result.interviewerMessage) {
+            speak(result.interviewerMessage, { rate: 0.92, pitch: 1.05 });
+          }
+          setPhase("done");
+          return;
+        }
+
+        // Append next question to the local array
+        if (result.question) {
+          setData(prev => prev ? { ...prev, questions: [...prev.questions, result.question!] } : prev);
+        }
+        if (result.totalQuestions) setTotalQuestions(result.totalQuestions);
+        setAnswered(prev => new Set([...prev, currentQ]));
+
+        // Speak Zara's reply + transition (which already contains the next question).
+        // Set the skip flag so useEffect([currentQ]) doesn't double-speak.
+        if (result.interviewerMessage && ttsSupported) {
+          skipNextSpeakRef.current = true;
+          speak(result.interviewerMessage, { rate: 0.92, pitch: 1.05 });
+        }
+        setCurrentQ(q => q + 1);
+      } catch (e: any) {
+        setError(e?.response?.data?.error ?? "Failed to submit answer. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+
     };
 
     recorder.start();
     setIsRecording(true);
   };
 
+  // ── Auto-start recording the moment Zara finishes speaking ───────────────────
+  // Watches the falling edge of isSpeaking (true → false) and fires startQuestionRecording.
+  // The eslint-disable is intentional: we only want to re-run on isSpeaking changes.
+  useEffect(() => {
+    const wasSpeak = prevIsSpeakingRef.current;
+    prevIsSpeakingRef.current = isSpeaking;
+    if (wasSpeak && !isSpeaking && phase === "active" && !isRecording && !isSubmitting) {
+      startQuestionRecording();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSpeaking]);
+
   const toggleMic = () => { streamRef.current?.getAudioTracks().forEach(t => (t.enabled = !micOn)); setMicOn(m => !m); };
   const toggleCam = () => { streamRef.current?.getVideoTracks().forEach(t => (t.enabled = !camOn)); setCamOn(c => !c); };
 
-  // ── Stop current recording, transcribe, advance to next question ──────────────
-  const submitAnswer = () => {
+  // ── Stop recording → triggers onstop → transcribe → submit to backend ─────────
+  const stopAndSubmit = () => {
     if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop(); // triggers onstop → transcription
+      mediaRecorderRef.current.stop();
     }
-    setAnswered(prev => new Set([...prev, currentQ]));
     setIsRecording(false);
-    setTranscript(null);
-    if (!data) return;
-    if (currentQ < data.questions.length - 1) {
-      setCurrentQ(q => q + 1);
-    } else {
-      streamRef.current?.getTracks().forEach(t => t.stop());
-      setPhase("done");
-    }
   };
 
   // ── End interview — kill recorder silently (no transcription) + release mic ───
@@ -248,9 +313,9 @@ export default function InterviewSessionPage() {
 
         <div className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left space-y-3 mb-8">
           {[
-            "Your camera & microphone will be used",
-            "Speak your answers naturally — take your time",
-            'Click "Submit & Next" to move to the next question',
+            "Your microphone will be used to capture your answers",
+            "Zara will speak each question — just respond naturally",
+            "When you\'re done answering, click \'Done →\' to submit",
             "You can end the interview at any time",
           ].map(tip => (
             <div key={tip} className="flex items-start gap-2.5 text-xs text-brand-muted">
@@ -475,23 +540,41 @@ export default function InterviewSessionPage() {
             </motion.div>
           </div>
 
-          {/* Question text */}
+          {/* Question text — Zara's voice, styled distinctly */}
           <div className="max-w-lg w-full mb-6">
-            <motion.p
+            <motion.div
               key={currentQ}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: showText ? 1 : 0, y: showText ? 0 : 6 }}
               transition={{ duration: 0.4 }}
-              className="text-base leading-relaxed text-white"
             >
-              {currentQ === 0 && !answered.has(0)
-                ? <>Hi, I&apos;m Zara, your AI interviewer at DevPrep.<br /><br />{data.questions[0]}</>
-                : data.questions[currentQ]}
-            </motion.p>
+              {currentQ === 0 && !answered.has(0) && (
+                <p className="text-[11px] font-mono tracking-widest text-white/40 uppercase mb-3">
+                  Zara · AI Interviewer
+                </p>
+              )}
+              <p
+                className="text-[13px] leading-[1.8] tracking-wide"
+                style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.82)" }}
+              >
+                {currentQ === 0 && !answered.has(0)
+                  ? <>Hi, I&apos;m Zara, your AI interviewer at DevPrep.<br /><br />{data.questions[0]}</>
+                  : data.questions[currentQ]}
+              </p>
+            </motion.div>
           </div>
 
-          {/* Recording / Start button */}
-          {isRecording ? (
+          {/* Recording status — auto-starts when Zara finishes speaking */}
+          {isSubmitting ? (
+            <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-4 flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white/70 flex-shrink-0"
+              />
+              <span className="text-xs text-brand-muted">Evaluating your answer…</span>
+            </div>
+          ) : isRecording ? (
             <motion.div
               animate={{ boxShadow: ["0 0 0px rgba(255,0,0,0)", "0 0 20px rgba(255,0,0,0.1)", "0 0 0px rgba(255,0,0,0)"] }}
               transition={{ repeat: Infinity, duration: 2 }}
@@ -503,24 +586,37 @@ export default function InterviewSessionPage() {
                   transition={{ repeat: Infinity, duration: 1 }}
                   className="w-2.5 h-2.5 rounded-full bg-red-500"
                 />
-                <span className="text-sm text-white/80">Recording...</span>
+                <span className="text-sm text-white/80">Listening…</span>
               </div>
               <button
-                onClick={submitAnswer}
+                onClick={stopAndSubmit}
                 className="px-4 py-2 rounded-full bg-white text-black font-bold text-xs hover:bg-white/90 active:scale-95 transition-all whitespace-nowrap"
               >
-                {currentQ < data.questions.length - 1 ? "Submit & Next →" : "Finish Interview"}
+                Done →
               </button>
             </motion.div>
           ) : (
-            <button
-              onClick={startQuestionRecording}
-              disabled={!showText}
-              className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4 flex items-center justify-center gap-3 hover:bg-white/[0.06] hover:border-white/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <Mic size={14} className="text-white/60" />
-              <span className="text-sm text-white">Start Answering</span>
-            </button>
+            <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-white/[0.01] px-5 py-4 flex items-center gap-3">
+              {aiSpeaking ? (
+                <>
+                  <motion.div
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+                    transition={{ repeat: Infinity, duration: 1.2 }}
+                    className="w-2 h-2 rounded-full bg-indigo-400"
+                  />
+                  <span className="text-xs text-brand-muted">Zara is speaking…</span>
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    animate={{ opacity: [0.4, 0.9, 0.4] }}
+                    transition={{ repeat: Infinity, duration: 1.8 }}
+                    className="w-2 h-2 rounded-full bg-white/30"
+                  />
+                  <span className="text-xs text-brand-muted">Waiting for microphone…</span>
+                </>
+              )}
+            </div>
           )}
 
           {/* Transcript display */}
@@ -552,7 +648,7 @@ export default function InterviewSessionPage() {
           )}
 
           <p className="mt-3 text-xs text-brand-muted font-mono">
-            Question {currentQ + 1} of {data.questions.length}
+            Question {currentQ + 1} of {totalQuestions}
           </p>
         </div>
       </div>

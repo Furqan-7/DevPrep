@@ -35,8 +35,8 @@ interface NextQuestionResponse {
 }
 
 interface EvalResponse {
-    score: number;
-    feedback: string;
+    score: number;          // internal only, never shown to user mid-interview
+    interviewerMessage: string; // what the interviewer actually says out loud
     nextQuestion: string | null;
 }
 
@@ -450,6 +450,7 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 
         return res.status(200).json({
             success: true,
+            sessionId: session.id,
             questionNum: 1,
             totalQuestions: TOTAL_QUESTIONS,
             question
@@ -520,38 +521,54 @@ app.post("/api/interview/answer", MiddleWhere, async (req, res) => {
             .join("\n\n");
 
 
+
         const prompt = `
-You are a senior technical interviewer for a "${session.role}" role at "${session.difficulty}" difficulty.
+You are a senior technical interviewer conducting a LIVE interview for a "${session.role}" role at "${session.difficulty}" difficulty.
+You are speaking directly to the candidate. Be natural, warm, and conversational — like a real human interviewer.
 
 Conversation so far:
 ${history || "(this is the first question)"}
 
-Current question: "${currentQues.question}"
-Candidate's answer: "${answer}"
+You just asked: "${currentQues.question}"
+Candidate answered: "${answer}"
 
-Tasks:
-1. Evaluate the answer. Give a score from 0-10 and concise, constructive feedback (2-3 sentences).
-2. ${isLastQuestion
-                ? "This was the FINAL question. Set nextQuestion to null."
-                : "Generate the NEXT interview question, building naturally on the conversation, slightly increasing difficulty. Avoid repeating topics already covered."
+Your job:
+1. EVALUATE internally (score 0-10, hidden from candidate).
+2. RESPOND naturally as the interviewer. Your response should:
+   - Acknowledge the answer briefly and naturally ("Got it", "That's a good point", "Interesting", "Right", etc.)
+   - If the answer was WRONG or INCOMPLETE: gently correct or clarify it in simple terms, as a good mentor would. Don't say "that's wrong" — say "Actually, one thing worth noting is..." or "To add to that..." etc.
+   - If the answer was GOOD: affirm briefly, maybe build on it with one sentence.
+   - Then NATURALLY transition to the next question using a connector phrase like "Let's move on to...", "Building on that...", "Here's another one for you..." etc.
+   - NEVER say "I will now evaluate your answer", "Moving to question X", "Score:", or anything robotic.
+   - Keep your message to 3-5 sentences MAX. Concise and natural.
+3. ${isLastQuestion
+                ? "This was the FINAL question. End the interview warmly — tell the candidate they did well and that their report is being prepared. Set nextQuestion to null."
+                : "Generate the NEXT question that flows naturally from the conversation."
             }
 
 Respond ONLY with valid JSON, no markdown, no preamble:
-{ "score": number, "feedback": "string", "nextQuestion": "string | null" }
-        `.trim();
+{
+  "score": number,
+  "interviewerMessage": "string",
+  "nextQuestion": "string | null"
+}
+`.trim();
 
 
 
-        // get the response form gemini
         const result = await generateJSON<EvalResponse>(prompt);
-        //@ts-ignore
+
         await prisma.interviewQuestion.update({
             where: { id: currentQues.id },
-            data: { answer, score: result.score, feedback: result.feedback },
+            data: {
+                answer,
+                score: result.score,
+                // store the interviewer message as feedback for the report later
+                feedback: result.interviewerMessage,
+            },
         });
 
         if (isLastQuestion) {
-            //@ts-ignore
             await prisma.interviewSession.update({
                 where: { id: session.id },
                 data: { status: "completed" },
@@ -559,19 +576,17 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 
             return res.json({
                 isComplete: true,
-                evaluation: { score: result.score, feedback: result.feedback },
+                interviewerMessage: result.interviewerMessage, // "Great session, your report is being prepared..."
                 sessionId: session.id,
             });
         }
 
         const nextOrder = session.currentQues + 1;
 
-        //@ts-ignore
         await prisma.interviewQuestion.create({
             data: { sessionId: session.id, order: nextOrder, question: result.nextQuestion! },
         });
 
-        //@ts-ignore
         await prisma.interviewSession.update({
             where: { id: session.id },
             data: { currentQues: nextOrder },
@@ -579,10 +594,10 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 
         return res.json({
             isComplete: false,
-            evaluation: { score: result.score, feedback: result.feedback },
+            interviewerMessage: result.interviewerMessage, // speak this to the user
             questionNum: nextOrder,
             totalQuestions: TOTAL_QUESTIONS,
-            question: result.nextQuestion,
+            question: result.nextQuestion, // next question is ALREADY embedded in interviewerMessage
         });
     } catch (error) {
 
