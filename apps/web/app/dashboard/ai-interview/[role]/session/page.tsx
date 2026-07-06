@@ -36,18 +36,29 @@ export default function InterviewSessionPage() {
   // POST /api/interview/generate call.
   useEffect(() => {
     const raw = sessionStorage.getItem(`interview_session_${slug}`);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as SessionData;
-        // If the backend returned a firstQuestion, inject it as questions[0]
-        if (parsed.firstQuestion && (!parsed.questions || parsed.questions.length === 0)) {
-          parsed.questions = [parsed.firstQuestion];
-        }
-        if (parsed.totalQuestions) setTotalQuestions(parsed.totalQuestions);
-        setData(parsed);
-      } catch {
-        // malformed – will show the loading/fallback state
+    if (!raw) {
+      // No session data — redirect back to role setup page
+      router.replace(`/dashboard/ai-interview/${slug}`);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as SessionData;
+      // If the backend returned a firstQuestion, inject it as questions[0]
+      if (parsed.firstQuestion && (!parsed.questions || parsed.questions.length === 0)) {
+        parsed.questions = [parsed.firstQuestion];
       }
+      // Guard: if session has no valid question or sessionId, go back
+      if (!parsed.sessionId || !parsed.questions?.length) {
+        sessionStorage.removeItem(`interview_session_${slug}`);
+        router.replace(`/dashboard/ai-interview/${slug}`);
+        return;
+      }
+      if (parsed.totalQuestions) setTotalQuestions(parsed.totalQuestions);
+      setData(parsed);
+    } catch {
+      // malformed — redirect back
+      sessionStorage.removeItem(`interview_session_${slug}`);
+      router.replace(`/dashboard/ai-interview/${slug}`);
     }
   }, [slug]);
 

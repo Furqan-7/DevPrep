@@ -476,7 +476,7 @@ app.post("/api/interview/answer", MiddleWhere, async (req, res) => {
         if (!Response.success) {
             return res.status(402).json({
                 success: false,
-                error: Response.error
+                error: Response.error.issues.map((i: any) => i.message).join(", ")
             });
         }
 
@@ -599,13 +599,12 @@ Respond ONLY with valid JSON, no markdown, no preamble:
             totalQuestions: TOTAL_QUESTIONS,
             question: result.nextQuestion, // next question is ALREADY embedded in interviewerMessage
         });
-    } catch (error) {
-
+    } catch (error: any) {
+        console.error("[/api/interview/answer] ERROR:", error?.message ?? error);
         return res.status(500).json({
             success: false,
-            error: error
+            error: error?.message ?? "Internal server error",
         });
-
     }
 });
 
