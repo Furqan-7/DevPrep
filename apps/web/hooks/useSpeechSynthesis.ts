@@ -52,6 +52,57 @@ const DEFAULT_OPTIONS: Required<SpeechOptions> = {
   preferredVoice: "",
 };
 
+/**
+ * Prioritised list of high-quality English voices.
+ * Searched in order; the first one found on the device is used.
+ * Falls back to en-US → any English voice → browser default.
+ */
+const PRIORITY_VOICES = [
+  "Google US English",
+  "Microsoft Zira",
+  "Microsoft Aria Online (Natural)",
+  "Microsoft Jenny Online (Natural)",
+  "Microsoft Aria",
+  "Samantha",
+] as const;
+
+/**
+ * Given a list of available SpeechSynthesisVoice objects, return the best
+ * English voice according to PRIORITY_VOICES, or null if no voices loaded yet.
+ */
+function pickBestVoice(
+  voices: SpeechSynthesisVoice[],
+  preferredVoice?: string
+): SpeechSynthesisVoice | null {
+  if (voices.length === 0) return null;
+
+  // 1. Caller-supplied override takes precedence (case-insensitive substring).
+  if (preferredVoice) {
+    const match = voices.find((v) =>
+      v.name.toLowerCase().includes(preferredVoice.toLowerCase())
+    );
+    if (match) return match;
+  }
+
+  // 2. Walk the priority list — exact name match (case-insensitive).
+  for (const name of PRIORITY_VOICES) {
+    const found = voices.find(
+      (v) => v.name.toLowerCase() === name.toLowerCase()
+    );
+    if (found) return found;
+  }
+
+  // 3. Fallback: first en-US voice.
+  const enUS = voices.find((v) =>
+    v.lang.toLowerCase().replace("_", "-").startsWith("en-us")
+  );
+  if (enUS) return enUS;
+
+  // 4. Fallback: first voice whose language starts with "en".
+  const enAny = voices.find((v) => v.lang.toLowerCase().startsWith("en"));
+  return enAny ?? null;
+}
+
 export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   const isSupported =
     typeof window !== "undefined" && "speechSynthesis" in window;
@@ -88,26 +139,10 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
     };
   }, [isSupported]);
 
-  /** Pick a voice from the cached list that best matches `preferredVoice`. */
+  /** Pick a voice from the cached list using PRIORITY_VOICES order. */
   const resolveVoice = useCallback(
-    (preferredVoice: string, lang: string): SpeechSynthesisVoice | null => {
-      const voices = voicesRef.current;
-      if (voices.length === 0) return null;
-
-      if (preferredVoice) {
-        const match = voices.find((v) =>
-          v.name.toLowerCase().includes(preferredVoice.toLowerCase())
-        );
-        if (match) return match;
-      }
-
-      // Fallback: first voice whose lang matches (prefix match so "en-US"
-      // matches voices tagged "en_US" or "en-US").
-      const langMatch = voices.find((v) =>
-        v.lang.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase())
-      );
-      return langMatch ?? null;
-    },
+    (preferredVoice: string, _lang: string): SpeechSynthesisVoice | null =>
+      pickBestVoice(voicesRef.current, preferredVoice || undefined),
     []
   );
 

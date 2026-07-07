@@ -25,6 +25,37 @@ function formatTime(s: number) {
   return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** Ordered list of preferred high-quality English voices. */
+const PRIORITY_VOICES = [
+  "Google US English",
+  "Microsoft Zira",
+  "Microsoft Aria Online (Natural)",
+  "Microsoft Jenny Online (Natural)",
+  "Microsoft Aria",
+  "Samantha",
+];
+
+/**
+ * Picks the best available TTS voice from `voices`.
+ * Tries each PRIORITY_VOICES entry (exact, case-insensitive) in order,
+ * then falls back to the first en-US voice, then any English voice.
+ * Returns null only if the voices list is empty.
+ */
+function pickBestInterviewVoice(
+  voices: SpeechSynthesisVoice[]
+): SpeechSynthesisVoice | null {
+  if (voices.length === 0) return null;
+  for (const name of PRIORITY_VOICES) {
+    const found = voices.find((v) => v.name.toLowerCase() === name.toLowerCase());
+    if (found) return found;
+  }
+  const enUS = voices.find((v) =>
+    v.lang.toLowerCase().replace("_", "-").startsWith("en-us")
+  );
+  if (enUS) return enUS;
+  return voices.find((v) => v.lang.toLowerCase().startsWith("en")) ?? null;
+}
+
 export default function InterviewSessionPage() {
   const params = useParams();
   const router = useRouter();
@@ -108,13 +139,31 @@ export default function InterviewSessionPage() {
   const [showText, setShowText] = useState(false);
 
   // ── Word-by-word speak via onboundary ────────────────────────────────────────
+  // Cache voices so we can pick the best one. Chrome loads them async.
+  const ttsVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (!ttsSupported || typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    const load = () => {
+      const v = synth.getVoices();
+      if (v.length > 0) ttsVoicesRef.current = v;
+    };
+    load();
+    synth.addEventListener("voiceschanged", load);
+    return () => synth.removeEventListener("voiceschanged", load);
+  }, [ttsSupported]);
+
   const speakWithBoundary = (text: string, onDone?: () => void) => {
     if (!ttsSupported || typeof window === "undefined") { onDone?.(); return; }
     window.speechSynthesis.cancel();
     setDisplayedText("");
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
     utterance.rate = 1;
     utterance.pitch = 1;
+    // Apply the best available voice — never hardcoded, always checked.
+    const bestVoice = pickBestInterviewVoice(ttsVoicesRef.current);
+    if (bestVoice) utterance.voice = bestVoice;
     utterance.onboundary = (event) => {
       if (event.name !== "word") return;
       const spokenSoFar = text.slice(0, event.charIndex + event.charLength);
