@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronDown, Mic, ArrowLeft, Clock } from "lucide-react";
+import { ChevronDown, Mic, ArrowLeft, Clock, AlertCircle } from "lucide-react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import type { RoleData } from "../data";
 import api from "@/lib/api";
@@ -267,6 +267,11 @@ export default function RoleInterviewPage() {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
+  function showError(msg: string) {
+    setStartError(msg);
+    setTimeout(() => setStartError(null), 5000);
+  }
+
   if (!meta) {
     return (
       <DashboardShell>
@@ -302,10 +307,16 @@ export default function RoleInterviewPage() {
         question: string;
         questionNum: number;
         totalQuestions: number;
+        message?: string;
       }>("/api/interview/generate", {
         role: slug,
         difficulty: "medium",
       });
+
+      if (!json.success) {
+        showError(json.message ?? "Failed to start interview. Please try again.");
+        return;
+      }
 
       // Store session data so the session page can read it without an extra
       // network call.
@@ -324,11 +335,9 @@ export default function RoleInterviewPage() {
 
       router.push(`/dashboard/ai-interview/${slug}/session`);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ??
-        err?.message ??
-        "Failed to start interview. Please try again.";
-      setStartError(msg);
+      // Read the safe message the server sent; never show raw error internals
+      const serverMsg: string | undefined = err?.response?.data?.message;
+      showError(serverMsg ?? "Failed to start interview. Please try again.");
     } finally {
       setStarting(false);
     }
@@ -381,7 +390,10 @@ export default function RoleInterviewPage() {
 
           {/* Error */}
           {startError && (
-            <p className="text-xs text-red-400 mb-4">{startError}</p>
+            <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4 max-w-sm animate-in fade-in slide-in-from-top-1 duration-200">
+              <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+              <span>{startError}</span>
+            </div>
           )}
 
           {/* CTA */}
@@ -441,7 +453,10 @@ export default function RoleInterviewPage() {
               specifically for the <span className="text-white">{meta.title}</span> role.
             </p>
             {startError && (
-              <p className="text-xs text-red-400 mb-4">{startError}</p>
+              <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4 max-w-sm">
+                <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                <span>{startError}</span>
+              </div>
             )}
             <button
               onClick={handleStartInterview}

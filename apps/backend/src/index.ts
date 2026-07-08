@@ -406,25 +406,42 @@ app.post("/api/interview/generate", MiddleWhere, async (req, res) => {
 
         console.log("user Id " + userId + " data " + Response.data);
 
-        const session = await prisma.interviewSession.create({
-            data: {
-                userId: parseInt(userId, 10),
-                role: role,
-                difficulty: difficulty,
-                introduction: introduction,
-                status: "active",
-                currentQues: 0,
-            }
-        });
+        let session: any;
+        try {
+            session = await prisma.interviewSession.create({
+                data: {
+                    userId: parseInt(userId, 10),
+                    role: role,
+                    difficulty: difficulty,
+                    introduction: introduction,
+                    status: "active",
+                    currentQues: 0,
+                }
+            });
+        } catch (dbError: any) {
+            console.error("[/api/interview/generate] DB error creating session:", dbError?.message ?? dbError);
+            return res.status(503).json({
+                success: false,
+                message: "Unable to start your interview right now. Please try again in a moment.",
+            });
+        }
 
-        await prisma.interviewQuestion.create({
-            data: {
-                sessionId: session.id,
-                order: 0,
-                question: "Tell me about yourself.",
-                answer: introduction ?? null,
-            }
-        });
+        try {
+            await prisma.interviewQuestion.create({
+                data: {
+                    sessionId: session.id,
+                    order: 0,
+                    question: "Tell me about yourself.",
+                    answer: introduction ?? null,
+                }
+            });
+        } catch (dbError: any) {
+            console.error("[/api/interview/generate] DB error creating intro question:", dbError?.message ?? dbError);
+            return res.status(503).json({
+                success: false,
+                message: "Unable to start your interview right now. Please try again in a moment.",
+            });
+        }
 
         const prompt = `
 You are a senior technical interviewer for a "${role}" role at "${difficulty}" difficulty.
@@ -437,16 +454,34 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 { "question": "string" }
         `.trim();
 
-        const { question } = await generateJSON<NextQuestionResponse>(prompt);
+        let question: string;
+        try {
+            const result = await generateJSON<NextQuestionResponse>(prompt);
+            question = result.question;
+        } catch (aiError: any) {
+            console.error("[/api/interview/generate] AI generation error:", aiError?.message ?? aiError);
+            return res.status(502).json({
+                success: false,
+                message: "Failed to generate interview question. Please try again.",
+            });
+        }
 
-        await prisma.interviewQuestion.create({
-            data: { sessionId: session.id, order: 1, question },
-        });
+        try {
+            await prisma.interviewQuestion.create({
+                data: { sessionId: session.id, order: 1, question },
+            });
 
-        await prisma.interviewSession.update({
-            where: { id: session.id },
-            data: { currentQues: 1 },
-        });
+            await prisma.interviewSession.update({
+                where: { id: session.id },
+                data: { currentQues: 1 },
+            });
+        } catch (dbError: any) {
+            console.error("[/api/interview/generate] DB error saving first question:", dbError?.message ?? dbError);
+            return res.status(503).json({
+                success: false,
+                message: "Unable to start your interview right now. Please try again in a moment.",
+            });
+        }
 
         return res.status(200).json({
             success: true,
@@ -457,11 +492,11 @@ Respond ONLY with valid JSON, no markdown, no preamble:
         });
 
     } catch (error: any) {
-        console.error("[/api/interview/generate] ERROR:", error?.message ?? error);
+        // Catch-all: log full error server-side, never expose internals to client
+        console.error("[/api/interview/generate] Unexpected error:", error?.message ?? error);
         return res.status(500).json({
             success: false,
-            message: error?.message ?? "Internal server error",
-            detail: error?.code ?? null,        // Prisma error code e.g. P2003
+            message: "Something went wrong starting your interview. Please try again.",
         });
     }
 });
