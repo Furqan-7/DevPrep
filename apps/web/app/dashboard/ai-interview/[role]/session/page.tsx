@@ -10,6 +10,7 @@ import {
 import type { RoleData } from "../../data";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import api from "@/lib/api";
+import Image from "next/image";
 
 type SessionData = RoleData & {
   sessionId?: number;
@@ -440,9 +441,7 @@ export default function InterviewSessionPage() {
       <div className="relative z-10 flex flex-col items-center text-center max-w-sm w-full px-6">
         {/* Logo */}
         <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter mb-10">
-          <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
-            <div className="w-3 h-3 bg-black rounded-sm" />
-          </div>
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
           DevPrep
         </div>
 
@@ -506,9 +505,7 @@ export default function InterviewSessionPage() {
       <div className="relative z-10 flex flex-col items-center text-center max-w-sm w-full">
         {/* Logo */}
         <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter mb-10">
-          <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
-            <div className="w-3 h-3 bg-black rounded-sm" />
-          </div>
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
           DevPrep
         </div>
 
@@ -572,9 +569,7 @@ export default function InterviewSessionPage() {
         {/* Logo + role */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-1.5 font-display text-sm font-bold tracking-tighter">
-            <div className="w-5 h-5 bg-white rounded-md flex items-center justify-center">
-              <div className="w-2.5 h-2.5 bg-black rounded-sm" />
-            </div>
+            <Image src="/devprep-logo.png" alt="DevPrep logo" width={22} height={22} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
             DevPrep
           </div>
           <div className="flex items-center gap-1.5 text-xs">

@@ -6,12 +6,12 @@ import {
   Globe,
   CheckCircle2,
   ArrowRight,
-  Menu,
-  X,
   Star
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+
 
 const Button = ({
   children,
@@ -46,7 +46,6 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 
 const Nav = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -62,38 +61,15 @@ const Nav = () => {
   return (
     <nav id="top-nav" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "glass py-2" : "bg-transparent py-3.5"}`}>
       <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div id="logo" className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter">
-            <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
-              <div className="w-3 h-3 bg-black rounded-sm" />
-            </div>
-            DevPrep
-          </div>
-          <div className="hidden md:flex items-center gap-5 text-xs text-brand-muted">
-            {["Jobs", "DSA", "Calendar", "Subjects", "Blog"].map((link) => (
-              <a key={link} onClick={() => router.push(`/${link.toLowerCase()}`)} className="hover:text-white transition-colors hover:cursor-pointer">{link}</a>
-            ))}
-          </div>
+        <div id="logo" className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter">
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
+          DevPrep
         </div>
-        <div className="hidden md:flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Button onClick={() => { router.push("/auth/signin") }} variant="ghost" className="text-xs hover:cursor-pointer">Sign in</Button>
           <Button onClick={() => { router.push("/auth/signup") }} className="text-xs hover:cursor-pointer">Get Started Free</Button>
         </div>
-        <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
       </div>
-      {mobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-brand-bg border-b border-brand-border p-5 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4">
-          {["Jobs", "DSA", "Calendar", "Subjects", "Blog"].map((link) => (
-            <a key={link} onClick={() => { router.push(`/${link.toLowerCase()}`); setMobileMenuOpen(false); }} className="text-base text-brand-muted active:text-white hover:cursor-pointer">{link}</a>
-          ))}
-          <div className="flex flex-col gap-3 pt-4 border-t border-brand-border">
-            <Button onClick={() => { setMobileMenuOpen(false); router.push("/auth/signin"); }} variant="ghost" className="justify-center">Sign in</Button>
-            <Button onClick={() => { setMobileMenuOpen(false); router.push("/auth/signup"); }} className="justify-center">Get Started Free</Button>
-          </div>
-        </div>
-      )}
     </nav>
   );
 };
@@ -146,21 +122,10 @@ export default function App() {
       <Nav />
 
       {/* Hero */}
-      <section id="hero" className="pt-24 pb-14 md:pt-32 md:pb-20 px-6 relative">
+      <section id="hero" className="pt-16 pb-12 md:pt-24 md:pb-16 px-6 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[300px] bg-white opacity-[0.03] blur-[120px] rounded-full -z-10 pointer-events-none" />
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col items-start gap-5 max-w-xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium"
-            >
-              <span className="text-white">🎓 Free for students</span>
-              <span className="w-px h-3 bg-white/20" />
-              <span className="text-brand-muted">Placement season 2026</span>
-            </motion.div>
-
+          <div className="flex flex-col items-start gap-4 max-w-xl">
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -479,9 +444,7 @@ export default function App() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
             <div className="col-span-2 space-y-4">
               <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter">
-                <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
-                  <div className="w-3 h-3 bg-black rounded-sm" />
-                </div>
+                <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
                 DevPrep
               </div>
               <p className="text-xs text-brand-muted max-w-xs leading-relaxed">

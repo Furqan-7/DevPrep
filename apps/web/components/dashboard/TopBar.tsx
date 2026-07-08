@@ -2,6 +2,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { User, ChevronDown, LogOut, Settings } from "lucide-react";
+import Image from "next/image";
 
 const NAV_ITEMS = [
   { label: "Jobs",         href: "/dashboard/jobs" },
@@ -62,9 +63,14 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
             onClick={() => router.push("/dashboard")}
             className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter cursor-pointer select-none"
           >
-            <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
-              <div className="w-3 h-3 bg-black rounded-sm" />
-            </div>
+            <Image
+              src="/devprep-logo.png"
+              alt="DevPrep logo"
+              width={28}
+              height={28}
+              className="rounded-sm"
+              style={{ mixBlendMode: "lighten" }}
+            />
             DevPrep
           </div>
 

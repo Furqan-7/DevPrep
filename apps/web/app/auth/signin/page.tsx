@@ -5,14 +5,13 @@ import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import Image from "next/image";
 
 // --- Logo ---
 const Logo = () => (
   <div className="flex items-center justify-center gap-2 font-display text-lg font-bold tracking-tighter mb-8">
-    <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center">
-      <div className="w-3.5 h-3.5 bg-black rounded-sm" />
-    </div>
-    TechPrep
+    <Image src="/devprep-logo.png" alt="DevPrep logo" width={30} height={30} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
+    DevPrep
   </div>
 );
 
@@ -131,8 +130,19 @@ export default function SignInPage() {
       } else {
         setServerError(res.data.message || "Sign in failed. Please try again.");
       }
-    } catch {
-      setServerError("Cannot connect to server. Make sure the backend is running.");
+    } catch (err: any) {
+      if (err.response) {
+        // Server responded with a non-2xx status — show its message
+        setServerError(
+          err.response.data?.message ??
+          "Sign in failed. Please check your credentials and try again."
+        );
+      } else if (err.request) {
+        // Request was made but no response received (server down / network issue)
+        setServerError("Unable to reach the server. Please check your connection and try again.");
+      } else {
+        setServerError("Something went wrong. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
