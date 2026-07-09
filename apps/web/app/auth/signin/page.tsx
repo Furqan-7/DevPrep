@@ -126,7 +126,7 @@ export default function SignInPage() {
       if (res.status == 200 && res.data.success) {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("username", res.data.username ?? "");
-        router.push("/dashboard");
+        router.push("/dashboard/ai-interview");
       } else {
         setServerError(res.data.message || "Sign in failed. Please try again.");
       }

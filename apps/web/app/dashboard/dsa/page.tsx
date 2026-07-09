@@ -127,162 +127,162 @@ export default function DSAPage() {
 
   return (
     <DashboardShell>
-    <div className="min-h-screen bg-brand-bg text-white dot-background selection:bg-white selection:text-black pb-20">
-      {/* Page Header */}
-      <header className="pt-10 pb-8 border-b border-white/5 bg-brand-bg/50 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-10 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-1">
-              <nav className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-muted font-bold">
-                <span className="hover:text-white transition-colors cursor-pointer">TechPrep</span>
-                <span className="opacity-20">/</span>
-                <span className="text-white">DSA</span>
-              </nav>
-              <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">Data Structures & Algorithms</h1>
-              <p className="text-sm text-brand-muted max-w-xl">
-                Company-wise questions, curated by frequency. Track your progress as you go.
-              </p>
-            </div>
-
-            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:px-6 flex items-center gap-5">
+      <div className="min-h-screen bg-brand-bg text-white dot-background selection:bg-white selection:text-black pb-20">
+        {/* Page Header */}
+        <header className="pt-10 pb-8 border-b border-white/5 bg-brand-bg/50 backdrop-blur-xl sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-10 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-1">
-                <div className="text-[10px] uppercase tracking-widest font-bold text-brand-muted">Your Progress</div>
-                <div className="text-xl font-display font-bold">{stats.total} <span className="text-brand-muted text-sm italic font-normal">/ 450 solved</span></div>
+                <nav className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-muted font-bold">
+                  <span className="hover:text-white transition-colors cursor-pointer">DevPrep</span>
+                  <span className="opacity-20">/</span>
+                  <span className="text-white">DSA</span>
+                </nav>
+                <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">Data Structures & Algorithms</h1>
+                <p className="text-sm text-brand-muted max-w-xl">
+                  Company-wise questions, curated by frequency. Track your progress as you go.
+                </p>
               </div>
-              <div className="w-12 h-12 rounded-full border-4 border-white/5 flex items-center justify-center relative overflow-hidden group">
-                <div
-                  className="absolute bottom-0 left-0 right-0 bg-white/20 transition-all duration-700"
-                  style={{ height: `${Math.min(100, (stats.total / 450) * 100)}%` }}
-                />
-                <Database size={18} className="text-white/40 group-hover:text-white transition-colors relative z-10" />
+
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:px-6 flex items-center gap-5">
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-widest font-bold text-brand-muted">Your Progress</div>
+                  <div className="text-xl font-display font-bold">{stats.total} <span className="text-brand-muted text-sm italic font-normal">/ 450 solved</span></div>
+                </div>
+                <div className="w-12 h-12 rounded-full border-4 border-white/5 flex items-center justify-center relative overflow-hidden group">
+                  <div
+                    className="absolute bottom-0 left-0 right-0 bg-white/20 transition-all duration-700"
+                    style={{ height: `${Math.min(100, (stats.total / 450) * 100)}%` }}
+                  />
+                  <Database size={18} className="text-white/40 group-hover:text-white transition-colors relative z-10" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-7xl mx-auto px-10 mt-8 space-y-8">
+        <main className="max-w-7xl mx-auto px-10 mt-8 space-y-8">
 
-        {/* Company Filter Row */}
-        <div className="relative group">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-            {companies.map(company => (
-              <button
-                key={company}
-                onClick={() => setSelectedCompany(company)}
-                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 border ${selectedCompany === company
-                  ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                  : "bg-white/[0.03] text-brand-muted border-white/10 hover:border-white/30 hover:text-white"
-                  }`}
-              >
-                {company}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Secondary Filter Row */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 py-2 border-y border-white/5">
-          <div className="flex flex-wrap items-center gap-3">
-            <SelectField
-              label="Difficulty"
-              options={difficulties}
-              value={filters.difficulty}
-              onChange={(v) => setFilters(f => ({ ...f, difficulty: v }))}
-            />
-            <SelectField
-              label="Topic"
-              options={topics}
-              value={filters.topic}
-              onChange={(v) => setFilters(f => ({ ...f, topic: v }))}
-            />
-            <SelectField
-              label="Status"
-              options={statuses}
-              value={filters.status}
-              onChange={(v) => setFilters(f => ({ ...f, status: v }))}
-            />
+          {/* Company Filter Row */}
+          <div className="relative group">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+              {companies.map(company => (
+                <button
+                  key={company}
+                  onClick={() => setSelectedCompany(company)}
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 border ${selectedCompany === company
+                    ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    : "bg-white/[0.03] text-brand-muted border-white/10 hover:border-white/30 hover:text-white"
+                    }`}
+                >
+                  {company}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="relative flex-1 max-w-md">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-muted" />
-            <input
-              type="text"
-              placeholder="Search problems..."
-              value={filters.searchQuery}
-              onChange={(e) => setFilters(f => ({ ...f, searchQuery: e.target.value }))}
-              className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-xs focus:outline-none focus:border-white/40 placeholder:text-brand-muted/50 transition-colors"
-            />
-            {filters.searchQuery && (
-              <button
-                onClick={() => setFilters(f => ({ ...f, searchQuery: "" }))}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-white transition-colors"
-              >
-                <X size={14} />
-              </button>
-            )}
+          {/* Secondary Filter Row */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 py-2 border-y border-white/5">
+            <div className="flex flex-wrap items-center gap-3">
+              <SelectField
+                label="Difficulty"
+                options={difficulties}
+                value={filters.difficulty}
+                onChange={(v) => setFilters(f => ({ ...f, difficulty: v }))}
+              />
+              <SelectField
+                label="Topic"
+                options={topics}
+                value={filters.topic}
+                onChange={(v) => setFilters(f => ({ ...f, topic: v }))}
+              />
+              <SelectField
+                label="Status"
+                options={statuses}
+                value={filters.status}
+                onChange={(v) => setFilters(f => ({ ...f, status: v }))}
+              />
+            </div>
+
+            <div className="relative flex-1 max-w-md">
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-muted" />
+              <input
+                type="text"
+                placeholder="Search problems..."
+                value={filters.searchQuery}
+                onChange={(e) => setFilters(f => ({ ...f, searchQuery: e.target.value }))}
+                className="w-full bg-white/[0.03] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-xs focus:outline-none focus:border-white/40 placeholder:text-brand-muted/50 transition-colors"
+              />
+              {filters.searchQuery && (
+                <button
+                  onClick={() => setFilters(f => ({ ...f, searchQuery: "" }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted hover:text-white transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Stats Bar */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatChip label="Easy" solved={stats.easy} total={180} color="text-emerald-400" />
-          <StatChip label="Medium" solved={stats.medium} total={210} color="text-amber-400" />
-          <StatChip label="Hard" solved={stats.hard} total={60} color="text-rose-400" />
-          <StatChip label="Total" solved={stats.total} total={450} color="text-white" />
-        </div>
+          {/* Stats Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatChip label="Easy" solved={stats.easy} total={180} color="text-emerald-400" />
+            <StatChip label="Medium" solved={stats.medium} total={210} color="text-amber-400" />
+            <StatChip label="Hard" solved={stats.hard} total={60} color="text-rose-400" />
+            <StatChip label="Total" solved={stats.total} total={450} color="text-white" />
+          </div>
 
-        {/* Problem List Table */}
-        <div className="rounded-2xl border border-white/10 bg-[#0a0a0b]/50 overflow-hidden backdrop-blur-sm shadow-2xl relative">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-white/[0.02] border-b border-white/10 sticky top-0 z-20 backdrop-blur-md">
-                <tr className="text-[10px] uppercase tracking-widest font-bold text-brand-muted/70">
-                  <th className="py-4 px-6 w-12 text-center">#</th>
-                  <th className="py-4 px-4 w-12 text-center">Status</th>
-                  <th className="py-4 px-4">Problem Name</th>
-                  <th className="py-4 px-4">Difficulty</th>
-                  <th className="py-4 px-4">Topic</th>
-                  <th className="py-4 px-4 text-center">Freq</th>
-                  <th className="py-4 px-4">Resources</th>
-                  <th className="py-4 px-4 text-right">Note</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.03]">
-                <AnimatePresence initial={false}>
-                  {filteredProblems.length > 0 ? (
-                    filteredProblems.map((p, idx) => (
-                      <ProblemRow
-                        key={p.id}
-                        problem={p}
-                        index={idx + 1}
-                        isSolved={solvedProblems.has(p.id)}
-                        onToggle={() => toggleSolved(p.id)}
-                        note={notes[p.id]}
-                        isEditingNote={editingNote === p.id}
-                        onEditNote={() => setEditingNote(p.id)}
-                        onSaveNote={(text) => saveNote(p.id, text)}
-                      />
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={8} className="py-24">
-                        <EmptyState
-                          onClear={() => {
-                            setSelectedCompany("All");
-                            setFilters({ difficulty: "All", topic: "All", status: "All", searchQuery: "" });
-                          }}
+          {/* Problem List Table */}
+          <div className="rounded-2xl border border-white/10 bg-[#0a0a0b]/50 overflow-hidden backdrop-blur-sm shadow-2xl relative">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-white/[0.02] border-b border-white/10 sticky top-0 z-20 backdrop-blur-md">
+                  <tr className="text-[10px] uppercase tracking-widest font-bold text-brand-muted/70">
+                    <th className="py-4 px-6 w-12 text-center">#</th>
+                    <th className="py-4 px-4 w-12 text-center">Status</th>
+                    <th className="py-4 px-4">Problem Name</th>
+                    <th className="py-4 px-4">Difficulty</th>
+                    <th className="py-4 px-4">Topic</th>
+                    <th className="py-4 px-4 text-center">Freq</th>
+                    <th className="py-4 px-4">Resources</th>
+                    <th className="py-4 px-4 text-right">Note</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.03]">
+                  <AnimatePresence initial={false}>
+                    {filteredProblems.length > 0 ? (
+                      filteredProblems.map((p, idx) => (
+                        <ProblemRow
+                          key={p.id}
+                          problem={p}
+                          index={idx + 1}
+                          isSolved={solvedProblems.has(p.id)}
+                          onToggle={() => toggleSolved(p.id)}
+                          note={notes[p.id]}
+                          isEditingNote={editingNote === p.id}
+                          onEditNote={() => setEditingNote(p.id)}
+                          onSaveNote={(text) => saveNote(p.id, text)}
                         />
-                      </td>
-                    </tr>
-                  )}
-                </AnimatePresence>
-              </tbody>
-            </table>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="py-24">
+                          <EmptyState
+                            onClear={() => {
+                              setSelectedCompany("All");
+                              setFilters({ difficulty: "All", topic: "All", status: "All", searchQuery: "" });
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
     </DashboardShell>
   );
 }

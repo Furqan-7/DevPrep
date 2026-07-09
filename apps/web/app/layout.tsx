@@ -17,6 +17,11 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "DevPrep",
   description: "Your AI-powered developer interview preparation platform",
+  icons: {
+    icon: "/devprep-logo.png",
+    shortcut: "/devprep-logo.png",
+    apple: "/devprep-logo.png",
+  },
 };
 
 export default function RootLayout({

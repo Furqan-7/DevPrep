@@ -178,7 +178,7 @@ export default function SignUpPage() {
       if (data.success) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.username ?? "");
-        router.push("/dashboard");
+        router.push("/dashboard/ai-interview");
       } else {
         setServerError(data.message || "Sign up failed. Please try again.");
       }

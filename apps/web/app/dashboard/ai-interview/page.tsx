@@ -65,6 +65,67 @@ const ROLES = [
     duration: 15,
     skills: ["Leadership", "Conflict Resolution", "Communication", "Teamwork"],
   },
+  // ── NEW ROLES ──
+  {
+    title: "Cloud Engineer",
+    duration: 20,
+    skills: ["AWS", "GCP", "Azure", "Serverless", "Terraform"],
+  },
+  {
+    title: "Site Reliability Engineer",
+    duration: 22,
+    skills: ["Observability", "On-Call", "SLOs & SLAs", "Incident Response"],
+  },
+  {
+    title: "Cybersecurity Engineer",
+    duration: 20,
+    skills: ["Threat Modeling", "Penetration Testing", "OWASP", "Cryptography"],
+  },
+  {
+    title: "QA / Test Engineer",
+    duration: 18,
+    skills: ["Test Automation", "Selenium", "API Testing", "Bug Lifecycle"],
+  },
+  {
+    title: "Data Scientist",
+    duration: 22,
+    skills: ["Statistics", "Feature Engineering", "Model Evaluation", "SQL"],
+  },
+  {
+    title: "Generative AI Engineer",
+    duration: 20,
+    skills: ["LLMs", "Prompt Engineering", "RAG", "LangChain", "Fine-tuning"],
+  },
+  {
+    title: "Embedded Systems Engineer",
+    duration: 20,
+    skills: ["C/C++", "RTOS", "Microcontrollers", "Hardware Interfaces"],
+  },
+  {
+    title: "Blockchain Developer",
+    duration: 20,
+    skills: ["Solidity", "Smart Contracts", "Web3.js", "DeFi Protocols"],
+  },
+  {
+    title: "UI/UX Designer",
+    duration: 18,
+    skills: ["Figma", "User Research", "Design Systems", "Prototyping"],
+  },
+  {
+    title: "Game Developer",
+    duration: 20,
+    skills: ["Unity", "C#", "Game Physics", "Shader Programming"],
+  },
+  {
+    title: "Database Administrator",
+    duration: 20,
+    skills: ["Query Optimization", "Indexing", "Replication", "Backup & Recovery"],
+  },
+  {
+    title: "Technical Program Manager",
+    duration: 20,
+    skills: ["Execution Planning", "Cross-team Alignment", "Risk Management", "OKRs"],
+  },
 ];
 
 const FILTER_TAGS = [
@@ -78,10 +139,19 @@ const FILTER_TAGS = [
 
 const FILTER_MAP: Record<string, string[]> = {
   All: [],
-  Engineering: ["Frontend Engineer", "Backend Engineer", "Full Stack Developer", "DevOps Engineer", "Android Developer", "iOS Developer"],
-  Data: ["Machine Learning Engineer", "Data Engineer", "Data Structures & Algorithms"],
-  Design: [],
-  Product: ["Product Manager"],
+  Engineering: [
+    "Frontend Engineer", "Backend Engineer", "Full Stack Developer",
+    "DevOps Engineer", "Android Developer", "iOS Developer",
+    "Cloud Engineer", "Site Reliability Engineer", "Cybersecurity Engineer",
+    "QA / Test Engineer", "Embedded Systems Engineer", "Blockchain Developer",
+    "Game Developer", "Database Administrator",
+  ],
+  Data: [
+    "Machine Learning Engineer", "Data Engineer", "Data Structures & Algorithms",
+    "Data Scientist", "Generative AI Engineer",
+  ],
+  Design: ["UI/UX Designer"],
+  Product: ["Product Manager", "Technical Program Manager"],
   Behavioral: ["Behavioral Round"],
 };
 
