@@ -51,6 +51,18 @@ const problems: Problem[] = [
 ];
 
 const companies = ["All", "Google", "Meta", "Amazon", "Microsoft", "Flipkart", "Razorpay", "Zepto", "Adobe", "AMD", "Others"];
+
+const COMPANY_LOGO: Record<string, string> = {
+  Google: "https://www.google.com/s2/favicons?domain=google.com&sz=32",
+  Meta: "https://www.google.com/s2/favicons?domain=meta.com&sz=32",
+  Amazon: "https://www.google.com/s2/favicons?domain=amazon.com&sz=32",
+  Microsoft: "https://www.google.com/s2/favicons?domain=microsoft.com&sz=32",
+  Flipkart: "https://www.google.com/s2/favicons?domain=flipkart.com&sz=32",
+  Razorpay: "https://www.google.com/s2/favicons?domain=razorpay.com&sz=32",
+  Zepto: "https://www.google.com/s2/favicons?domain=zeptonow.com&sz=32",
+  Adobe: "https://www.google.com/s2/favicons?domain=adobe.com&sz=32",
+  AMD: "https://www.google.com/s2/favicons?domain=amd.com&sz=32",
+};
 const topics = ["All", "Arrays", "Strings", "Trees", "Graphs", "DP", "Linked Lists", "Stacks & Queues", "Greedy", "Backtracking", "Binary Search", "Sliding Window"];
 const difficulties = ["All", "Easy", "Medium", "Hard"];
 const statuses = ["All", "Solved", "Unsolved"];
@@ -170,11 +182,22 @@ export default function DSAPage() {
                 <button
                   key={company}
                   onClick={() => setSelectedCompany(company)}
-                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 border ${selectedCompany === company
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-tight transition-all duration-300 border ${selectedCompany === company
                     ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                     : "bg-white/[0.03] text-brand-muted border-white/10 hover:border-white/30 hover:text-white"
                     }`}
                 >
+                  {COMPANY_LOGO[company] && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={COMPANY_LOGO[company]}
+                      alt={company}
+                      width={14}
+                      height={14}
+                      className={`rounded-sm flex-shrink-0 ${selectedCompany === company ? "" : "opacity-70"
+                        }`}
+                    />
+                  )}
                   {company}
                 </button>
               ))}
@@ -352,9 +375,15 @@ function ProblemRow({ problem, index, isSolved, onToggle, note, isEditingNote, o
           <div className={`text-sm tracking-tight font-medium transition-all ${isSolved ? "text-brand-muted line-through" : "text-white group-hover:underline cursor-pointer decoration-white/30 underline-offset-4"}`}>
             {problem.name}
           </div>
-          <div className="flex items-center gap-1.5 overflow-x-hidden">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {problem.companies.slice(0, 3).map(c => (
-              <span key={c} className="text-[9px] uppercase tracking-wider text-brand-muted/40 font-bold whitespace-nowrap">{c}</span>
+              <span key={c} className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-brand-muted/50 font-bold whitespace-nowrap">
+                {COMPANY_LOGO[c] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={COMPANY_LOGO[c]} alt={c} width={10} height={10} className="rounded-[2px] opacity-60" />
+                )}
+                {c}
+              </span>
             ))}
             {problem.companies.length > 3 && <span className="text-[9px] text-brand-muted/20 font-bold">+{problem.companies.length - 3}</span>}
           </div>
@@ -383,7 +412,9 @@ function ProblemRow({ problem, index, isSolved, onToggle, note, isEditingNote, o
       </td>
       <td className="py-4 px-4 whitespace-nowrap">
         <div className="flex items-center gap-2">
-          <a href={problem.leetcode} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] uppercase font-bold text-white/40 hover:text-white transition-colors group/link px-2 py-1 border border-white/5 rounded-md hover:bg-white/5">
+          <a href={problem.leetcode} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] font-bold text-[#FFA116]/60 hover:text-[#FFA116] transition-colors group/link px-2 py-1 border border-[#FFA116]/10 rounded-md hover:bg-[#FFA116]/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://leetcode.com/favicon.ico" alt="LeetCode" width={12} height={12} className="rounded-sm opacity-80 group-hover/link:opacity-100 transition-opacity" />
             LC <ExternalLink size={10} className="group-hover/link:translate-x-0.5 transition-transform" />
           </a>
           <a href={problem.gfg} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] uppercase font-bold text-emerald-400/40 hover:text-emerald-400 transition-colors group/link px-2 py-1 border border-emerald-400/5 rounded-md hover:bg-emerald-400/5">
