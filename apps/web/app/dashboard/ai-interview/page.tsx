@@ -197,7 +197,7 @@ export default function AIInterviewPage() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-brand-muted mb-6">
           <Mic size={11} className="text-white/60" />
-          AI-Powered · 100% Free
+          AI-Powered
         </div>
 
         {/* Heading */}
@@ -225,11 +225,10 @@ export default function AIInterviewPage() {
             />
             <button
               onClick={() => setFilterOpen((o) => !o)}
-              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${
-                filterOpen
-                  ? "bg-white/10 border-white/30 text-white"
-                  : "bg-white/5 border-white/10 text-brand-muted hover:text-white"
-              }`}
+              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center border transition-colors ${filterOpen
+                ? "bg-white/10 border-white/30 text-white"
+                : "bg-white/5 border-white/10 text-brand-muted hover:text-white"
+                }`}
             >
               <SlidersHorizontal size={14} />
             </button>
@@ -238,18 +237,17 @@ export default function AIInterviewPage() {
           {/* Filter tag chips */}
           <div className="flex items-center justify-center gap-2 flex-wrap mt-4">
             {FILTER_TAGS.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setActiveFilter(tag)}
-              className={`px-3.5 py-1 rounded-full text-xs font-semibold tracking-tight border transition-all duration-150 ${
-                activeFilter === tag
+              <button
+                key={tag}
+                onClick={() => setActiveFilter(tag)}
+                className={`px-3.5 py-1 rounded-full text-xs font-semibold tracking-tight border transition-all duration-150 ${activeFilter === tag
                   ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                   : "bg-white/[0.03] border-white/10 text-brand-muted hover:text-white hover:border-white/30"
-              }`}
-            >
-              {tag}
-            </button>
-          ))}
+                  }`}
+              >
+                {tag}
+              </button>
+            ))}
           </div>
         </div>
       </section>
@@ -291,11 +289,10 @@ function RoleCard({
       onClick={() => router.push(`/dashboard/ai-interview/${slug}`)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`group flex flex-col justify-between rounded-2xl border bg-white/[0.02] p-5 transition-all duration-200 cursor-pointer ${
-        hovered
-          ? "border-white/25 bg-white/[0.04] shadow-[0_0_30px_rgba(255,255,255,0.04)]"
-          : "border-white/8"
-      }`}
+      className={`group flex flex-col justify-between rounded-2xl border bg-white/[0.02] p-5 transition-all duration-200 cursor-pointer ${hovered
+        ? "border-white/25 bg-white/[0.04] shadow-[0_0_30px_rgba(255,255,255,0.04)]"
+        : "border-white/8"
+        }`}
       style={{ borderColor: hovered ? undefined : "rgba(255,255,255,0.07)" }}
     >
       {/* Top */}

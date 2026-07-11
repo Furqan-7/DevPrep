@@ -11,6 +11,7 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import dsaImage from "public/dsa.png";
 
 
 const Button = ({
@@ -251,6 +252,13 @@ export default function App() {
             <div className="relative">
               <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
               <MockupCard className="aspect-[4/3] w-full" />
+              <Image
+                src={dsaImage}
+                alt="DSA"
+                width={600}
+                height={400}
+                className="absolute top-0 left-0 w-full h-full rounded-md"
+              />
             </div>
           </div>
 
