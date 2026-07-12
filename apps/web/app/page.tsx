@@ -14,6 +14,10 @@ import Image from "next/image";
 import dsaImage from "public/dsa.png";
 import cscoreImage from "public/cscore.png";
 import jobsImage from "public/jobs.png";
+import interview1 from "public/interview1.png";
+import interview2 from "public/interview2.png";
+import interview3 from "public/interview3.png";
+import interview4 from "public/interview4.png";
 
 
 const Button = ({
@@ -120,6 +124,41 @@ const MockupCard = ({ className = "" }: { className?: string }) => (
 
 export default function App() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState(0);
+
+  const interviewSteps = [
+    {
+      label: "01 — Pick Your Role",
+      stepLabel: "STEP 01",
+      heading: "Pick Your Role",
+      desc: "Choose from 24+ roles across engineering, data, design, and product.",
+      img: interview1,
+      size: "max-w-sm",
+    },
+    {
+      label: "02 — Review Questions",
+      stepLabel: "STEP 02",
+      heading: "Review Real Questions",
+      desc: "See the most common interview questions for your role before you practice.",
+      img: interview2,
+      size: "max-w-[260px]",
+    },
+    {
+      label: "03 — Allow Access",
+      stepLabel: "STEP 03",
+      heading: "Allow Mic & Camera",
+      desc: "Grant microphone and camera permissions to start your live AI mock interview session.",
+      img: interview3,
+    },
+    {
+      label: "04 — Take the Interview",
+      stepLabel: "STEP 04",
+      heading: "Take the Interview",
+      desc: "Start a live AI-powered mock interview and get instant feedback on your answers.",
+      img: interview4,
+    },
+  ];
+
   return (
     <div id="tech-prep-app" className="relative min-h-screen selection:bg-white selection:text-black dot-background">
       <Nav />
@@ -177,15 +216,65 @@ export default function App() {
             </motion.div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="mt-12 relative group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-brand-bg via-transparent to-transparent z-10 h-32 bottom-0" />
-            <MockupCard className="h-[280px] md:h-[400px] w-full" />
-          </motion.div>
+          {/* AI Interview steps */}
+          <div className="mt-14">
+            <div className="mb-8">
+              <SectionLabel>AI-Powered Practice</SectionLabel>
+              <h2 className="text-2xl md:text-4xl font-display font-bold tracking-tight leading-[1.1] mt-3">
+                Practice Interviews
+                <br />
+                <span className="text-brand-muted">with AI</span>
+              </h2>
+            </div>
+            <div className="grid lg:grid-cols-2 gap-10 items-center">
+              {/* Left: text */}
+              <div className="flex flex-col items-start gap-5">
+                <span className="inline-block bg-white/10 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-md">
+                  {interviewSteps[activeTab].stepLabel}
+                </span>
+                <h2 className="text-2xl md:text-4xl font-display font-bold tracking-tight leading-[1.1]">
+                  {interviewSteps[activeTab].heading}
+                </h2>
+                <p className="text-sm text-brand-muted leading-relaxed max-w-sm">
+                  {interviewSteps[activeTab].desc}
+                </p>
+                <button
+                  onClick={() => setActiveTab((activeTab + 1) % interviewSteps.length)}
+                  className="flex items-center gap-2 px-5 py-2 rounded-full border border-white/20 text-xs font-semibold text-white hover:bg-white/10 transition-all duration-200 group/btn mt-1"
+                >
+                  Next Step <ArrowRight size={13} className="group-hover/btn:translate-x-1 transition-transform" />
+                </button>
+                {/* Dot indicators */}
+                <div className="flex items-center gap-2 mt-1">
+                  {interviewSteps.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveTab(i)}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        activeTab === i ? "w-6 bg-white" : "w-1.5 bg-white/25 hover:bg-white/50"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              {/* Right: screenshot */}
+              <div className="relative min-h-[340px] flex items-center justify-center">
+                <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
+                <div className={`rounded-xl border border-white/10 overflow-hidden shadow-2xl bg-[#0a0a0b] ${
+                  interviewSteps[activeTab].size ? `${interviewSteps[activeTab].size} mx-auto` : "w-full"
+                }`}>
+                  <Image
+                    src={interviewSteps[activeTab].img}
+                    alt={interviewSteps[activeTab].heading}
+                    width={1200}
+                    height={750}
+                    className="w-full"
+                    priority
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="mt-12 text-center">
             <p className="text-xs font-semibold text-brand-muted uppercase tracking-[0.2em] mb-6">Trusted resources, all in one place</p>
