@@ -3,6 +3,7 @@ export type Job = {
   title: string;
   company: string;
   companyLetter: string;
+  companyDomain?: string;        // used to load a real logo via Clearbit
   location: string;
   salary?: string;
   salaryMin?: number;

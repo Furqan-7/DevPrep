@@ -46,14 +46,56 @@ export default function JobCard({ job, onSave }: JobCardProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 13,
-            fontWeight: 700,
-            color: "#ffffff",
             flexShrink: 0,
-            fontFamily: "Inter, sans-serif",
+            overflow: "hidden",
+            position: "relative",
           }}
         >
-          {job.companyLetter}
+          {job.companyDomain ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://logo.clearbit.com/${job.companyDomain}`}
+                alt={job.company}
+                width={20}
+                height={20}
+                style={{ width: 20, height: 20, objectFit: "contain", borderRadius: 3 }}
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  img.style.display = "none";
+                  const fallback = img.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+              {/* Letter fallback — hidden until img errors */}
+              <span
+                style={{
+                  display: "none",
+                  position: "absolute",
+                  inset: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                {job.companyLetter}
+              </span>
+            </>
+          ) : (
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: "#ffffff",
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              {job.companyLetter}
+            </span>
+          )}
         </div>
         <span style={{ fontSize: 13, fontWeight: 600, color: "#ffffff" }}>
           {job.company}

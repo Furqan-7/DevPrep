@@ -161,6 +161,53 @@ function DifficultyBadge({ difficulty }: { difficulty: Question["difficulty"] })
 
 type Rating = "know" | "shaky" | "blank";
 
+// ── Demo mode (marketing / screenshot only) ───────────────────────────────────
+// Set DEMO_MODE = true to render realistic non-zero stats in the header card.
+// The real logic (derived from local `ratings` state) is untouched and is used
+// whenever DEMO_MODE = false (default for the live product).
+const DEMO_MODE = true;
+const DEMO_STATS = { answered: 14, total: 21, streak: 4, mastery: 68 };
+
+// ── Favicon overrides ─────────────────────────────────────────────────────────
+// Google S2 returns wrong icons for some domains (e.g. amazon.com → SES mail).
+// Map those domains to a reliable direct favicon URL instead.
+const FAVICON_OVERRIDES: Record<string, string> = {
+  // Google S2 returns the SES mail icon for amazon.com — use Clearbit logo instead
+  // (renders cleanly at 13×13px, unlike favicon.ico which is blurry at that size)
+  "amazon.com": "https://logo.clearbit.com/amazon.com",
+};
+
+function CompanyLogo({ name, domain }: { name: string; domain: string }) {
+  const src = FAVICON_OVERRIDES[domain] ?? `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <span
+      className="relative flex-shrink-0 w-[13px] h-[13px] rounded-[2px] overflow-hidden"
+      title={name}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={name}
+        width={13}
+        height={13}
+        className="w-full h-full object-contain opacity-80"
+        onError={(e) => {
+          const img = e.target as HTMLImageElement;
+          img.style.display = "none";
+          const fallback = img.nextElementSibling as HTMLElement | null;
+          if (fallback) fallback.style.display = "flex";
+        }}
+      />
+      <span
+        className="absolute inset-0 items-center justify-center text-[6px] font-bold text-brand-muted bg-white/[0.06] hidden"
+      >
+        {initials}
+      </span>
+    </span>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CSCorePage() {
@@ -237,12 +284,15 @@ export default function CSCorePage() {
                   </nav>
                   <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">CS Core</h1>
                   <p className="text-sm text-brand-muted max-w-xl">
-                    Topic-wise questions to crack your interviews
+                    Core theory questions from Operating Systems, DBMS, OOP, and Computer Networks — the topics that come up in every technical round.
+                  </p>
+                  <p className="text-xs text-brand-muted/60 max-w-xl">
+                    Each question comes with a clear written answer, and a diagram wherever the concept is easier to see than read.
                   </p>
                 </div>
 
-                {/* Subject tabs */}
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                {/* Subject tabs — mt-2 adds ~8px extra gap below the two-line subtitle */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mt-2">
                   {SUBJECTS.map(({ key, label }) => (
                     <button
                       key={key}
@@ -259,13 +309,21 @@ export default function CSCorePage() {
                 </div>
               </div>
 
-              {/* Right: global progress stats card — computed from all questions + local ratings */}
+              {/* Right: global progress stats card */}
               {(() => {
+                // Real values — derived from local ratings state
                 const allQ = CS_CORE_QUESTIONS;
                 const totalAll = allQ.length;
                 const answeredAll = allQ.filter((q) => ratings[q.id] !== undefined).length;
                 const masteredAll = allQ.filter((q) => ratings[q.id] === "know").length;
                 const masteryPct = totalAll > 0 ? Math.round((masteredAll / totalAll) * 100) : 0;
+
+                // Demo overrides (marketing screenshot only — DEMO_MODE = false in production)
+                const displayAnswered = DEMO_MODE ? DEMO_STATS.answered : answeredAll;
+                const displayTotal    = DEMO_MODE ? DEMO_STATS.total    : totalAll;
+                const displayStreak   = DEMO_MODE ? DEMO_STATS.streak   : 0;
+                const displayMastery  = DEMO_MODE ? DEMO_STATS.mastery  : masteryPct;
+
                 return (
                   <div className="flex-shrink-0 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 flex items-center gap-6 self-end mb-1">
                     {/* Answered */}
@@ -273,8 +331,8 @@ export default function CSCorePage() {
                       <div className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Answered</div>
                       <div className="flex items-center justify-center gap-1.5 text-lg font-display font-bold leading-tight">
                         <CheckCircle2 size={15} className="text-brand-muted flex-shrink-0" />
-                        <span className="text-white">{answeredAll}</span>
-                        <span className="text-[11px] text-brand-muted font-normal">/{totalAll}</span>
+                        <span className="text-white">{displayAnswered}</span>
+                        <span className="text-[11px] text-brand-muted font-normal">/{displayTotal}</span>
                       </div>
                     </div>
                     <div className="w-px h-8 bg-white/[0.06]" />
@@ -283,7 +341,7 @@ export default function CSCorePage() {
                       <div className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Streak</div>
                       <div className="flex items-center justify-center gap-1.5 text-lg font-display font-bold leading-tight">
                         <Flame size={15} className="text-amber-400 flex-shrink-0" />
-                        <span className="text-white">0</span>
+                        <span className="text-white">{displayStreak}</span>
                         <span className="text-[11px] text-brand-muted font-normal"> days</span>
                       </div>
                     </div>
@@ -293,7 +351,7 @@ export default function CSCorePage() {
                       <div className="text-[10px] uppercase tracking-widest text-brand-muted font-bold">Mastery</div>
                       <div className="flex items-center justify-center gap-1.5 text-lg font-display font-bold leading-tight">
                         <Trophy size={15} className="text-emerald-400 flex-shrink-0" />
-                        <span className="text-emerald-400">{masteryPct}</span>
+                        <span className="text-emerald-400">{displayMastery}</span>
                         <span className="text-[11px] text-brand-muted font-normal">%</span>
                       </div>
                     </div>
@@ -558,16 +616,7 @@ export default function CSCorePage() {
                           key={c.name}
                           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border bg-white/[0.03] text-brand-muted border-white/10"
                         >
-                          {/* Favicon via Google S2 — same approach as dsa/page.tsx COMPANY_LOGO */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={`https://www.google.com/s2/favicons?domain=${c.domain}&sz=32`}
-                            alt={c.name}
-                            width={13}
-                            height={13}
-                            className="rounded-[2px] opacity-80 flex-shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
+                          <CompanyLogo name={c.name} domain={c.domain} />
                           {c.name}
                         </span>
                       ))}
