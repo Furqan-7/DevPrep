@@ -12,6 +12,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import dsaImage from "public/dsa.png";
+import cscoreImage from "public/cscore.png";
+import jobsImage from "public/jobs.png";
 
 
 const Button = ({
@@ -265,7 +267,13 @@ export default function App() {
           <div className="grid lg:grid-cols-2 gap-8 md:gap-14 items-center">
             <div className="order-2 lg:order-1 relative">
               <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-              <MockupCard className="aspect-[4/3] w-full" />
+              <Image
+                src={jobsImage}
+                alt="Jobs"
+                width={1080}
+                height={720}
+                className="w-full rounded-xl border border-white/10 shadow-2xl"
+              />
             </div>
             <div className="order-1 lg:order-2 flex flex-col items-start gap-4">
               <div className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">Updated daily</div>
@@ -309,7 +317,13 @@ export default function App() {
           <div className="grid lg:grid-cols-2 gap-8 md:gap-14 items-center">
             <div className="order-2 lg:order-1 relative">
               <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-              <MockupCard className="aspect-[4/3] w-full" />
+              <Image
+                src={cscoreImage}
+                alt="CS Core"
+                width={1080}
+                height={720}
+                className="w-full rounded-xl border border-white/10 shadow-2xl"
+              />
             </div>
             <div className="order-1 lg:order-2 flex flex-col items-start gap-4">
               <div className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">Interview essentials</div>

@@ -3,6 +3,19 @@ import { useState } from "react";
 import { ExternalLink, Bookmark, BadgeCheck } from "lucide-react";
 import type { Job } from "@/types/job";
 
+// Google S2 favicon service — reliable and already used across the app (cs-core page).
+// Clearbit's Logo API was deprecated after the HubSpot acquisition, so we no longer use it.
+// Some domains return the wrong icon from Google S2 — override those here.
+const LOGO_DOMAIN_OVERRIDES: Record<string, string> = {
+  "amazon.com": "amazon.jobs",   // S2 returns an SES mail icon for amazon.com
+  "meta.com": "facebook.com",    // Meta's brand icon lives on facebook.com in S2's cache
+};
+
+function getLogoUrl(domain: string): string {
+  const resolved = LOGO_DOMAIN_OVERRIDES[domain] ?? domain;
+  return `https://www.google.com/s2/favicons?domain=${resolved}&sz=128`;
+}
+
 interface JobCardProps {
   job: Job;
   onSave?: (id: string) => void;
@@ -11,6 +24,7 @@ interface JobCardProps {
 export default function JobCard({ job, onSave }: JobCardProps) {
   const [saved, setSaved] = useState(job.isSaved);
   const [hovered, setHovered] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   const handleSave = () => {
     setSaved((s) => !s);
@@ -48,42 +62,18 @@ export default function JobCard({ job, onSave }: JobCardProps) {
             justifyContent: "center",
             flexShrink: 0,
             overflow: "hidden",
-            position: "relative",
           }}
         >
-          {job.companyDomain ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://logo.clearbit.com/${job.companyDomain}`}
-                alt={job.company}
-                width={20}
-                height={20}
-                style={{ width: 20, height: 20, objectFit: "contain", borderRadius: 3 }}
-                onError={(e) => {
-                  const img = e.target as HTMLImageElement;
-                  img.style.display = "none";
-                  const fallback = img.nextElementSibling as HTMLElement | null;
-                  if (fallback) fallback.style.display = "flex";
-                }}
-              />
-              {/* Letter fallback — hidden until img errors */}
-              <span
-                style={{
-                  display: "none",
-                  position: "absolute",
-                  inset: 0,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: "#ffffff",
-                  fontFamily: "Inter, sans-serif",
-                }}
-              >
-                {job.companyLetter}
-              </span>
-            </>
+          {job.companyDomain && !logoFailed ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={getLogoUrl(job.companyDomain)}
+              alt={job.company}
+              width={22}
+              height={22}
+              style={{ width: 22, height: 22, objectFit: "contain", borderRadius: 2 }}
+              onError={() => setLogoFailed(true)}
+            />
           ) : (
             <span
               style={{
