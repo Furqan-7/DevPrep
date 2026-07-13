@@ -160,11 +160,11 @@ export default function App() {
   ];
 
   return (
-    <div id="tech-prep-app" className="relative min-h-screen selection:bg-white selection:text-black dot-background">
+    <div id="tech-prep-app" className="relative min-h-screen selection:bg-white selection:text-black dot-background overflow-x-hidden">
       <Nav />
 
       {/* Hero */}
-      <section id="hero" className="pt-16 pb-12 md:pt-24 md:pb-16 px-6 relative">
+      <section id="hero" className="pt-16 pb-12 md:pt-24 md:pb-16 px-6 relative isolate overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[300px] bg-white opacity-[0.03] blur-[120px] rounded-full -z-10 pointer-events-none" />
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col items-start gap-4 max-w-xl">
@@ -197,7 +197,7 @@ export default function App() {
                 router.push("/auth/signup")
               }} className="text-sm px-6 py-2.5 hover:cursor-pointer">Start Preparing Free</Button>
               <Button variant="secondary" className="text-sm px-6 py-2.5 group hover:cursor-pointer">
-                See what's inside <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                See How It Works <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </Button>
             </motion.div>
 
@@ -207,7 +207,7 @@ export default function App() {
               transition={{ duration: 1, delay: 0.5 }}
               className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1"
             >
-              {["10,000+ students", "500+ companies tracked", "Updated daily"].map((badge) => (
+              {["Built for Indian Placements", "AI-Powered Prep", "Updated Daily"].map((badge) => (
                 <div key={badge} className="flex items-center gap-1.5 text-xs font-semibold text-brand-muted uppercase tracking-widest">
                   <CheckCircle2 size={12} className="text-white/40" />
                   {badge}
@@ -257,18 +257,15 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              {/* Right: screenshot */}
-              <div className="relative min-h-[340px] flex items-center justify-center">
+              {/* Right: screenshot — sized to match DSA/Jobs aspect ratio */}
+              <div className="relative">
                 <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-                <div className={`rounded-xl border border-white/10 overflow-hidden shadow-2xl bg-[#0a0a0b] ${
-                  interviewSteps[activeTab].size ? `${interviewSteps[activeTab].size} mx-auto` : "w-full"
-                }`}>
+                <div className="relative aspect-[4/3] w-full rounded-xl border border-white/10 overflow-hidden shadow-2xl bg-[#0a0a0b]">
                   <Image
                     src={interviewSteps[activeTab].img}
                     alt={interviewSteps[activeTab].heading}
-                    width={1200}
-                    height={750}
-                    className="w-full"
+                    fill
+                    className="object-contain"
                     priority
                   />
                 </div>
@@ -287,8 +284,11 @@ export default function App() {
         </div>
       </section>
 
+      {/* Divider */}
+      <div className="border-t border-brand-border" />
+
       {/* Problem */}
-      <section id="problem" className="py-16 md:py-24 px-6 dot-background">
+      <section id="problem" className="py-12 md:py-16 px-6 dot-background relative isolate">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col items-center text-center mb-10">
             <SectionLabel>The Problem</SectionLabel>
@@ -320,8 +320,11 @@ export default function App() {
         </div>
       </section>
 
+      {/* Divider */}
+      <div className="border-t border-brand-border" />
+
       {/* Features */}
-      <section id="features" className="py-16 md:py-24 px-6">
+      <section id="features" className="py-12 md:py-20 px-6 relative isolate">
         <div className="max-w-5xl mx-auto space-y-20 md:space-y-28">
 
           <div className="grid lg:grid-cols-2 gap-8 md:gap-14 items-center">
@@ -399,7 +402,76 @@ export default function App() {
             </div>
             <div className="relative">
               <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-              <MockupCard className="aspect-[4/3] w-full" />
+              {/* Hiring Calendar Mockup */}
+              <div className="relative rounded-xl border border-white/10 bg-[#0a0a0b] overflow-hidden shadow-2xl aspect-[4/3] w-full">
+                {/* Browser chrome */}
+                <div className="h-7 border-b border-white/5 bg-white/[0.03] flex items-center justify-between px-3 flex-shrink-0">
+                  <div className="flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-white/10" />
+                    <div className="w-2 h-2 rounded-full bg-white/10" />
+                    <div className="w-2 h-2 rounded-full bg-white/10" />
+                  </div>
+                  <div className="text-[10px] text-white/20 font-medium tracking-wide">Hiring Calendar — July 2025</div>
+                  <div className="w-12" />
+                </div>
+                {/* Calendar body */}
+                <div className="p-3 h-[calc(100%-1.75rem)] flex flex-col">
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 mb-1">
+                    {["M","T","W","T","F","S","S"].map((d, i) => (
+                      <div key={i} className="text-center text-[9px] font-bold text-white/20 uppercase tracking-wider py-0.5">{d}</div>
+                    ))}
+                  </div>
+                  {/* Calendar grid — 5 weeks */}
+                  <div className="grid grid-cols-7 gap-0.5 flex-1">
+                    {[
+                      { day: null }, { day: 1 }, { day: 2 }, { day: 3 }, { day: 4, event: { label: "TCS", type: "mass" } }, { day: 5 }, { day: 6 },
+                      { day: 7 }, { day: 8, event: { label: "Infosys", type: "mass" } }, { day: 9 }, { day: 10 }, { day: 11, event: { label: "Flipkart", type: "product" } }, { day: 12 }, { day: 13 },
+                      { day: 14 }, { day: 15 }, { day: 16, event: { label: "Google", type: "faang" } }, { day: 17 }, { day: 18 }, { day: 19, event: { label: "Razorpay", type: "startup" } }, { day: 20 },
+                      { day: 21, event: { label: "Wipro", type: "mass" } }, { day: 22 }, { day: 23 }, { day: 24 }, { day: 25, event: { label: "Amazon", type: "faang" } }, { day: 26 }, { day: 27 },
+                      { day: 28 }, { day: 29 }, { day: 30 }, { day: 31 }, { day: null }, { day: null }, { day: null },
+                    ].map((cell, i) => {
+                      const typeStyles: Record<string, string> = {
+                        mass: "bg-white/10 text-white/60",
+                        product: "bg-[#5E6AD2]/30 text-[#5E6AD2]",
+                        faang: "bg-[#5E6AD2]/20 text-[#8a94e8]",
+                        startup: "bg-white/8 text-white/50",
+                      };
+                      return (
+                        <div key={i} className={`rounded flex flex-col items-start p-0.5 min-h-0 ${
+                          cell.day ? "hover:bg-white/5" : ""
+                        } ${cell.day === 16 ? "ring-1 ring-[#5E6AD2]/50" : ""}`}>
+                          {cell.day && (
+                            <span className={`text-[9px] font-semibold leading-none mb-0.5 ${
+                              cell.day === 16 ? "text-[#5E6AD2]" : "text-white/30"
+                            }`}>{cell.day}</span>
+                          )}
+                          {cell.event && (
+                            <span className={`text-[8px] font-bold px-1 py-px rounded leading-tight truncate w-full ${typeStyles[cell.event.type]}`}>
+                              {cell.event.label}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Legend */}
+                  <div className="flex items-center gap-3 pt-2 border-t border-white/5 mt-2 flex-shrink-0">
+                    <span className="text-[8px] text-white/20 font-semibold uppercase tracking-wider">Legend:</span>
+                    {[
+                      { label: "FAANG", cls: "bg-[#5E6AD2]/20" },
+                      { label: "Product", cls: "bg-[#5E6AD2]/30" },
+                      { label: "Mass", cls: "bg-white/10" },
+                      { label: "Startup", cls: "bg-white/8" },
+                    ].map(l => (
+                      <div key={l.label} className="flex items-center gap-1">
+                        <div className={`w-1.5 h-1.5 rounded-sm ${l.cls}`} />
+                        <span className="text-[8px] text-white/25 font-medium">{l.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -435,13 +507,13 @@ export default function App() {
       </section>
 
       {/* Stats */}
-      <section id="stats" className="border-y border-brand-border py-10 bg-white/[0.01]">
+      <section id="stats" className="border-y border-brand-border py-8 bg-white/[0.01]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { val: "10,000+", label: "Students Prep Smarter" },
-              { val: "500+", label: "Companies Tracked" },
+              { val: "4", label: "Core Prep Modules" },
               { val: "3,200+", label: "DSA Problems Curated" },
+              { val: "24+", label: "Interview Roles" },
               { val: "24/7", label: "Daily Updates Active" }
             ].map((s) => (
               <div key={s.label} className="text-center space-y-1">
@@ -454,7 +526,7 @@ export default function App() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-16 md:py-24 px-6">
+      <section id="how-it-works" className="py-12 md:py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col items-center text-center mb-10">
             <SectionLabel>Get started in minutes</SectionLabel>
@@ -476,15 +548,15 @@ export default function App() {
           </div>
 
           <div className="flex justify-center">
-            <Button className="px-7 py-3 text-sm group">
-              Start Preparing Free <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            <Button onClick={() => { router.push("/auth/signup") }} className="px-7 py-3 text-sm group hover:cursor-pointer">
+              Get Started Free <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-16 md:py-24 px-6 bg-[#080809]">
+      <section id="testimonials" className="py-16 md:py-24 px-6 bg-[#080809] relative isolate overflow-hidden">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col items-center text-center mb-10">
             <SectionLabel>What students say</SectionLabel>
@@ -525,11 +597,11 @@ export default function App() {
             <div className="relative z-10 max-w-lg space-y-5">
               <h2 className="text-3xl md:text-5xl font-display font-bold tracking-tighter leading-none">Your placement <br /> season starts now</h2>
               <p className="text-sm md:text-base font-medium opacity-70">
-                Join 10,000+ students who are preparing smarter, not harder. DevPrep is all you need.
+                Stop scattering your prep across 10 tabs. DevPrep brings DSA, jobs, AI interviews, and CS core into one focused platform.
               </p>
               <div className="flex flex-wrap gap-3 pt-1">
-                <button className="bg-black text-white px-7 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl text-sm">
-                  Get Started Free
+                <button onClick={() => { router.push("/auth/signup") }} className="bg-black text-white px-7 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl text-sm">
+                  Start Placement Prep
                 </button>
                 <button className="bg-transparent text-black border-2 border-black/10 px-7 py-3 rounded-full font-bold hover:bg-black/5 transition-colors text-sm">
                   Explore features
@@ -552,7 +624,7 @@ export default function App() {
       {/* Footer */}
       <footer className="pt-16 pb-8 px-6 border-t border-brand-border">
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 space-y-4">
               <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter">
                 <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
@@ -569,21 +641,30 @@ export default function App() {
             <div>
               <h4 className="font-bold text-xs mb-4 uppercase tracking-widest text-white/40">Product</h4>
               <ul className="space-y-2.5 text-xs text-brand-muted font-medium">
-                {["Jobs", "DSA", "Calendar", "Subjects", "Roadmap"].map(l => <li key={l} className="hover:text-white transition-colors cursor-pointer">{l}</li>)}
+                {[
+                  { label: "Jobs", href: "/dashboard/jobs" },
+                  { label: "DSA", href: "/dashboard/dsa" },
+                  { label: "AI Interview", href: "/dashboard/ai-interview" },
+                  { label: "CS Core", href: "/dashboard/cs-core" },
+                ].map(l => (
+                  <li key={l.label}>
+                    <a href={l.href} className="hover:text-white transition-colors">{l.label}</a>
+                  </li>
+                ))}
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-xs mb-4 uppercase tracking-widest text-white/40">Resources</h4>
+              <h4 className="font-bold text-xs mb-4 uppercase tracking-widest text-white/40">Get Started</h4>
               <ul className="space-y-2.5 text-xs text-brand-muted font-medium">
-                {["Blog", "Notes", "Quiz", "Cold DM templates"].map(l => <li key={l} className="hover:text-white transition-colors cursor-pointer">{l}</li>)}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-xs mb-4 uppercase tracking-widest text-white/40">Company</h4>
-              <ul className="space-y-2.5 text-xs text-brand-muted font-medium">
-                {["About", "Contact", "Careers"].map(l => <li key={l} className="hover:text-white transition-colors cursor-pointer">{l}</li>)}
+                {[
+                  { label: "Sign Up — Free", href: "/auth/signup" },
+                  { label: "Sign In", href: "/auth/signin" },
+                ].map(l => (
+                  <li key={l.label}>
+                    <a href={l.href} className="hover:text-white transition-colors">{l.label}</a>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
