@@ -117,7 +117,7 @@ export default function SignInPage() {
     setServerError("");
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:3001/signin", {
+      const res = await axios.post("http://localhost:3001/api/auth/signin", {
         email,
         password,
       });

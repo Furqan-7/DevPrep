@@ -167,7 +167,7 @@ export default function SignUpPage() {
       console.log(fullName, email, password);
 
 
-      const res = await axios.post("http://localhost:3001/signup", {
+      const res = await axios.post("http://localhost:3001/api/auth/signup", {
         username: fullName,
         email,
         password
