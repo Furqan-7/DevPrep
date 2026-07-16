@@ -151,30 +151,148 @@ export default function InterviewSessionPage() {
     };
     load();
     synth.addEventListener("voiceschanged", load);
-    return () => synth.removeEventListener("voiceschanged", load);
+    return () => {
+      synth.removeEventListener("voiceschanged", load);
+      // Cancel any active speech + reveal timer when the component unmounts.
+      synth.cancel();
+    };
   }, [ttsSupported]);
 
+  // Ref that holds the active timed-reveal interval so we can cancel it from
+  // any of the utterance callbacks. Declared outside speakWithBoundary so it
+  // persists across re-renders (not reset on every call).
+  const revealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /** Cancel any running timed word-reveal. */
+  const clearRevealTimer = () => {
+    if (revealTimerRef.current !== null) {
+      clearInterval(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  };
+
+  /**
+   * speakWithBoundary — plays `text` via SpeechSynthesis and progressively
+   * reveals it word-by-word in the UI.
+   *
+   * Strategy (dual-mode):
+   *   1. onstart  → start a timed word-reveal at estimated WPM (immediate
+   *                 fallback that works for every voice/browser combination).
+   *   2. onboundary (name==="word") → if Chrome fires these, switch to the
+   *                 more-accurate charIndex slice and cancel the timer.
+   *   3. onend    → show the full text (catches the last word/punctuation),
+   *                 cancel timer, call onDone.
+   *   4. onerror  → "interrupted" is benign (fired when cancel() hits the
+   *                 previous utterance) — ignore it. All other errors clear
+   *                 state and call onDone so the pipeline never gets stuck.
+   */
   const speakWithBoundary = (text: string, onDone?: () => void) => {
     if (!ttsSupported || typeof window === "undefined") { onDone?.(); return; }
-    window.speechSynthesis.cancel();
+
+    // Log mic permission state for Chrome diagnosis (non-blocking).
+    if (navigator?.permissions) {
+      navigator.permissions.query({ name: "microphone" as PermissionName })
+        .then(s => console.log("[TTS] Mic permission state:", s.state))
+        .catch(e => console.warn("[TTS] Could not query mic permission:", e));
+    }
+
+    const synth = window.speechSynthesis;
+
+    // Cancel previous utterance. This fires onerror("interrupted") on the OLD
+    // utterance — that's expected and harmless (handled below).
+    clearRevealTimer();
+    synth.cancel();
     setDisplayedText("");
+
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    // Apply the best available voice — never hardcoded, always checked.
+    utterance.lang   = "en-US";
+    utterance.rate   = 1;
+    utterance.pitch  = 1;
+    utterance.volume = 1;
+
+    // Voice selection — untouched, uses PRIORITY_VOICES order.
     const bestVoice = pickBestInterviewVoice(ttsVoicesRef.current);
     if (bestVoice) utterance.voice = bestVoice;
-    utterance.onboundary = (event) => {
-      if (event.name !== "word") return;
-      const spokenSoFar = text.slice(0, event.charIndex + event.charLength);
-      setDisplayedText(spokenSoFar);
+    console.log("[TTS] speak() → voice:", bestVoice?.name ?? "(browser default)", "| chars:", text.length);
+
+    // Pre-split words once so both reveal modes share the same array.
+    const words = text.split(/\s+/).filter(Boolean);
+    // Track whether onboundary has fired at least once for this utterance.
+    // If it does, the timer is no longer needed and is cancelled.
+    let boundaryFired = false;
+
+    // ── onstart: begin timed word-reveal immediately ──────────────────────────
+    // Estimated rate: 150 WPM → 400 ms per word. We reveal one word at a time
+    // via accumulation so the displayed string grows left-to-right.
+    utterance.onstart = () => {
+      console.log("[TTS] onstart fired | words:", words.length);
+      setDisplayedText("");   // start empty; first word appears after ~400 ms
+
+      let wordIndex = 0;
+      // Build a running prefix so we don't re-join the array every tick.
+      let revealed = "";
+
+      revealTimerRef.current = setInterval(() => {
+        if (wordIndex >= words.length) { clearRevealTimer(); return; }
+        revealed = wordIndex === 0 ? words[0] : revealed + " " + words[wordIndex];
+        wordIndex++;
+        setDisplayedText(revealed);
+      }, 400); // ~150 WPM
     };
+
+    // ── onboundary: fired by Chrome for "Google US English" and some others ──
+    // charIndex points to the start of the upcoming word inside `text`.
+    // We slice *up to* charIndex (what has already been spoken) and add the
+    // upcoming word so the user sees it just as it's being said.
+    utterance.onboundary = (event) => {
+      console.log(`[TTS] onboundary: name=${event.name} charIndex=${event.charIndex} charLength=${event.charLength ?? "?"}`);
+
+      if (event.name !== "word") return;
+
+      // First boundary event — cancel the fallback timer; boundary is reliable.
+      if (!boundaryFired) {
+        boundaryFired = true;
+        clearRevealTimer();
+        console.log("[TTS] onboundary active — timer cancelled, switching to charIndex mode");
+      }
+
+      // Show text up to and including the current word.
+      const upToWord = text.slice(0, event.charIndex + (event.charLength ?? 1));
+      setDisplayedText(upToWord);
+    };
+
+    // ── onend: always show the full text (catches the last word) ─────────────
     utterance.onend = () => {
+      console.log("[TTS] onend fired");
+      clearRevealTimer();
+      setDisplayedText(text);   // ensure the last word is always visible
+      // Brief pause so the user can read the final word, then clear + continue.
+      setTimeout(() => {
+        setDisplayedText("");
+        onDone?.();
+      }, 300);
+    };
+
+    // ── onerror: "interrupted" is benign — it fires on the OLD utterance ─────
+    // when synth.cancel() is called above. All other errors are real failures.
+    utterance.onerror = (event) => {
+      if (event.error === "interrupted") {
+        // Expected: fired on the utterance we just cancelled. Ignore.
+        console.log("[TTS] onerror: interrupted (old utterance cancelled — expected, ignoring)");
+        return;
+      }
+      console.error("[TTS] onerror:", event.error, event);
+      clearRevealTimer();
       setDisplayedText("");
       onDone?.();
     };
-    window.speechSynthesis.speak(utterance);
+
+    // Defer speak() by one macrotask so Chrome's engine has time to settle
+    // after cancel() before the new utterance is queued.
+    setTimeout(() => {
+      console.log("[TTS] synth.speak() | speaking:", synth.speaking, "pending:", synth.pending);
+      synth.speak(utterance);
+    }, 0);
   };
 
 
@@ -312,7 +430,9 @@ export default function InterviewSessionPage() {
   useEffect(() => {
     const wasSpeak = prevIsSpeakingRef.current;
     prevIsSpeakingRef.current = aiSpeaking;
+    console.log(`[REC] aiSpeaking changed: wasSpeak=${wasSpeak} aiSpeaking=${aiSpeaking} phase=${phase} isRecording=${isRecording} isSubmitting=${isSubmitting}`);
     if (wasSpeak && !aiSpeaking && phase === "active" && !isRecording && !isSubmitting) {
+      console.log("[REC] Falling edge detected → startQuestionRecording()");
       startQuestionRecording();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
