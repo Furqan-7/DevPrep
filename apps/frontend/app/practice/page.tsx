@@ -1,5 +1,5 @@
 "use client";
-
+import axios from "axios";
 import { useRef, useState } from "react";
 
 export default function PracticePage() {
@@ -48,8 +48,7 @@ export default function PracticePage() {
                     if (!res.ok) {
                         setError(data.error ?? "Transcription failed.");
                         return;
-                    }
-
+                    }        
                     setTranscript(data.transcript);
                     console.log("User said:", data.transcript);
                 } catch (err) {

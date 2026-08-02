@@ -39,3 +39,6 @@ yarn-error.log*
 
 # Graphify (auto-generated knowledge graph)
 graphify-out/
+
+
+.agents/

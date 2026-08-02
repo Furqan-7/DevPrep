@@ -1,685 +1,1142 @@
 "use client";
-import { motion } from "motion/react";
+
+/**
+ * DevPrep Landing Page
+ * Rebuilt to match the new Framer design (devprep-framer-website.zip).
+ *
+ * NOTES FOR INTEGRATION (see full write-up in chat):
+ * - This file assumes Inter is already your default sans font (font-sans).
+ * - JetBrains Mono is used for nav links, buttons, eyebrow labels, the logo,
+ *   and a few mono accents (numbers, footer badge). Add it via next/font in
+ *   your root layout for a pixel-exact match:
+ *     import { JetBrains_Mono } from "next/font/google";
+ *     const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jbmono" });
+ *   and apply `${jetbrainsMono.variable}` to <html> or <body>, then this file's
+ *   `font-mono-devprep` class (defined via inline style fallback below) will
+ *   pick up "var(--font-jbmono)". Until then it falls back to system monospace.
+ * - Every CTA route is a best-guess placeholder — see the "ROUTES — VERIFY"
+ *   block just below the imports. Update these to your real paths.
+ * - Uses motion/react (Framer Motion), consistent with your existing codebase.
+ */
+
 import {
-  BookOpen,
-  Calendar,
-  Globe,
-  CheckCircle2,
+  motion,
+  AnimatePresence,
+  useInView,
+  useReducedMotion,
+} from "motion/react";
+import {
   ArrowRight,
-  Star
+  Mic2,
+  Code2,
+  ListChecks,
+  Zap,
+  Check,
+  X,
+  ChevronDown,
+  Menu,
+  X as CloseIcon,
+  Search,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import dsaImage from "public/dsa.png";
-import cscoreImage from "public/cscore.png";
-import jobsImage from "public/jobs.png";
-import interview1 from "public/interview1.png";
-import interview2 from "public/interview2.png";
-import interview3 from "public/interview3.png";
-import interview4 from "public/interview4.png";
 
-
-const Button = ({
-  children,
-  variant = "primary",
-  className = "",
-  onClick
-}: {
-  children: React.ReactNode;
-  variant?: "primary" | "secondary" | "ghost";
-  className?: string;
-  onClick?: () => void;
-}) => {
-  const baseStyles = "px-4 py-1.5 rounded-full font-medium transition-all duration-200 text-sm inline-flex items-center gap-2";
-  const variants = {
-    primary: "bg-white text-black hover:bg-gray-200 shadow-[0_0_15px_rgba(255,255,255,0.3)]",
-    secondary: "bg-brand-border text-white hover:bg-white/20 border border-white/10",
-    ghost: "text-brand-muted hover:text-white transition-colors"
-  };
-
-  return (
-    <button onClick={onClick} className={`${baseStyles} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
+/* ─────────────────────────────────────────────
+   ROUTES — VERIFY THESE AGAINST YOUR APP
+   I don't have your project's routing, so these are reasonable guesses
+   based on your old landing page's pattern (/auth/signin, /auth/signup).
+───────────────────────────────────────────── */
+const ROUTES = {
+  signIn: "/auth/signin",
+  signUp: "/auth/signup",
+  signUpPro: "/auth/signup?plan=pro",
+  dashboard: "/dashboard", // where a logged-in user lands — GUESS, old code used /dashboard/jobs
+  allRoles: "/roles", // GUESS — footer "All Roles" link
+  about: "/about", // GUESS
+  blog: "/blog", // GUESS
+  privacy: "/privacy", // GUESS
+  terms: "/terms", // GUESS
+  contact: "/contact", // GUESS — Teams/Campus "Contact Us"
+  twitter: "#", // PLACEHOLDER — needs real handle
+  linkedin: "#", // PLACEHOLDER — needs real handle
+  github: "#", // PLACEHOLDER — needs real handle
 };
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-brand-muted mb-3 tracking-tight uppercase">
-    {children}
-  </div>
-);
+const monoStyle = { fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)" };
 
-const Nav = () => {
-  const [scrolled, setScrolled] = useState(false);
-  const router = useRouter();
+/* ─────────────────────────────────────────────
+   Animation variants
+───────────────────────────────────────────── */
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+function scrollToId(id: string) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ─────────────────────────────────────────────
+   Animated Count-Up Stat (reused pattern from existing codebase)
+───────────────────────────────────────────── */
+function AnimatedStat({ value, label }: { value: string; label: string }) {
+  const [displayValue, setDisplayValue] = useState("0");
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, amount: 0.4 });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      router.push("/dashboard/jobs");
+    if (!isInView) return;
+    const match = value.match(/^([\D]*)([\d,.]+)([\D]*)$/);
+    if (!match) {
+      setDisplayValue(value);
+      return;
     }
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const prefix = match[1] || "";
+    const numStr = match[2].replace(/,/g, "");
+    const suffix = match[3] || "";
+    const isFloat = numStr.includes(".");
+    const targetNum = parseFloat(numStr);
+    let startTime: number | null = null;
+    const duration = 1100;
+
+    const step = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = targetNum * eased;
+      if (isFloat) {
+        setDisplayValue(`${prefix}${current.toFixed(1)}${suffix}`);
+      } else {
+        setDisplayValue(`${prefix}${Math.floor(current).toLocaleString("en-US")}${suffix}`);
+      }
+      if (progress < 1) requestAnimationFrame(step);
+      else setDisplayValue(value);
+    };
+    requestAnimationFrame(step);
+  }, [isInView, value]);
+
+  return (
+    <div ref={ref} className="flex-1 px-8 py-10 text-center border-r border-[#e5e5e5] last:border-r-0">
+      <div className="text-[40px] sm:text-[48px] font-extrabold text-[#1a1a1a] tracking-tight">
+        {displayValue}
+      </div>
+      <div className="text-[15px] text-[#666] mt-2 leading-snug max-w-[260px] mx-auto">{label}</div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Eyebrow label (mono, uppercase, tracked)
+───────────────────────────────────────────── */
+function Eyebrow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      style={monoStyle}
+      className={`inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Nav
+───────────────────────────────────────────── */
+const NAV_LINKS = [
+  { label: "Features", id: "features" },
+  { label: "How It Works", id: "how-it-works" },
+  { label: "Pricing", id: "pricing" },
+  { label: "FAQ", id: "faq" },
+];
+
+function GlobalNav() {
+  const router = useRouter();
+  const [scrolled, setScrolled] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (token) router.push(ROUTES.dashboard);
+  }, [router]);
+
   return (
-    <nav id="top-nav" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "glass py-2" : "bg-transparent py-3.5"}`}>
-      <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
-        <div id="logo" className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter">
-          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 h-16 flex items-center transition-colors duration-300 ${scrolled ? "bg-[#f5f5f7]/90 backdrop-blur-md border-b border-[#e5e5e5]" : "bg-[#f5f5f7] border-b border-transparent"
+        }`}
+    >
+      <div className="max-w-[1200px] w-full mx-auto px-6 sm:px-10 flex items-center justify-between">
+        <button
+          onClick={() => router.push("/")}
+          style={monoStyle}
+          className="text-[15px] font-bold tracking-[0.02em] text-[#1a1a1a] cursor-pointer"
+        >
           DevPrep
+        </button>
+
+        {/* Desktop links */}
+        <div className="hidden md:flex items-center gap-8">
+          {NAV_LINKS.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => scrollToId(l.id)}
+              style={monoStyle}
+              className="text-[13px] font-bold tracking-[0.08em] text-[#1a1a1a]/70 hover:text-[#1a1a1a] transition-colors cursor-pointer"
+            >
+              {l.label.toUpperCase()}
+            </button>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => { router.push("/auth/signin") }} variant="ghost" className="text-xs hover:cursor-pointer">Sign in</Button>
-          <Button onClick={() => { router.push("/auth/signup") }} className="text-xs hover:cursor-pointer">Get Started Free</Button>
+
+        <div className="hidden md:block">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => router.push(ROUTES.signUp)}
+            style={monoStyle}
+            className="bg-[#1a1a1a] hover:bg-black text-white text-[13px] font-bold tracking-[0.08em] px-5 py-2.5 rounded-full cursor-pointer transition-colors"
+          >
+            START PRACTICING
+          </motion.button>
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setDrawerOpen((v) => !v)}
+          className="md:hidden text-[#1a1a1a] p-2 -mr-2"
+          aria-label="Toggle menu"
+        >
+          {drawerOpen ? <CloseIcon size={22} /> : <Menu size={22} />}
+        </button>
       </div>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="md:hidden absolute top-16 left-0 right-0 bg-[#f5f5f7] border-b border-[#e5e5e5] overflow-hidden"
+          >
+            <div className="px-6 py-6 flex flex-col gap-5">
+              {NAV_LINKS.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    scrollToId(l.id);
+                  }}
+                  style={monoStyle}
+                  className="text-left text-[13px] font-bold tracking-[0.08em] text-[#1a1a1a]/80"
+                >
+                  {l.label.toUpperCase()}
+                </button>
+              ))}
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => router.push(ROUTES.signUp)}
+                style={monoStyle}
+                className="bg-[#1a1a1a] text-white text-[13px] font-bold tracking-[0.08em] px-5 py-3 rounded-full mt-1"
+              >
+                START PRACTICING
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
-};
+}
 
-const MockupCard = ({ className = "" }: { className?: string }) => (
-  <div className={`relative rounded-xl border border-white/10 bg-[#0a0a0b] overflow-hidden shadow-2xl group/card ${className}`}>
-    <div className="h-6 border-b border-white/5 bg-white/5 flex items-center justify-between px-3">
-      <div className="flex gap-1">
-        <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-        <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-        <div className="w-1.5 h-1.5 rounded-full bg-white/10" />
-      </div>
-      <div className="w-24 h-2 bg-white/5 rounded-full" />
-    </div>
-    <div className="p-5 space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-white/10 animate-pulse" />
-        <div className="space-y-1.5 flex-1">
-          <div className="h-3 w-1/3 bg-white/10 rounded" />
-          <div className="h-2 w-1/2 bg-white/5 rounded" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="h-24 bg-white/[0.03] rounded-lg border border-white/5 p-3 space-y-2">
-          <div className="h-1.5 w-1/2 bg-white/10 rounded" />
-          <div className="h-1.5 w-full bg-white/5 rounded" />
-          <div className="h-1.5 w-2/3 bg-white/5 rounded" />
-        </div>
-        <div className="h-24 bg-white/[0.03] rounded-lg border border-white/5 p-3 space-y-2">
-          <div className="h-1.5 w-1/2 bg-white/10 rounded" />
-          <div className="h-1.5 w-full bg-white/5 rounded" />
-          <div className="h-1.5 w-2/3 bg-white/5 rounded" />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <div className="h-2 w-full bg-white/5 rounded" />
-        <div className="h-2 w-full bg-white/5 rounded" />
-        <div className="h-2 w-4/5 bg-white/5 rounded" />
-      </div>
-    </div>
-    <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-white/5 blur-[80px] -z-10 group-hover/card:bg-white/10 transition-colors duration-500" />
-    <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-transparent pointer-events-none" />
-  </div>
-);
+/* ─────────────────────────────────────────────
+   Hero
+───────────────────────────────────────────── */
+const ROLE_GRID = [
+  { category: "Engineering", name: "Frontend Engineer", highlight: true },
+  { category: "Engineering", name: "Backend Engineer" },
+  { category: "Engineering", name: "Full Stack Developer" },
+  { category: "Engineering", name: "System Design" },
+  { category: "Data", name: "ML Engineer" },
+  { category: "Data", name: "Data Engineer" },
+  { category: "Product", name: "Product Manager" },
+  { category: "Behavioral", name: "Behavioral Round" },
+];
 
-export default function App() {
+function HeroSection() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState(0);
-
-  const interviewSteps = [
-    {
-      label: "01 — Pick Your Role",
-      stepLabel: "STEP 01",
-      heading: "Pick Your Role",
-      desc: "Choose from 24+ roles across engineering, data, design, and product.",
-      img: interview1,
-      size: "max-w-sm",
-    },
-    {
-      label: "02 — Review Questions",
-      stepLabel: "STEP 02",
-      heading: "Review Real Questions",
-      desc: "See the most common interview questions for your role before you practice.",
-      img: interview2,
-      size: "max-w-[260px]",
-    },
-    {
-      label: "03 — Allow Access",
-      stepLabel: "STEP 03",
-      heading: "Allow Mic & Camera",
-      desc: "Grant microphone and camera permissions to start your live AI mock interview session.",
-      img: interview3,
-    },
-    {
-      label: "04 — Take the Interview",
-      stepLabel: "STEP 04",
-      heading: "Take the Interview",
-      desc: "Start a live AI-powered mock interview and get instant feedback on your answers.",
-      img: interview4,
-    },
-  ];
 
   return (
-    <div id="tech-prep-app" className="relative min-h-screen selection:bg-white selection:text-black dot-background overflow-x-hidden">
-      <Nav />
-
-      {/* Hero */}
-      <section id="hero" className="pt-16 pb-12 md:pt-24 md:pb-16 px-6 relative isolate overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[300px] bg-white opacity-[0.03] blur-[120px] rounded-full -z-10 pointer-events-none" />
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col items-start gap-4 max-w-xl">
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-3xl md:text-5xl lg:text-6xl font-display font-bold tracking-tight leading-[1.1]"
-            >
-              Everything you need to <br className="hidden md:block" />
-              <span className="text-brand-muted">land your dream tech job</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-sm md:text-base text-brand-muted max-w-md leading-relaxed"
-            >
-              DSA practice, live job listings, hiring calendars, and core CS prep — all in one platform built for Indian engineering placements.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-wrap items-center gap-3 pt-1"
-            >
-              <Button onClick={() => {
-                router.push("/auth/signup")
-              }} className="text-sm px-6 py-2.5 hover:cursor-pointer">Start Preparing Free</Button>
-              <Button variant="secondary" className="text-sm px-6 py-2.5 group hover:cursor-pointer">
-                See How It Works <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1, delay: 0.5 }}
-              className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1"
-            >
-              {["Built for Indian Placements", "AI-Powered Prep", "Updated Daily"].map((badge) => (
-                <div key={badge} className="flex items-center gap-1.5 text-xs font-semibold text-brand-muted uppercase tracking-widest">
-                  <CheckCircle2 size={12} className="text-white/40" />
-                  {badge}
-                </div>
-              ))}
-            </motion.div>
+    <section className="bg-[#f5f5f7] pt-[110px] sm:pt-[130px] pb-16 px-6">
+      <div className="max-w-[1200px] mx-auto flex flex-col items-center text-center">
+        <motion.div initial="hidden" animate="visible" variants={fadeUp}>
+          <div
+            style={monoStyle}
+            className="inline-flex items-center gap-2 rounded-full bg-[#eb3a14]/[0.08] px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] mb-8"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#eb3a14]" />
+            AI-Powered Mock Interviews
           </div>
+        </motion.div>
 
-          {/* AI Interview steps */}
-          <div className="mt-14">
-            <div className="mb-8">
-              <SectionLabel>AI-Powered Practice</SectionLabel>
-              <h2 className="text-2xl md:text-4xl font-display font-bold tracking-tight leading-[1.1] mt-3">
-                Practice Interviews
-                <br />
-                <span className="text-brand-muted">with AI</span>
-              </h2>
+        <motion.h1
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          transition={{ delay: 0.08 }}
+          className="font-extrabold text-[#1a1a1a] text-[36px] sm:text-[52px] lg:text-[72px] leading-[1.05] lg:leading-[1] tracking-[-0.03em] max-w-[900px]"
+        >
+          Walk into your next interview{" "}
+          <span className="font-bold text-[#666]">already knowing what&rsquo;s coming.</span>
+        </motion.h1>
+
+        <motion.p
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          transition={{ delay: 0.16 }}
+          className="text-[#666] text-[16px] sm:text-[18px] leading-relaxed max-w-[560px] mt-6"
+        >
+          Pick a role or upload your resume, practice with Zara your AI interviewer, get instant feedback.
+        </motion.p>
+
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          transition={{ delay: 0.24 }}
+          className="flex flex-wrap items-center justify-center gap-4 mt-9"
+        >
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => router.push(ROUTES.signUp)}
+            style={monoStyle}
+            className="inline-flex items-center gap-2 bg-[#eb3a14] hover:bg-[#d63410] text-white text-[13px] font-bold tracking-[0.08em] px-7 py-3.5 rounded-full cursor-pointer transition-colors"
+          >
+            START PRACTICING
+            <ArrowRight size={15} />
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => scrollToId("how-it-works")}
+            style={monoStyle}
+            className="bg-white hover:bg-white/70 text-[#1a1a1a] text-[13px] font-bold tracking-[0.08em] px-7 py-3.5 rounded-full cursor-pointer transition-colors"
+          >
+            SEE HOW IT WORKS
+          </motion.button>
+        </motion.div>
+
+        {/* Role grid mockup */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.32, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[1000px] mt-14 rounded-[12px] border border-[#e5e5e5] bg-white overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+        >
+          <div className="flex items-center justify-between gap-4 bg-[#fafafa] border-b border-[#e5e5e5] px-4 sm:px-6 py-4">
+            <span className="text-[14px] sm:text-[15px] font-semibold text-[#1a1a1a] text-left">
+              Choose Your Interview Role
+            </span>
+            <div className="hidden sm:flex items-center gap-2 bg-white border border-[#e5e5e5] rounded-md px-3 py-1.5 text-[#999] text-[13px] w-[180px]">
+              <Search size={13} />
+              <span>Search roles…</span>
             </div>
-            <div className="grid lg:grid-cols-2 gap-10 items-center">
-              {/* Left: text */}
-              <div className="flex flex-col items-start gap-5">
-                <span className="inline-block bg-white/10 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-md">
-                  {interviewSteps[activeTab].stepLabel}
-                </span>
-                <h2 className="text-2xl md:text-4xl font-display font-bold tracking-tight leading-[1.1]">
-                  {interviewSteps[activeTab].heading}
-                </h2>
-                <p className="text-sm text-brand-muted leading-relaxed max-w-sm">
-                  {interviewSteps[activeTab].desc}
-                </p>
-                <button
-                  onClick={() => setActiveTab((activeTab + 1) % interviewSteps.length)}
-                  className="flex items-center gap-2 px-5 py-2 rounded-full border border-white/20 text-xs font-semibold text-white hover:bg-white/10 transition-all duration-200 group/btn mt-1"
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 bg-[#e5e5e5] gap-px">
+            {ROLE_GRID.map((r) => (
+              <div key={r.name} className="bg-white px-4 sm:px-5 py-4 text-left">
+                <div
+                  style={monoStyle}
+                  className={`text-[10px] font-medium uppercase tracking-[0.08em] mb-1 ${r.highlight ? "text-[#eb3a14]" : "text-[#999]"
+                    }`}
                 >
-                  Next Step <ArrowRight size={13} className="group-hover/btn:translate-x-1 transition-transform" />
-                </button>
-                {/* Dot indicators */}
-                <div className="flex items-center gap-2 mt-1">
-                  {interviewSteps.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveTab(i)}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        activeTab === i ? "w-6 bg-white" : "w-1.5 bg-white/25 hover:bg-white/50"
-                      }`}
-                    />
-                  ))}
+                  {r.category}
                 </div>
+                <div className="text-[13px] sm:text-[14px] font-semibold text-[#1a1a1a]">{r.name}</div>
               </div>
-              {/* Right: screenshot — sized to match DSA/Jobs aspect ratio */}
-              <div className="relative">
-                <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-                <div className="relative aspect-[4/3] w-full rounded-xl border border-white/10 overflow-hidden shadow-2xl bg-[#0a0a0b]">
-                  <Image
-                    src={interviewSteps[activeTab].img}
-                    alt={interviewSteps[activeTab].heading}
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 
-          <div className="mt-12 text-center">
-            <p className="text-xs font-semibold text-brand-muted uppercase tracking-[0.2em] mb-6">Trusted resources, all in one place</p>
-            <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-5 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-              {["LeetCode", "GeeksforGeeks", "Codeforces", "LinkedIn", "GitHub", "Internshala"].map((p) => (
-                <span key={p} className="text-sm font-bold tracking-tighter opacity-70">{p}</span>
-              ))}
-            </div>
-          </div>
+/* ─────────────────────────────────────────────
+   Trusted By marquee
+   NOTE: the source Framer design used stylized brand glyphs in this row.
+   I couldn't confirm which real companies/logos without risking trademarked
+   assets, so this uses a plain text placeholder — swap in real logos.
+───────────────────────────────────────────── */
+const TRUSTED_BY_PLACEHOLDER = [
+  "Google", "Meta", "Amazon", "Microsoft", "Stripe", "Shopify", "Netflix", "Adobe", "Uber", "Airbnb",
+];
+
+function TrustedBy() {
+  return (
+    <section className="bg-white py-10 px-6 overflow-hidden">
+      <div className="max-w-[1200px] mx-auto text-center">
+        <div
+          style={monoStyle}
+          className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#999] mb-6"
+        >
+          Trusted by candidates preparing for
         </div>
-      </section>
-
-      {/* Divider */}
-      <div className="border-t border-brand-border" />
-
-      {/* Problem */}
-      <section id="problem" className="py-12 md:py-16 px-6 dot-background relative isolate">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col items-center text-center mb-10">
-            <SectionLabel>The Problem</SectionLabel>
-            <h2 className="text-2xl md:text-3xl font-display font-bold mb-3 tracking-tight">Your prep is scattered. <br className="hidden md:block" /> Your time isn't.</h2>
-            <p className="text-sm text-brand-muted max-w-md px-4">
-              You're jumping between 10 tabs — LeetCode for DSA, LinkedIn for jobs, random PDFs for DBMS, and a group chat for hiring dates. DevPrep ends that.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              { title: "You miss deadlines", desc: "Hiring windows close before you even knew they opened. Stay ahead with real-time updates." },
-              { title: "You can't track progress", desc: "No single place to see what you've studied and what's left. Visibility is the key to confidence." },
-              { title: "Resources are everywhere", desc: "Good content exists but finding it during crunch time is chaos. We curate the best of the web." }
-            ].map((p, i) => (
-              <motion.div
-                whileHover={{ y: -4 }}
-                key={p.title}
-                className="p-5 rounded-xl bg-white/[0.03] border border-white/10 card-gradient group"
+        <div className="relative overflow-hidden">
+          <motion.div
+            className="flex items-center gap-12 w-max"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
+          >
+            {[...TRUSTED_BY_PLACEHOLDER, ...TRUSTED_BY_PLACEHOLDER].map((name, i) => (
+              <span
+                key={`${name}-${i}`}
+                style={monoStyle}
+                className="text-[15px] font-semibold text-[#1a1a1a]/30 whitespace-nowrap"
               >
-                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mb-4 text-brand-muted group-hover:text-white transition-colors">
-                  {i === 0 ? <Calendar size={15} /> : i === 1 ? <CheckCircle2 size={15} /> : <BookOpen size={15} />}
-                </div>
-                <h3 className="text-base font-bold mb-1.5">{p.title}</h3>
-                <p className="text-brand-muted text-xs leading-relaxed">{p.desc}</p>
-              </motion.div>
+                {name}
+              </span>
             ))}
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* Divider */}
-      <div className="border-t border-brand-border" />
+/* ─────────────────────────────────────────────
+   Problem / Solution
+───────────────────────────────────────────── */
+const OLD_WAY = [
+  "Practicing alone with no feedback loop",
+  "Generic questions that don't match your target role",
+  "Guessing what interviewers actually want",
+  "No way to practice speaking your answers out loud",
+];
 
-      {/* Features */}
-      <section id="features" className="py-12 md:py-20 px-6 relative isolate">
-        <div className="max-w-5xl mx-auto space-y-20 md:space-y-28">
+const DEVPREP_WAY = [
+  "AI interviewer Zara asks questions by voice, naturally",
+  "Live code execution for DSA and technical rounds",
+  "Instant feedback on every answer right after the session",
+  "Role-specific questions curated for 24+ engineering, data, and design roles",
+];
 
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-14 items-center">
-            <div className="flex flex-col items-start gap-4">
-              <div className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">Most used feature</div>
-              <h3 className="text-xl md:text-3xl font-display font-bold tracking-tight">Master DSA, <br /> topic by topic</h3>
-              <p className="text-sm text-brand-muted leading-relaxed">
-                Every data structure and algorithm topic — Arrays, Trees, Graphs, DP — with curated problem lists, difficulty tags, and progress tracking. Built for placement-level preparation.
-              </p>
-              <div className="flex flex-col gap-2.5 pt-1">
-                {["Curated LeetCode lists", "Complexity analysis cheatsheets", "Company-specific problems"].map(item => (
-                  <div key={item} className="flex items-center gap-2.5 text-xs text-brand-muted">
-                    <div className="w-1 h-1 rounded-full bg-white/20" />
-                    {item}
+function ProblemSolution() {
+  return (
+    <section className="bg-[#f5f5f7] py-20 sm:py-32 px-6">
+      <div className="max-w-[1200px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center max-w-[700px] mx-auto mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">The Problem</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-[#1a1a1a] tracking-[-0.02em] leading-tight">
+            Stop winging it. Start preparing.
+          </h2>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          className="grid md:grid-cols-2 gap-4"
+        >
+          <motion.div variants={itemVariants} className="bg-[#1a1a1a] rounded-[12px] p-8 sm:p-10">
+            <div style={monoStyle} className="text-[11px] font-medium uppercase tracking-[0.1em] text-white/40 mb-6">
+              The Old Way
+            </div>
+            <ul className="space-y-3">
+              {OLD_WAY.map((item) => (
+                <li key={item} className="flex items-start gap-3 rounded-lg px-4 py-3.5 bg-white/5">
+                  <X size={16} className="text-white/30 mt-0.5 flex-shrink-0" />
+                  <span className="text-[15px] text-white/60 leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="bg-white rounded-[12px] p-8 sm:p-10">
+            <div style={monoStyle} className="text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] mb-6">
+              The DevPrep Way
+            </div>
+            <ul className="space-y-3">
+              {DEVPREP_WAY.map((item) => (
+                <li key={item} className="flex items-start gap-3 rounded-lg px-4 py-3.5 bg-[#eb3a14]/[0.06]">
+                  <div className="w-5 h-5 rounded-full bg-[#eb3a14]/10 flex items-center justify-center text-[#eb3a14] mt-0.5 flex-shrink-0">
+                    <Check size={12} strokeWidth={3} />
                   </div>
-                ))}
+                  <span className="text-[15px] text-[#1a1a1a]/80 leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Features
+───────────────────────────────────────────── */
+const FEATURES = [
+  {
+    icon: <Mic2 size={20} />,
+    title: "AI Interviewer — Zara",
+    body: "Natural voice conversations with an AI interviewer. Not a quiz — a real dialogue that mirrors how actual interviews feel.",
+  },
+  {
+    icon: <Code2 size={20} />,
+    title: "Live Code Execution",
+    body: "Solve DSA and coding problems with a real compiler. Write, run, and debug your solution — just like in a real technical screen.",
+  },
+  {
+    icon: <ListChecks size={20} />,
+    title: "Role-Specific Questions",
+    body: "24+ roles across Engineering, Data, Design, Product, and Behavioral. Every question set is curated for what that role actually tests.",
+  },
+  {
+    icon: <Zap size={20} />,
+    title: "Instant Feedback",
+    body: "Get a breakdown of your answers right after the session — strengths, gaps, and what to sharpen before your real interview.",
+  },
+];
+
+function FeaturesSection() {
+  return (
+    <section id="features" className="bg-white py-20 sm:py-32 px-6 scroll-mt-16">
+      <div className="max-w-[1200px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center max-w-[700px] mx-auto mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">Features</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-[#1a1a1a] tracking-[-0.02em] leading-tight">
+            Everything you need to ace your next interview
+          </h2>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          className="grid sm:grid-cols-2 gap-4"
+        >
+          {FEATURES.map((f) => (
+            <motion.div
+              key={f.title}
+              variants={itemVariants}
+              className="bg-[#f5f5f7] rounded-[12px] p-8 flex flex-col sm:flex-row gap-6"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-white border border-[#e5e5e5] flex items-center justify-center text-[#eb3a14] flex-shrink-0">
+                {f.icon}
               </div>
-            </div>
-            <div className="relative">
-              <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-              <MockupCard className="aspect-[4/3] w-full" />
-              <Image
-                src={dsaImage}
-                alt="DSA"
-                width={600}
-                height={400}
-                className="absolute top-0 left-0 w-full h-full rounded-md"
-              />
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-14 items-center">
-            <div className="order-2 lg:order-1 relative">
-              <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-              <Image
-                src={jobsImage}
-                alt="Jobs"
-                width={1080}
-                height={720}
-                className="w-full rounded-xl border border-white/10 shadow-2xl"
-              />
-            </div>
-            <div className="order-1 lg:order-2 flex flex-col items-start gap-4">
-              <div className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">Updated daily</div>
-              <h3 className="text-xl md:text-3xl font-display font-bold tracking-tight">Every job and internship, in one feed</h3>
-              <p className="text-sm text-brand-muted leading-relaxed">
-                Filtered listings across Startups, FAANG, HFT firms, and mass recruiters. Filter by role, location, CTC, and work mode. Updated daily. Never miss an opening again.
-              </p>
-              <div className="flex flex-col gap-2.5 pt-1">
-                {["Verified referral links", "Direct HR emails", "Off-campus & On-campus trackers"].map(item => (
-                  <div key={item} className="flex items-center gap-2.5 text-xs text-brand-muted">
-                    <div className="w-1 h-1 rounded-full bg-white/20" />
-                    {item}
-                  </div>
-                ))}
+              <div>
+                <h3 className="text-[18px] font-semibold text-[#1a1a1a] mb-2">{f.title}</h3>
+                <p className="text-[14px] text-[#666] leading-relaxed">{f.body}</p>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-14 items-center">
-            <div className="flex flex-col items-start gap-4">
-              <div className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">Time-critical</div>
-              <h3 className="text-xl md:text-3xl font-display font-bold tracking-tight">Know exactly when companies are hiring</h3>
-              <p className="text-sm text-brand-muted leading-relaxed">
-                A month-by-month calendar of recruitment windows across 500+ companies. Color-coded by company type. One click shows deadlines, rounds, and application links.
-              </p>
-              <div className="flex flex-col gap-2.5 pt-1">
-                {["Deadline reminders", "Interview experience logs", "Batch-specific alerts"].map(item => (
-                  <div key={item} className="flex items-center gap-2.5 text-xs text-brand-muted">
-                    <div className="w-1 h-1 rounded-full bg-white/20" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative">
-              <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-              {/* Hiring Calendar Mockup */}
-              <div className="relative rounded-xl border border-white/10 bg-[#0a0a0b] overflow-hidden shadow-2xl aspect-[4/3] w-full">
-                {/* Browser chrome */}
-                <div className="h-7 border-b border-white/5 bg-white/[0.03] flex items-center justify-between px-3 flex-shrink-0">
-                  <div className="flex gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-white/10" />
-                    <div className="w-2 h-2 rounded-full bg-white/10" />
-                    <div className="w-2 h-2 rounded-full bg-white/10" />
-                  </div>
-                  <div className="text-[10px] text-white/20 font-medium tracking-wide">Hiring Calendar — July 2025</div>
-                  <div className="w-12" />
-                </div>
-                {/* Calendar body */}
-                <div className="p-3 h-[calc(100%-1.75rem)] flex flex-col">
-                  {/* Day headers */}
-                  <div className="grid grid-cols-7 mb-1">
-                    {["M","T","W","T","F","S","S"].map((d, i) => (
-                      <div key={i} className="text-center text-[9px] font-bold text-white/20 uppercase tracking-wider py-0.5">{d}</div>
-                    ))}
-                  </div>
-                  {/* Calendar grid — 5 weeks */}
-                  <div className="grid grid-cols-7 gap-0.5 flex-1">
-                    {[
-                      { day: null }, { day: 1 }, { day: 2 }, { day: 3 }, { day: 4, event: { label: "TCS", type: "mass" } }, { day: 5 }, { day: 6 },
-                      { day: 7 }, { day: 8, event: { label: "Infosys", type: "mass" } }, { day: 9 }, { day: 10 }, { day: 11, event: { label: "Flipkart", type: "product" } }, { day: 12 }, { day: 13 },
-                      { day: 14 }, { day: 15 }, { day: 16, event: { label: "Google", type: "faang" } }, { day: 17 }, { day: 18 }, { day: 19, event: { label: "Razorpay", type: "startup" } }, { day: 20 },
-                      { day: 21, event: { label: "Wipro", type: "mass" } }, { day: 22 }, { day: 23 }, { day: 24 }, { day: 25, event: { label: "Amazon", type: "faang" } }, { day: 26 }, { day: 27 },
-                      { day: 28 }, { day: 29 }, { day: 30 }, { day: 31 }, { day: null }, { day: null }, { day: null },
-                    ].map((cell, i) => {
-                      const typeStyles: Record<string, string> = {
-                        mass: "bg-white/10 text-white/60",
-                        product: "bg-[#5E6AD2]/30 text-[#5E6AD2]",
-                        faang: "bg-[#5E6AD2]/20 text-[#8a94e8]",
-                        startup: "bg-white/8 text-white/50",
-                      };
-                      return (
-                        <div key={i} className={`rounded flex flex-col items-start p-0.5 min-h-0 ${
-                          cell.day ? "hover:bg-white/5" : ""
-                        } ${cell.day === 16 ? "ring-1 ring-[#5E6AD2]/50" : ""}`}>
-                          {cell.day && (
-                            <span className={`text-[9px] font-semibold leading-none mb-0.5 ${
-                              cell.day === 16 ? "text-[#5E6AD2]" : "text-white/30"
-                            }`}>{cell.day}</span>
-                          )}
-                          {cell.event && (
-                            <span className={`text-[8px] font-bold px-1 py-px rounded leading-tight truncate w-full ${typeStyles[cell.event.type]}`}>
-                              {cell.event.label}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* Legend */}
-                  <div className="flex items-center gap-3 pt-2 border-t border-white/5 mt-2 flex-shrink-0">
-                    <span className="text-[8px] text-white/20 font-semibold uppercase tracking-wider">Legend:</span>
-                    {[
-                      { label: "FAANG", cls: "bg-[#5E6AD2]/20" },
-                      { label: "Product", cls: "bg-[#5E6AD2]/30" },
-                      { label: "Mass", cls: "bg-white/10" },
-                      { label: "Startup", cls: "bg-white/8" },
-                    ].map(l => (
-                      <div key={l.label} className="flex items-center gap-1">
-                        <div className={`w-1.5 h-1.5 rounded-sm ${l.cls}`} />
-                        <span className="text-[8px] text-white/25 font-medium">{l.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+/* ─────────────────────────────────────────────
+   How It Works
+───────────────────────────────────────────── */
+const STEPS = [
+  {
+    num: "01",
+    title: "Pick your role",
+    body: "Choose from 24+ roles across Engineering, Data, Design, and Product — or upload your resume for questions tailored to your background.",
+  },
+  {
+    num: "02",
+    title: "Review what to expect",
+    body: "See the top 10 most common questions for your role before you start. Know what's coming so you can walk in with a plan.",
+  },
+  {
+    num: "03",
+    title: "Take the interview",
+    body: "Talk naturally to Zara. Answer by voice, solve code live, and get a full breakdown of your performance right when you finish.",
+  },
+];
 
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-14 items-center">
-            <div className="order-2 lg:order-1 relative">
-              <div className="absolute -inset-6 bg-white/5 rounded-full blur-[60px] opacity-20 -z-10" />
-              <Image
-                src={cscoreImage}
-                alt="CS Core"
-                width={1080}
-                height={720}
-                className="w-full rounded-xl border border-white/10 shadow-2xl"
-              />
-            </div>
-            <div className="order-1 lg:order-2 flex flex-col items-start gap-4">
-              <div className="text-xs font-bold text-white/40 uppercase tracking-[0.2em]">Interview essentials</div>
-              <h3 className="text-xl md:text-3xl font-display font-bold tracking-tight">OS, DBMS, CN, OOPs — all structured</h3>
-              <p className="text-sm text-brand-muted leading-relaxed">
-                Stop hunting across random PDFs and YouTube playlists. Every core CS subject is organized by topic with clean notes, key concepts, and common interview questions.
-              </p>
-              <div className="flex flex-col gap-2.5 pt-1">
-                {["Top 50 interview Qs per subject", "Visual concept explanations", "Mock quiz modules"].map(item => (
-                  <div key={item} className="flex items-center gap-2.5 text-xs text-brand-muted">
-                    <div className="w-1 h-1 rounded-full bg-white/20" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+function HowItWorks() {
+  return (
+    <section id="how-it-works" className="bg-[#f5f5f7] py-20 sm:py-32 px-6 scroll-mt-16">
+      <div className="max-w-[1200px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center max-w-[700px] mx-auto mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">How It Works</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-[#1a1a1a] tracking-[-0.02em] leading-tight">
+            From zero to interview-ready in three steps
+          </h2>
+        </motion.div>
 
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          className="flex flex-col md:flex-row gap-px bg-[#e5e5e5] rounded-[12px] overflow-hidden border border-[#e5e5e5]"
+        >
+          {STEPS.map((s) => (
+            <motion.div key={s.num} variants={itemVariants} className="flex-1 bg-white p-8 sm:p-10">
+              <div style={monoStyle} className="text-[22px] font-bold text-[#eb3a14] mb-4">
+                {s.num}
+              </div>
+              <h3 className="text-[18px] font-semibold text-[#1a1a1a] mb-2">{s.title}</h3>
+              <p className="text-[14px] text-[#666] leading-relaxed">{s.body}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Use Cases (dark section)
+───────────────────────────────────────────── */
+const USE_CASES = [
+  {
+    num: "001",
+    title: "Students & Grads",
+    body: "Preparing for your first technical role? DevPrep helps you simulate real interview pressure before the real thing — no prior experience needed.",
+  },
+  {
+    num: "002",
+    title: "Job Switchers",
+    body: "Changing industries or leveling up? Practice for a new role with questions that match exactly what your target company tests.",
+  },
+  {
+    num: "003",
+    title: "Bootcamp Grads",
+    body: "You know how to build. Now learn how to talk about it. DevPrep bridges the gap between your skills and your ability to demonstrate them.",
+  },
+];
+
+function UseCases() {
+  return (
+    <section className="bg-[#1a1a1a] py-20 sm:py-32 px-6">
+      <div className="max-w-[1200px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center max-w-[700px] mx-auto mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">Who It&rsquo;s For</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-white tracking-[-0.02em] leading-tight">
+            Built for anyone on the job hunt
+          </h2>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          className="grid md:grid-cols-3 gap-4"
+        >
+          {USE_CASES.map((u) => (
+            <motion.div key={u.num} variants={itemVariants} className="bg-white/5 border border-white/10 rounded-[12px] p-8">
+              <div style={monoStyle} className="text-[11px] font-medium tracking-[0.1em] text-white/30 mb-4">
+                {u.num}
+              </div>
+              <h3 className="text-[18px] font-semibold text-white mb-2">{u.title}</h3>
+              <p className="text-[14px] text-white/60 leading-relaxed">{u.body}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Results / Stats
+───────────────────────────────────────────── */
+const STATS = [
+  { value: "87%", label: "of users feel more confident going into interviews after 3+ sessions" },
+  { value: "3.2×", label: "more gaps identified through AI feedback vs practicing alone without any feedback" },
+  { value: "24+", label: "roles supported across Engineering, Data, Design, Product, and Behavioral — in one unified interview flow" },
+];
+
+function ResultsStats() {
+  return (
+    <section className="bg-white py-20 sm:py-32 px-6">
+      <div className="max-w-[1200px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center max-w-[700px] mx-auto mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">By the Numbers</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-[#1a1a1a] tracking-[-0.02em] leading-tight">
+            Practice works. Here&rsquo;s the proof.
+          </h2>
+        </motion.div>
+
+        <div className="flex flex-col sm:flex-row border border-[#e5e5e5] rounded-[12px] divide-y sm:divide-y-0 divide-[#e5e5e5]">
+          {STATS.map((s) => (
+            <AnimatedStat key={s.value} value={s.value} label={s.label} />
+          ))}
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* Stats */}
-      <section id="stats" className="border-y border-brand-border py-8 bg-white/[0.01]">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { val: "4", label: "Core Prep Modules" },
-              { val: "3,200+", label: "DSA Problems Curated" },
-              { val: "24+", label: "Interview Roles" },
-              { val: "24/7", label: "Daily Updates Active" }
-            ].map((s) => (
-              <div key={s.label} className="text-center space-y-1">
-                <div className="text-xl md:text-2xl font-display font-bold">{s.val}</div>
-                <div className="text-xs text-brand-muted uppercase tracking-widest font-semibold">{s.label}</div>
+/* ─────────────────────────────────────────────
+   Pricing
+───────────────────────────────────────────── */
+function PricingSection() {
+  const router = useRouter();
+
+  return (
+    <section id="pricing" className="bg-[#f5f5f7] py-20 sm:py-32 px-6 scroll-mt-16">
+      <div className="max-w-[1200px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center max-w-[700px] mx-auto mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">Pricing</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-[#1a1a1a] tracking-[-0.02em] leading-tight mb-3">
+            Simple, transparent pricing
+          </h2>
+          <p className="text-[16px] text-[#666]">Start for free. Upgrade when you&rsquo;re ready to go deeper.</p>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          className="flex flex-col md:flex-row gap-4 items-stretch md:items-end"
+        >
+          {/* Free */}
+          <motion.div variants={itemVariants} className="flex-1 bg-white rounded-[12px] p-8 flex flex-col">
+            <div className="text-[15px] font-semibold text-[#1a1a1a] mb-1">Free</div>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-[36px] font-extrabold text-[#1a1a1a]">$0</span>
+            </div>
+            <div className="text-[13px] text-[#999] mb-6">Forever free</div>
+            <ul className="space-y-3 mb-8 flex-1">
+              {[
+                "3 practice sessions per month",
+                "Core roles (Engineering, Behavioral)",
+                "Basic AI feedback after each session",
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-[14px] text-[#1a1a1a]/75">
+                  <Check size={15} className="text-[#eb3a14] mt-0.5 flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.push(ROUTES.signUp)}
+              style={monoStyle}
+              className="bg-[#f5f5f7] hover:bg-[#e5e5e5] text-[#1a1a1a] text-[13px] font-bold tracking-[0.06em] py-3 rounded-full transition-colors"
+            >
+              GET STARTED FREE
+            </motion.button>
+          </motion.div>
+
+          {/* Pro */}
+          <motion.div variants={itemVariants} className="flex-1 bg-[#1a1a1a] rounded-[12px] p-8 flex flex-col relative md:scale-[1.03] shadow-lg">
+            <div
+              style={monoStyle}
+              className="absolute -top-3 left-8 bg-[#eb3a14] text-white text-[10px] font-bold uppercase tracking-[0.08em] px-3 py-1 rounded-full"
+            >
+              Most Popular
+            </div>
+            <div className="text-[15px] font-semibold text-white mb-1">Pro</div>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-[36px] font-extrabold text-white">$19</span>
+            </div>
+            <div className="text-[13px] text-white/50 mb-6">per month</div>
+            <ul className="space-y-3 mb-8 flex-1">
+              {[
+                "Unlimited practice sessions",
+                "Resume-tailored question sets",
+                "Detailed feedback breakdowns per answer",
+                "All 24+ roles including Data, Design & PM",
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-[14px] text-white/75">
+                  <Check size={15} className="text-[#eb3a14] mt-0.5 flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.push(ROUTES.signUpPro)}
+              style={monoStyle}
+              className="bg-[#eb3a14] hover:bg-[#d63410] text-white text-[13px] font-bold tracking-[0.06em] py-3 rounded-full transition-colors"
+            >
+              START WITH PRO
+            </motion.button>
+          </motion.div>
+
+          {/* Teams */}
+          <motion.div variants={itemVariants} className="flex-1 bg-white rounded-[12px] p-8 flex flex-col">
+            <div className="text-[15px] font-semibold text-[#1a1a1a] mb-1">Teams / Campus</div>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-[36px] font-extrabold text-[#1a1a1a]">Custom</span>
+            </div>
+            <div className="text-[13px] text-[#999] mb-6">Bulk seats for bootcamps & colleges</div>
+            <ul className="space-y-3 mb-8 flex-1">
+              {[
+                "Everything in Pro for all seats",
+                "Admin dashboard and progress tracking",
+                "Dedicated onboarding support",
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-[14px] text-[#1a1a1a]/75">
+                  <Check size={15} className="text-[#eb3a14] mt-0.5 flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => router.push(ROUTES.contact)}
+              style={monoStyle}
+              className="bg-[#f5f5f7] hover:bg-[#e5e5e5] text-[#1a1a1a] text-[13px] font-bold tracking-[0.06em] py-3 rounded-full transition-colors"
+            >
+              CONTACT US
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Testimonials
+───────────────────────────────────────────── */
+const TESTIMONIALS = [
+  {
+    quote:
+      "I had my Google SWE interview coming up and was terrified of the system design round. Three DevPrep sessions with Zara and I walked in actually knowing what to expect. Got the offer.",
+    name: "Priya S.",
+    role: "SWE — Google",
+  },
+  {
+    quote:
+      "As a bootcamp grad, I knew how to code but couldn't talk about it well. DevPrep's feedback pointed out exactly what I was missing — now I can explain my thought process clearly.",
+    name: "Marcus T.",
+    role: "Frontend Dev — Shopify",
+  },
+  {
+    quote:
+      "I switched from marketing to PM roles. The behavioral and product sense rounds were brutal until I started using DevPrep. The questions Zara asks are exactly what I faced in real interviews.",
+    name: "Anika R.",
+    role: "Product Manager — Stripe",
+  },
+];
+
+function TestimonialsSection() {
+  return (
+    <section id="reviews" className="bg-white py-20 sm:py-32 px-6">
+      <div className="max-w-[1200px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center max-w-[700px] mx-auto mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">Testimonials</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-[#1a1a1a] tracking-[-0.02em] leading-tight">
+            Don&rsquo;t take our word for it
+          </h2>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          {TESTIMONIALS.map((t) => (
+            <motion.div key={t.name} variants={itemVariants} className="bg-[#f5f5f7] rounded-[12px] p-8 flex flex-col justify-between">
+              <p className="text-[14px] text-[#1a1a1a]/80 leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
+              <div>
+                <div className="text-[14px] font-semibold text-[#1a1a1a]">{t.name}</div>
+                <div className="text-[13px] text-[#999]">{t.role}</div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-12 md:py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col items-center text-center mb-10">
-            <SectionLabel>Get started in minutes</SectionLabel>
-            <h2 className="text-2xl md:text-3xl font-display font-bold mb-3 tracking-tight">From zero to placement-ready in 3 steps</h2>
-          </div>
+/* ─────────────────────────────────────────────
+   FAQ
+───────────────────────────────────────────── */
+const FAQ_ITEMS = [
+  {
+    q: "Can I choose my role, or does DevPrep assign one?",
+    a: "You choose. Pick from 24+ roles including Frontend Engineer, Backend, DSA, ML Engineer, Product Manager, Behavioral, and more — or upload your resume for a tailored question set.",
+  },
+  {
+    q: "What does a session actually look like?",
+    a: "You'll review the top questions for your role, then Zara asks you questions one by one by voice. You answer out loud, the session transcribes your responses, and you get detailed feedback when it's done. Technical rounds include a live code editor.",
+  },
+  {
+    q: "Does it support coding/technical rounds?",
+    a: "Yes. DSA, System Design, and engineering roles include a live code execution environment powered by Judge0. You write and run real code as part of the interview, just like you would in a real technical screen.",
+  },
+  {
+    q: "Is my data private?",
+    a: "Your session data, transcripts, and resume are used only to personalize your practice experience. We never share or sell your personal information to third parties.",
+  },
+  {
+    q: "What's included in the Free plan?",
+    a: "The Free plan gives you 3 practice sessions per month with access to core Engineering and Behavioral roles, plus basic AI feedback. Upgrade to Pro for unlimited sessions, resume-tailored questions, and detailed per-answer breakdowns.",
+  },
+];
 
-          <div className="grid md:grid-cols-3 gap-4 mb-10">
-            {[
-              { step: "01", title: "Create your free account", desc: "Sign up in 30 seconds, no credit card needed. Get instant access to the platform." },
-              { step: "02", title: "Pick your focus area", desc: "DSA, jobs, subjects, or all three — your prep, your pace. We customize your dashboard." },
-              { step: "03", title: "Track and improve", desc: "Mark topics done, apply to jobs, and watch your readiness grow with visual progress bars." }
-            ].map((s) => (
-              <div key={s.step} className="p-5 rounded-xl bg-white/[0.03] border border-white/10 relative overflow-hidden group">
-                <div className="text-3xl font-display font-black text-white/5 absolute -top-1 -left-1 group-hover:text-white/10 transition-colors">{s.step}</div>
-                <h3 className="text-base font-bold mb-1.5 relative z-10">{s.title}</h3>
-                <p className="text-brand-muted text-xs leading-relaxed relative z-10">{s.desc}</p>
-              </div>
-            ))}
-          </div>
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-          <div className="flex justify-center">
-            <Button onClick={() => { router.push("/auth/signup") }} className="px-7 py-3 text-sm group hover:cursor-pointer">
-              Get Started Free <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-        </div>
-      </section>
+  return (
+    <section id="faq" className="bg-[#f5f5f7] py-20 sm:py-32 px-6 scroll-mt-16">
+      <div className="max-w-[760px] mx-auto">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeUp}
+          className="text-center mb-14"
+        >
+          <Eyebrow className="justify-center mb-4">FAQ</Eyebrow>
+          <h2 className="text-[28px] sm:text-[40px] font-bold text-[#1a1a1a] tracking-[-0.02em] leading-tight">
+            Frequently asked questions
+          </h2>
+        </motion.div>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-16 md:py-24 px-6 bg-[#080809] relative isolate overflow-hidden">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col items-center text-center mb-10">
-            <SectionLabel>What students say</SectionLabel>
-            <h2 className="text-2xl md:text-3xl font-display font-bold mb-3 tracking-tight">Built for the grind. <br /> Loved by placees.</h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            {[
-              { name: "Arjun S.", role: "Placed at Flipkart", text: "I used to spend 30 minutes every morning just finding what to study. DevPrep cut that to zero." },
-              { name: "Sneha R.", role: "Placed at Atlassian India", text: "The hiring calendar alone saved me. I almost missed Atlassian's window. It's a game changer." },
-              { name: "Rahul M.", role: "SDE Intern at Razorpay", text: "Finally a platform that feels like it was built for Indian placements, not just American FAANG grind." }
-            ].map((t) => (
-              <div key={t.name} className="p-5 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col justify-between h-full">
-                <div className="space-y-2.5">
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map(i => <Star key={i} size={11} className="fill-white/80 text-white/80" />)}
-                  </div>
-                  <p className="text-sm italic text-white/90 leading-relaxed font-serif">"{t.text}"</p>
-                </div>
-                <div className="mt-5 flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white/10 border border-white/10" />
-                  <div>
-                    <div className="font-bold text-xs">{t.name}</div>
-                    <div className="text-xs text-brand-muted uppercase tracking-wider">{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-14 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="rounded-3xl bg-white text-black p-8 md:p-16 overflow-hidden relative group">
-            <div className="absolute top-0 right-0 w-1/2 h-full bg-black opacity-[0.03] translate-x-1/2 scale-150 rotate-12 pointer-events-none" />
-            <div className="relative z-10 max-w-lg space-y-5">
-              <h2 className="text-3xl md:text-5xl font-display font-bold tracking-tighter leading-none">Your placement <br /> season starts now</h2>
-              <p className="text-sm md:text-base font-medium opacity-70">
-                Stop scattering your prep across 10 tabs. DevPrep brings DSA, jobs, AI interviews, and CS core into one focused platform.
-              </p>
-              <div className="flex flex-wrap gap-3 pt-1">
-                <button onClick={() => { router.push("/auth/signup") }} className="bg-black text-white px-7 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl text-sm">
-                  Start Placement Prep
+        <div className="space-y-2">
+          {FAQ_ITEMS.map((item, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div key={item.q} className="bg-white border border-[#e5e5e5] rounded-[12px] overflow-hidden">
+                <button
+                  onClick={() => setOpenIndex(isOpen ? null : i)}
+                  className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left cursor-pointer"
+                >
+                  <span className="text-[15px] font-semibold text-[#1a1a1a]">{item.q}</span>
+                  <motion.span
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex-shrink-0 w-7 h-7 rounded-full bg-[#f5f5f7] flex items-center justify-center text-[#1a1a1a]"
+                  >
+                    <ChevronDown size={15} />
+                  </motion.span>
                 </button>
-                <button className="bg-transparent text-black border-2 border-black/10 px-7 py-3 rounded-full font-bold hover:bg-black/5 transition-colors text-sm">
-                  Explore features
-                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <p className="px-6 pb-5 text-[14px] text-[#666] leading-relaxed">{item.a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              <p className="text-xs font-medium opacity-50">Free forever for students. No credit card required.</p>
-            </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-            <div className="hidden lg:block absolute bottom-0 right-0 w-[280px] h-[210px] bg-black bg-opacity-5 translate-y-1/2 translate-x-8 rotate-[-12deg] rounded-2xl border-8 border-black/5 overflow-hidden">
-              <div className="p-5 space-y-2.5">
-                <div className="h-4 w-1/2 bg-black/10 rounded-full" />
-                <div className="h-3 w-full bg-black/5 rounded-full" />
-                <div className="h-3 w-4/5 bg-black/5 rounded-full" />
-              </div>
+/* ─────────────────────────────────────────────
+   Final CTA
+───────────────────────────────────────────── */
+function FinalCTA() {
+  const router = useRouter();
+  return (
+    <section className="bg-[#1a1a1a] py-20 sm:py-32 px-6 text-center">
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.3 }}
+        variants={fadeUp}
+        className="max-w-[700px] mx-auto"
+      >
+        <Eyebrow className="justify-center mb-4">Ready?</Eyebrow>
+        <h2 className="text-[32px] sm:text-[48px] font-bold text-white tracking-[-0.02em] leading-tight mb-5">
+          Ready for your next interview?
+        </h2>
+        <p className="text-[16px] text-white/60 leading-relaxed max-w-[480px] mx-auto mb-9">
+          Join thousands of candidates who stopped guessing and started practicing. Free to start, no credit card
+          required.
+        </p>
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => router.push(ROUTES.signUp)}
+          style={monoStyle}
+          className="inline-flex items-center gap-2 bg-[#eb3a14] hover:bg-[#d63410] text-white text-[13px] font-bold tracking-[0.08em] px-8 py-4 rounded-full cursor-pointer transition-colors"
+        >
+          START PRACTICING — IT&rsquo;S FREE
+          <ArrowRight size={15} />
+        </motion.button>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Footer
+───────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer className="bg-white pt-16 sm:pt-20 pb-10 px-6 border-t border-[#e5e5e5]">
+      <div className="max-w-[1200px] mx-auto">
+        <div className="flex flex-col md:flex-row gap-12 pb-12">
+          <div className="md:max-w-[300px]">
+            <div style={monoStyle} className="text-[15px] font-bold text-[#1a1a1a] mb-4">
+              DevPrep
+            </div>
+            <p className="text-[14px] text-[#666] leading-relaxed mb-5">
+              AI-powered mock interviews for the roles that matter. Practice with Zara, get real feedback, walk in
+              confident.
+            </p>
+            <div
+              style={monoStyle}
+              className="inline-flex items-center gap-2 bg-[#1a1a1a] text-white text-[12px] font-medium px-4 py-2.5 rounded-md"
+            >
+              <span className="text-[#eb3a14]">➜</span>
+              devprep --start
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="pt-16 pb-8 px-6 border-t border-brand-border">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-            <div className="col-span-2 space-y-4">
-              <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter">
-                <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
-                DevPrep
-              </div>
-              <p className="text-xs text-brand-muted max-w-xs leading-relaxed">
-                The all-in-one platform for Indian engineering students to conquer placements. Built with passion for the grind.
-              </p>
-              <div className="flex gap-3">
-                <Globe size={16} className="text-brand-muted hover:text-white transition-colors cursor-pointer" />
-              </div>
-            </div>
-
+          <div className="flex flex-1 flex-col sm:flex-row gap-10 sm:gap-16">
             <div>
-              <h4 className="font-bold text-xs mb-4 uppercase tracking-widest text-white/40">Product</h4>
-              <ul className="space-y-2.5 text-xs text-brand-muted font-medium">
-                {[
-                  { label: "Jobs", href: "/dashboard/jobs" },
-                  { label: "DSA", href: "/dashboard/dsa" },
-                  { label: "AI Interview", href: "/dashboard/ai-interview" },
-                  { label: "CS Core", href: "/dashboard/cs-core" },
-                ].map(l => (
-                  <li key={l.label}>
-                    <a href={l.href} className="hover:text-white transition-colors">{l.label}</a>
-                  </li>
-                ))}
+              <div style={monoStyle} className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#999] mb-4">
+                Product
+              </div>
+              <ul className="space-y-3 text-[14px] text-[#1a1a1a]/75">
+                <li><button onClick={() => scrollToId("features")} className="hover:text-[#eb3a14] transition-colors cursor-pointer">Features</button></li>
+                <li><button onClick={() => scrollToId("pricing")} className="hover:text-[#eb3a14] transition-colors cursor-pointer">Pricing</button></li>
+                <li><button onClick={() => scrollToId("how-it-works")} className="hover:text-[#eb3a14] transition-colors cursor-pointer">How It Works</button></li>
+                <li><a href={ROUTES.allRoles} className="hover:text-[#eb3a14] transition-colors">All Roles</a></li>
               </ul>
             </div>
-
             <div>
-              <h4 className="font-bold text-xs mb-4 uppercase tracking-widest text-white/40">Get Started</h4>
-              <ul className="space-y-2.5 text-xs text-brand-muted font-medium">
-                {[
-                  { label: "Sign Up — Free", href: "/auth/signup" },
-                  { label: "Sign In", href: "/auth/signin" },
-                ].map(l => (
-                  <li key={l.label}>
-                    <a href={l.href} className="hover:text-white transition-colors">{l.label}</a>
-                  </li>
-                ))}
+              <div style={monoStyle} className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#999] mb-4">
+                Company
+              </div>
+              <ul className="space-y-3 text-[14px] text-[#1a1a1a]/75">
+                <li><a href={ROUTES.about} className="hover:text-[#eb3a14] transition-colors">About</a></li>
+                <li><a href={ROUTES.blog} className="hover:text-[#eb3a14] transition-colors">Blog</a></li>
+                <li><a href={ROUTES.privacy} className="hover:text-[#eb3a14] transition-colors">Privacy Policy</a></li>
+                <li><a href={ROUTES.terms} className="hover:text-[#eb3a14] transition-colors">Terms of Service</a></li>
+              </ul>
+            </div>
+            <div>
+              <div style={monoStyle} className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#999] mb-4">
+                Follow
+              </div>
+              <ul className="space-y-3 text-[14px] text-[#1a1a1a]/75">
+                <li><a href={ROUTES.twitter} className="hover:text-[#eb3a14] transition-colors">Twitter / X</a></li>
+                <li><a href={ROUTES.linkedin} className="hover:text-[#eb3a14] transition-colors">LinkedIn</a></li>
+                <li><a href={ROUTES.github} className="hover:text-[#eb3a14] transition-colors">GitHub</a></li>
               </ul>
             </div>
           </div>
-
-          <div className="pt-5 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-brand-muted font-medium">© 2026 DevPrep. Built for Indian placements.</p>
-            <div className="flex gap-5 text-xs text-brand-muted font-medium">
-              <span className="hover:text-white transition-colors cursor-pointer">Privacy</span>
-              <span className="hover:text-white transition-colors cursor-pointer">Terms</span>
-              <span className="hover:text-white transition-colors cursor-pointer">Cookies</span>
-            </div>
-          </div>
         </div>
-      </footer>
 
+        <div className="pt-8 border-t border-[#e5e5e5] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[#999]">
+          <span>© 2026 DevPrep. All rights reserved.</span>
+          <span style={monoStyle}>Built with Groq Whisper · Judge0 · Gemini</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Root
+───────────────────────────────────────────── */
+export default function LandingPage() {
+  const reduceMotion = useReducedMotion();
+  return (
+    <div className={`min-h-screen bg-[#f5f5f7] text-[#1a1a1a] overflow-x-hidden selection:bg-[#eb3a14]/20 ${reduceMotion ? "motion-reduce" : ""}`}>
+      <GlobalNav />
+      <HeroSection />
+      <TrustedBy />
+      <ProblemSolution />
+      <FeaturesSection />
+      <HowItWorks />
+      <UseCases />
+      <ResultsStats />
+      <PricingSection />
+      <TestimonialsSection />
+      <FAQSection />
+      <FinalCTA />
+      <Footer />
     </div>
   );
 }
