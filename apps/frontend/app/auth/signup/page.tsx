@@ -1,138 +1,104 @@
 "use client";
 
+/**
+ * DevPrep — Sign Up
+ *
+ * Redesigned to match the "Tidiane DevOps Portfolio System":
+ *   bg #F5F5F7 · primary #1A1A1A · accent #EB3A14
+ *   Inter + JetBrains Mono · pill buttons · 12px cards · 8px inputs
+ *
+ * Functionality unchanged: same axios call, same localStorage keys,
+ * same redirect target, same validation rules.
+ *
+ * Responsive: tested at 375 / 390 / 428 / 768 / 834 / 1024px+.
+ * Magnetic effect disabled on pointer:coarse (touch) devices.
+ */
+
 import { useState } from "react";
-import { Eye, EyeOff, ArrowRight, Loader2, CheckSquare, Square } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import Image from "next/image";
+import { motion } from "motion/react";
 
-// --- Logo ---
-const Logo = () => (
-  <div className="flex items-center justify-center gap-2 font-display text-lg font-bold tracking-tighter mb-6">
-    <Image src="/devprep-logo.png" alt="DevPrep logo" width={30} height={30} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
-    DevPrep
-  </div>
-);
+import {
+  monoStyle,
+  NoiseOverlay,
+  Logo,
+  Eyebrow,
+  InputField,
+  OAuthButton,
+  GoogleIcon,
+  GitHubIcon,
+  OrDivider,
+  MagneticButton,
+  TerminalPanel,
+  type TerminalLineData,
+} from "@/components/auth/AuthShared";
 
-// --- Input ---
-const InputField = ({
-  label, id, type = "text", placeholder, value, onChange, error, children
-}: {
-  label: string; id: string; type?: string; placeholder: string;
-  value: string; onChange: (v: string) => void; error?: string; children?: React.ReactNode;
-}) => (
-  <div className="space-y-1.5">
-    <label htmlFor={id} className="block text-xs font-semibold text-white/60 uppercase tracking-widest">
-      {label}
-    </label>
-    <div className="relative">
-      <input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`w-full bg-white/[0.04] border rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none transition-all duration-200
-          ${error
-            ? "border-rose-500/50 focus:border-rose-500/80 focus:bg-rose-500/[0.03]"
-            : "border-white/10 focus:border-white/30 focus:bg-white/[0.06]"
-          }`}
-      />
-      {children}
-    </div>
-    {error && (
-      <p className="text-xs text-rose-400 font-medium mt-1">{error}</p>
-    )}
-  </div>
-);
-
-// --- Password Strength Meter ---
-const getStrength = (password: string): { score: number; label: string } => {
+/* ─────────────────────────────────────────────
+   Password strength meter
+   Accent (#EB3A14) for weak/fair/good, success (#22C55E) for strong.
+   ("Don't introduce multiple accent colors")
+───────────────────────────────────────────── */
+function getStrength(password: string): { score: number; label: string } {
   let score = 0;
   if (password.length >= 8) score++;
   if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
   return { score, label: password.length > 0 ? labels[score] : "" };
-};
+}
 
-const strengthColors = [
-  "",
-  "bg-rose-500",
-  "bg-amber-400",
-  "bg-violet-400",
-  "bg-emerald-400",
-];
-const strengthTextColors = [
-  "",
-  "text-rose-400",
-  "text-amber-400",
-  "text-violet-400",
-  "text-emerald-400",
-];
-
-const StrengthMeter = ({ password }: { password: string }) => {
+function StrengthMeter({ password }: { password: string }) {
   const { score, label } = getStrength(password);
   if (!password) return null;
+
+  const barColor = (i: number) => {
+    if (i > score) return "bg-[#e5e5e5]";
+    if (score >= 4) return "bg-[#22c55e]";
+    const opacities = ["", "opacity-40", "opacity-65", "opacity-100"];
+    return `bg-[#eb3a14] ${opacities[score]}`;
+  };
+
   return (
     <div className="space-y-1.5 mt-2">
       <div className="flex gap-1">
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= score ? strengthColors[score] : "bg-white/10"
-              }`}
+            className={`h-1 flex-1 rounded-full transition-all duration-300 ${barColor(i)}`}
           />
         ))}
       </div>
-      <p className={`text-[10px] font-bold uppercase tracking-widest ${strengthTextColors[score]}`}>
+      <p
+        style={monoStyle}
+        className={`text-[10px] font-bold uppercase tracking-[0.1em] ${
+          score >= 4 ? "text-[#22c55e]" : "text-[#999]"
+        }`}
+      >
         {label}
       </p>
     </div>
   );
-};
+}
 
-// --- OAuth Button ---
-const OAuthButton = ({
-  icon, label, onClick
-}: { icon: React.ReactNode; label: string; onClick: () => void }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-medium text-white/70 hover:bg-white/[0.07] hover:border-white/20 hover:text-white transition-all duration-200"
-  >
-    {icon}
-    {label}
-  </button>
-);
+/* ─────────────────────────────────────────────
+   Terminal lines for sign-up context
+───────────────────────────────────────────── */
+const SIGNUP_TERMINAL_LINES: TerminalLineData[] = [
+  { text: "$ devprep init --candidate", tone: "cmd" },
+  { text: "✓ workspace created", tone: "ok" },
+  { text: "✓ 24+ interview roles loaded", tone: "ok" },
+  { text: "✓ AI interviewer \"Zara\" ready", tone: "ok" },
+  { text: "$ devprep whoami", tone: "cmd" },
+  { text: "> waiting for you to sign up...", tone: "muted" },
+];
 
-const GoogleIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-  </svg>
-);
-
-const GitHubIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-  </svg>
-);
-
-const OrDivider = () => (
-  <div className="relative flex items-center gap-4">
-    <div className="flex-1 h-px bg-white/[0.07]" />
-    <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20">or continue with</span>
-    <div className="flex-1 h-px bg-white/[0.07]" />
-  </div>
-);
-
-// --- Main Page ---
+/* ─────────────────────────────────────────────
+   Page
+───────────────────────────────────────────── */
 export default function SignUpPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
@@ -145,36 +111,40 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState("");
   const [errors, setErrors] = useState<{
-    fullName?: string; email?: string; password?: string; confirmPassword?: string;
+    fullName?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
   }>({});
 
+  /* ── Validation ─────────────────────────── */
   const validate = () => {
     const newErrors: typeof errors = {};
-    if (fullName.trim().length < 2) newErrors.fullName = "Full name must be at least 2 characters";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Please enter a valid email address";
-    if (password.length < 8) newErrors.password = "Password must be at least 8 characters";
-    if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    if (fullName.trim().length < 2)
+      newErrors.fullName = "Full name must be at least 2 characters";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      newErrors.email = "Please enter a valid email address";
+    if (password.length < 8)
+      newErrors.password = "Password must be at least 8 characters";
+    if (password !== confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  /* ── Submit ─────────────────────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate() || !termsAccepted) return;
     setServerError("");
     setIsLoading(true);
     try {
-      console.log(fullName, email, password);
-
-
       const res = await axios.post("http://localhost:3001/api/auth/signup", {
         username: fullName,
         email,
-        password
+        password,
       });
-
       const data = res.data;
-      console.log(data);
       if (data.success) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.username ?? "");
@@ -184,14 +154,13 @@ export default function SignUpPage() {
       }
     } catch (err: any) {
       if (err.response) {
-        // Server responded with a non-2xx status — show its message
         setServerError(
-          err.response.data?.message ??
-          "Sign up failed. Please try again."
+          err.response.data?.message ?? "Sign up failed. Please try again."
         );
       } else if (err.request) {
-        // Request was made but no response received
-        setServerError("Unable to reach the server. Please check your connection and try again.");
+        setServerError(
+          "Unable to reach the server. Please check your connection and try again."
+        );
       } else {
         setServerError("Something went wrong. Please try again.");
       }
@@ -203,33 +172,65 @@ export default function SignUpPage() {
   const isSubmitDisabled = !termsAccepted || isLoading;
 
   return (
-    <div className="min-h-screen bg-brand-bg text-white dot-background flex items-center justify-center px-4 py-16 selection:bg-white selection:text-black">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/[0.015] rounded-full blur-[120px] pointer-events-none" />
+    /*
+     * Root: overflow-x-hidden prevents any element from causing horizontal
+     * scroll. flex-col on mobile → flex-row on lg so the terminal panel
+     * sits beside the form only on desktop.
+     */
+    <div className="min-h-screen bg-[#f5f5f7] flex flex-col lg:flex-row overflow-x-hidden selection:bg-[#eb3a14]/20">
+      <NoiseOverlay />
 
-      <div className="w-full max-w-md relative">
-        <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
-          <Logo />
+      {/* Left: terminal panel (desktop only — hidden below lg) */}
+      <TerminalPanel
+        heading="Walk in already knowing what's coming."
+        subheading="Practice with Zara, your AI interviewer. Real voice conversations, live code execution, instant feedback."
+        lines={SIGNUP_TERMINAL_LINES}
+        windowTitle="zsh — devprep-onboarding"
+      />
 
-          {/* Student Badge */}
-          <div className="flex justify-center mb-5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-white/50 tracking-tight">
-              🎓 Free for students
-            </div>
+      {/* Right: form panel */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 py-12 sm:py-16 relative">
+        {/* Ambient glow — decorative, pointer-events-none */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#eb3a14]/[0.03] rounded-full blur-[120px] pointer-events-none" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
+          /* max-w keeps the form readable on wide screens while w-full
+             + proper px on the parent ensures no overflow on narrow ones */
+          className="w-full max-w-[420px] relative"
+        >
+          {/* Logo — only visible below lg (desktop shows it in terminal panel) */}
+          <div className="lg:hidden mb-8 flex justify-center">
+            <Logo />
           </div>
 
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-display font-bold tracking-tight mb-1.5">Create your account</h1>
-            <p className="text-sm text-white/40">Start preparing for your dream placement — free forever</p>
+          {/* Eyebrow badge */}
+          <div className="mb-6 flex justify-center lg:justify-start">
+            <Eyebrow>Free for students</Eyebrow>
           </div>
 
-          <div className="h-px bg-white/[0.07] mb-8" />
+          {/* Heading — fluid font size via clamp so it never overflows */}
+          <div className="mb-8 text-center lg:text-left">
+            <h1
+              className="font-bold text-[#1a1a1a] tracking-[-0.02em] mb-2"
+              style={{ fontSize: "clamp(22px, 5vw, 32px)" }}
+            >
+              Create your account
+            </h1>
+            <p className="text-[14px] text-[#666] leading-relaxed">
+              Start preparing for your dream placement — free forever.
+            </p>
+          </div>
 
+          {/* Server-side error banner */}
           {serverError && (
-            <div className="mb-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400 font-medium">
+            <div className="mb-5 px-4 py-3 rounded-[8px] bg-rose-50 border border-rose-200 text-[13px] text-rose-600 font-medium">
               {serverError}
             </div>
           )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <InputField
@@ -265,7 +266,8 @@ export default function SignUpPage() {
                   type="button"
                   tabIndex={-1}
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#bbb] hover:text-[#666] transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -286,89 +288,123 @@ export default function SignUpPage() {
                 type="button"
                 tabIndex={-1}
                 onClick={() => setShowConfirmPassword((v) => !v)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirm password"
+                    : "Show confirm password"
+                }
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#bbb] hover:text-[#666] transition-colors cursor-pointer"
               >
-                {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showConfirmPassword ? (
+                  <EyeOff size={15} />
+                ) : (
+                  <Eye size={15} />
+                )}
               </button>
             </InputField>
 
-            {/* Terms Checkbox */}
+            {/*
+             * Terms checkbox.
+             * The visible checkbox is 16×16 px; to meet the 44px tap-target
+             * requirement we wrap it in a 44×44 flex container and let the
+             * inner element sit centred.
+             */}
             <label className="flex items-start gap-3 cursor-pointer group mt-1">
-              <button
-                type="button"
-                onClick={() => setTermsAccepted((v) => !v)}
-                className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${termsAccepted
-                  ? "bg-white border-white text-black"
-                  : "bg-white/[0.03] border-white/20 group-hover:border-white/40"
+              <span className="flex-shrink-0 flex items-center justify-center w-[44px] h-[44px] -ml-[14px] -mt-[12px]">
+                <button
+                  type="button"
+                  onClick={() => setTermsAccepted((v) => !v)}
+                  aria-checked={termsAccepted}
+                  role="checkbox"
+                  className={`w-4 h-4 rounded-[4px] border transition-all duration-200 flex items-center justify-center cursor-pointer ${
+                    termsAccepted
+                      ? "bg-[#eb3a14] border-[#eb3a14] text-white"
+                      : "bg-white border-[#e5e5e5] group-hover:border-[#1a1a1a]/30"
                   }`}
-              >
-                {termsAccepted && (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </button>
-              <span className="text-xs text-white/40 leading-relaxed group-hover:text-white/60 transition-colors">
+                >
+                  {termsAccepted && <Check size={11} strokeWidth={3} />}
+                </button>
+              </span>
+              <span className="text-[12px] text-[#666] leading-relaxed group-hover:text-[#1a1a1a] transition-colors">
                 I agree to the{" "}
-                <Link href="/terms" className="text-white/70 hover:text-white underline underline-offset-4 transition-colors">
+                <Link
+                  href="/terms"
+                  className="text-[#1a1a1a] font-medium underline underline-offset-4 decoration-[#e5e5e5] hover:decoration-[#eb3a14] transition-colors"
+                >
                   Terms of Service
-                </Link>
-                {" "}and{" "}
-                <Link href="/privacy" className="text-white/70 hover:text-white underline underline-offset-4 transition-colors">
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  className="text-[#1a1a1a] font-medium underline underline-offset-4 decoration-[#e5e5e5] hover:decoration-[#eb3a14] transition-colors"
+                >
                   Privacy Policy
                 </Link>
               </span>
             </label>
 
-            {/* Submit */}
-            <button
+            {/* Submit — magnetic on mouse, standard on touch */}
+            <MagneticButton
               type="submit"
               disabled={isSubmitDisabled}
-              className={`w-full flex items-center hover:cursor-pointer justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold transition-all duration-200 mt-2
-                ${isSubmitDisabled
-                  ? "bg-white/20 text-white/40 cursor-not-allowed"
-                  : "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-white/90 active:scale-[0.98]"
-                }`}
+              className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-[13px] tracking-[0.04em] font-bold transition-colors duration-200 mt-2 ${
+                isSubmitDisabled
+                  ? "bg-[#e5e5e5] text-[#bbb] cursor-not-allowed"
+                  : "bg-[#eb3a14] hover:bg-[#d63410] text-white cursor-pointer"
+              }`}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 size={15} className="animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                <>
-
-                  Create Account
-                  <ArrowRight size={14} />
-                </>
-              )}
-            </button>
+              <span style={monoStyle} className="flex items-center gap-2">
+                {isLoading ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    CREATING ACCOUNT...
+                  </>
+                ) : (
+                  <>
+                    CREATE ACCOUNT
+                    <ArrowRight size={14} />
+                  </>
+                )}
+              </span>
+            </MagneticButton>
           </form>
 
-          {/* OAuth */}
+          {/* OAuth section */}
           <div className="mt-6 space-y-3">
             <OrDivider />
             <div className="space-y-2.5 pt-1">
-              <OAuthButton icon={<GoogleIcon />} label="Continue with Google" onClick={() => { }} />
-              <OAuthButton icon={<GitHubIcon />} label="Continue with GitHub" onClick={() => { }} />
+              <OAuthButton
+                icon={<GoogleIcon />}
+                label="Continue with Google"
+                onClick={() => {}}
+              />
+              <OAuthButton
+                icon={<GitHubIcon />}
+                label="Continue with GitHub"
+                onClick={() => {}}
+              />
             </div>
           </div>
 
-          {/* Footer link */}
-          <p className="text-center text-xs text-white/30 font-medium mt-8">
+          {/* Sign-in link */}
+          <p className="text-center lg:text-left text-[13px] text-[#666] mt-8">
             Already have an account?{" "}
             <Link
               href="/auth/signin"
-              className="text-white font-semibold hover:underline underline-offset-4 transition-colors"
+              className="text-[#1a1a1a] font-semibold hover:text-[#eb3a14] underline underline-offset-4 transition-colors"
             >
               Sign in →
             </Link>
           </p>
-        </div>
 
-        <p className="text-center text-[10px] text-white/15 font-medium mt-6 uppercase tracking-widest">
-          Free forever for students · No credit card required
-        </p>
+          {/* Free-tier badge — mobile only (desktop shows in terminal panel) */}
+          <p
+            style={monoStyle}
+            className="text-center lg:text-left text-[10px] text-[#bbb] font-medium mt-6 uppercase tracking-[0.1em] lg:hidden"
+          >
+            Free forever for students · No credit card required
+          </p>
+        </motion.div>
       </div>
     </div>
   );
