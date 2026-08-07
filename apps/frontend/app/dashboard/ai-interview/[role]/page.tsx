@@ -2,13 +2,19 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronDown, Mic, ArrowLeft, Clock, AlertCircle } from "lucide-react";
+import { ChevronDown, Mic, ArrowLeft, Clock, AlertCircle, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import type { RoleData } from "../data";
 import api from "@/lib/api";
 
+const monoStyle = {
+  fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)",
+} as const;
+
+const EASE = [0.25, 0.8, 0.25, 1] as const;
+
 // ── Static role metadata (UI only – no questions) ────────────────────────────
-// Questions & session data come from the backend when "Start Interview" is hit.
 
 const ROLE_META: Record<string, Omit<RoleData, "questions">> = {
   "frontend-engineer": {
@@ -222,36 +228,63 @@ const PREVIEW_QUESTIONS: Record<string, string[]> = {
   ],
 };
 
-// ── Accordion item ─────────────────────────────────────────────────────────────
+// ── Accordion item (restyled per design system tokens + scroll animation) ────
 
 function QuestionItem({ index, question }: { index: number; question: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <button
-      onClick={() => setOpen((o) => !o)}
-      className="w-full text-left border border-white/[0.08] rounded-xl px-5 py-4 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] transition-all duration-150 group"
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.35, ease: EASE, delay: (index % 5) * 0.05 }}
+      className="w-full"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <span className="text-[10px] font-mono text-brand-muted/50 pt-0.5 flex-shrink-0 tabular-nums">
-            {String(index).padStart(2, "0")}
-          </span>
-          <span className="text-sm font-medium text-white leading-snug">{question}</span>
+      <div
+        onClick={() => setOpen((o) => !o)}
+        className="w-full text-left border border-[#e5e5e5] rounded-xl p-5 bg-white hover:border-[#1a1a1a]/40 hover:shadow-md transition-all duration-200 cursor-pointer group relative overflow-hidden"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <span
+              style={monoStyle}
+              className="text-[13px] font-bold text-[#eb3a14] shrink-0 tabular-nums bg-[#eb3a14]/[0.08] px-2 py-0.5 rounded"
+            >
+              {String(index).padStart(2, "0")}
+            </span>
+            <span className="text-[15px] font-semibold text-[#1a1a1a] leading-snug tracking-[-0.01em]">
+              {question}
+            </span>
+          </div>
+          <motion.div
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ duration: 0.2, ease: EASE }}
+            className="shrink-0 text-[#666666] group-hover:text-[#1a1a1a] transition-colors"
+          >
+            <ChevronDown size={16} />
+          </motion.div>
         </div>
-        <ChevronDown
-          size={15}
-          className={`flex-shrink-0 text-brand-muted transition-transform duration-200 mt-0.5 ${
-            open ? "rotate-180" : ""
-          }`}
-        />
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: EASE }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 pt-3.5 border-t border-[#e5e5e5] text-[13px] text-[#666666] leading-relaxed flex items-start gap-2">
+                <Sparkles size={14} className="text-[#eb3a14] shrink-0 mt-0.5" />
+                <span>
+                  Expand this question in a live AI interview session to practice your voice or code response with Zara and receive instant personalized feedback.
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      {open && (
-        <div className="mt-3 ml-7 text-xs text-brand-muted leading-relaxed border-t border-white/[0.06] pt-3">
-          Expand this question in a live AI interview session to get a detailed, personalised answer
-          and feedback on your own response.
-        </div>
-      )}
-    </button>
+    </motion.div>
   );
 }
 
@@ -275,11 +308,11 @@ export default function RoleInterviewPage() {
   if (!meta) {
     return (
       <DashboardShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-brand-muted text-sm">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#666666] text-sm bg-[#f5f5f7]">
           Role not found.{" "}
           <button
             onClick={() => router.push("/dashboard/ai-interview")}
-            className="mt-4 text-white underline underline-offset-4"
+            className="mt-4 text-[#1a1a1a] font-bold underline underline-offset-4"
           >
             Back to interviews
           </button>
@@ -290,7 +323,6 @@ export default function RoleInterviewPage() {
 
   /** Call the backend to create a session, then navigate to session page. */
   async function handleStartInterview() {
-    // Guard: make sure the user is actually logged in before hitting the API.
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!token) {
       setStartError("You must be signed in to start an interview. Redirecting to sign in…");
@@ -318,15 +350,12 @@ export default function RoleInterviewPage() {
         return;
       }
 
-      // Store session data so the session page can read it without an extra
-      // network call.
       sessionStorage.setItem(
         `interview_session_${slug}`,
         JSON.stringify({
           sessionId: json.sessionId,
           firstQuestion: json.question,
           totalQuestions: json.totalQuestions,
-          // Attach role meta so the session page has title / skills / duration
           title: meta.title,
           duration: meta.duration,
           skills: meta.skills,
@@ -335,7 +364,6 @@ export default function RoleInterviewPage() {
 
       router.push(`/dashboard/ai-interview/${slug}/session`);
     } catch (err: any) {
-      // Read the safe message the server sent; never show raw error internals
       const serverMsg: string | undefined = err?.response?.data?.message;
       showError(serverMsg ?? "Failed to start interview. Please try again.");
     } finally {
@@ -345,128 +373,203 @@ export default function RoleInterviewPage() {
 
   return (
     <DashboardShell>
-      {/* ── Glow ── */}
-      <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] rounded-full bg-indigo-600/8 blur-[140px] -z-10" />
+      <div
+        style={{
+          minHeight: "calc(100vh - 64px)",
+          backgroundColor: "#F5F5F7",
+          WebkitFontSmoothing: "antialiased",
+          MozOsxFontSmoothing: "grayscale",
+        }}
+      >
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pt-8 pb-20">
 
-      <div className="max-w-7xl mx-auto px-10 pt-10 pb-20">
-
-        {/* ── Back link ── */}
-        <button
-          onClick={() => router.push("/dashboard/ai-interview")}
-          className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-white transition-colors mb-8 group"
-        >
-          <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
-          All interview roles
-        </button>
-
-        {/* ── Hero ── */}
-        <div className="mb-10">
-          <div className="flex items-center gap-2 text-[10px] text-brand-muted uppercase tracking-widest font-semibold mb-3">
-            <Clock size={10} />
-            {meta.duration} mins interview
-          </div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-white mb-4 leading-tight">
-            {meta.title}{" "}
-            <span className="text-brand-muted font-normal">interview questions</span>
-          </h1>
-
-          {/* Skill pills */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {meta.skills.map((skill) => (
-              <span
-                key={skill}
-                className="px-3 py-1 rounded-full text-xs font-semibold border border-white/10 bg-white/[0.03] text-brand-muted"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-
-          <p className="text-sm text-brand-muted max-w-2xl leading-relaxed mb-6">
-            Check out 10 of the most common{" "}
-            <span className="text-white font-medium">{meta.title}</span> interview questions and
-            take an AI‑powered practice interview.
-          </p>
-
-          {/* Error */}
-          {startError && (
-            <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4 max-w-sm animate-in fade-in slide-in-from-top-1 duration-200">
-              <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-              <span>{startError}</span>
-            </div>
-          )}
-
-          {/* CTA */}
-          <button
-            onClick={handleStartInterview}
-            disabled={starting}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-black text-xs font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:bg-white/90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          {/* ── Back link ── */}
+          <motion.button
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, ease: EASE }}
+            onClick={() => router.push("/dashboard/ai-interview")}
+            style={monoStyle}
+            className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#1a1a1a]/70 hover:text-[#1a1a1a] transition-colors mb-8 cursor-pointer border-0 bg-transparent p-0"
           >
-            <Mic size={13} />
-            {starting ? "Starting…" : "Take practice AI interview"}
-          </button>
-        </div>
+            <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" />
+            ALL INTERVIEW ROLES
+          </motion.button>
 
-        {/* ── Divider ── */}
-        <div className="border-t border-white/[0.06] mb-10" />
+          {/* ── Hero Section ── */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.08, delayChildren: 0.04 },
+              },
+            }}
+            className="mb-14"
+          >
+            {/* Duration pill */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 15 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
+              }}
+            >
+              <div
+                style={monoStyle}
+                className="inline-flex items-center gap-2 rounded-full bg-[#eb3a14]/[0.08] px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] mb-6"
+              >
+                <Clock size={11} className="text-[#eb3a14]" />
+                {meta.duration} MINS PRACTICE INTERVIEW
+              </div>
+            </motion.div>
 
-        {/* ── Two-column layout ── */}
-        <div className="flex flex-col lg:flex-row gap-10">
+            {/* Headline (dominant focal point, matching landing hero style) */}
+            <motion.h1
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+              }}
+              className="font-extrabold text-[#1a1a1a] text-[36px] sm:text-[52px] lg:text-[64px] leading-[1.05] tracking-[-0.03em] max-w-[850px] mb-6"
+            >
+              {meta.title}{" "}
+              <span className="font-bold text-[#666]">interview questions & AI practice.</span>
+            </motion.h1>
 
-          {/* Left: sticky label */}
-          <div className="lg:w-56 flex-shrink-0">
-            <div className="lg:sticky lg:top-24">
-              <p className="text-[10px] text-brand-muted uppercase tracking-widest font-bold mb-2">
-                Top questions
-              </p>
-              <p className="text-xl md:text-2xl font-display font-bold text-white leading-snug">
-                10 of the most common{" "}
-                <span className="text-brand-muted font-normal">{meta.title} interview questions</span>
-              </p>
-            </div>
-          </div>
+            {/* Skill pills */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 15 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
+              }}
+              className="flex flex-wrap gap-2 mb-6"
+            >
+              {meta.skills.map((skill) => (
+                <span
+                  key={skill}
+                  style={monoStyle}
+                  className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase border border-[#e5e5e5] bg-white text-[#666666]"
+                >
+                  {skill}
+                </span>
+              ))}
+            </motion.div>
 
-          {/* Right: accordion */}
-          <div className="flex-1 space-y-2.5">
-            {questions.map((q, i) => (
-              <QuestionItem key={i} index={i + 1} question={q} />
-            ))}
-          </div>
-        </div>
+            {/* Subtext description */}
+            <motion.p
+              variants={{
+                hidden: { opacity: 0, y: 15 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
+              }}
+              className="text-[#666] text-[16px] sm:text-[18px] leading-relaxed max-w-[620px] mb-8"
+            >
+              Check out 10 of the most common{" "}
+              <span className="text-[#1a1a1a] font-semibold">{meta.title}</span> interview questions and
+              take an AI‑powered practice interview.
+            </motion.p>
 
-        {/* ── Bottom CTA banner ── */}
-        <div className="mt-20 relative rounded-3xl overflow-hidden border border-white/[0.08] bg-white/[0.02]">
-          {/* Glow */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-600/10 via-transparent to-violet-600/10" />
-          <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] rounded-full bg-indigo-500/15 blur-[80px]" />
-
-          <div className="relative z-10 flex flex-col items-center text-center px-8 py-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-brand-muted mb-5">
-              <Mic size={10} className="text-white/60" />
-              AI-Powered · Instant feedback
-            </div>
-            <h2 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-white mb-3">
-              Take practice AI interview
-            </h2>
-            <p className="text-sm text-brand-muted max-w-md leading-relaxed mb-8">
-              Put your skills to the test and receive instant feedback on your performance — tailored
-              specifically for the <span className="text-white">{meta.title}</span> role.
-            </p>
+            {/* Error badge if any */}
             {startError && (
-              <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-4 max-w-sm">
-                <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs mb-6 max-w-md">
+                <AlertCircle size={13} className="shrink-0 mt-0.5" />
                 <span>{startError}</span>
               </div>
             )}
-            <button
-              onClick={handleStartInterview}
-              disabled={starting}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black text-sm font-bold shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:bg-white/90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+
+            {/* Primary Hero CTA Button */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 15 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
+              }}
             >
-              <Mic size={14} />
-              {starting ? "Starting…" : "Start now"}
-            </button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={handleStartInterview}
+                disabled={starting}
+                style={monoStyle}
+                className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[#1a1a1a] hover:bg-black text-white text-[13px] font-bold tracking-[0.08em] uppercase cursor-pointer transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Mic size={15} />
+                {starting ? "Starting…" : "Take practice AI interview"}
+              </motion.button>
+            </motion.div>
+          </motion.div>
+
+          {/* ── Divider ── */}
+          <div className="border-t border-[#e5e5e5] mb-12" />
+
+          {/* ── Two-column layout ── */}
+          <div className="flex flex-col lg:flex-row gap-10">
+
+            {/* Left: sticky label */}
+            <div className="lg:w-64 shrink-0">
+              <div className="lg:sticky lg:top-24">
+                <p
+                  style={monoStyle}
+                  className="text-[11px] text-[#eb3a14] uppercase tracking-[0.1em] font-medium mb-3"
+                >
+                  TOP QUESTIONS
+                </p>
+                <p className="text-xl md:text-2xl font-extrabold text-[#1a1a1a] leading-tight tracking-[-0.02em]">
+                  10 of the most common{" "}
+                  <span className="text-[#666] font-bold">{meta.title} questions</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Right: accordion questions */}
+            <div className="flex-1 space-y-3">
+              {questions.map((q, i) => (
+                <QuestionItem key={i} index={i + 1} question={q} />
+              ))}
+            </div>
           </div>
+
+          {/* ── Bottom CTA banner (Restyled + Scroll Entrance) ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, ease: EASE }}
+            className="mt-20 relative rounded-3xl overflow-hidden bg-[#1a1a1a] text-white p-10 md:p-14 text-center border border-[#1a1a1a] shadow-xl"
+          >
+            <div className="max-w-2xl mx-auto flex flex-col items-center">
+              <div
+                style={monoStyle}
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] mb-6 border border-white/15"
+              >
+                <Mic size={11} className="text-[#eb3a14]" />
+                AI-POWERED · INSTANT FEEDBACK
+              </div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-[-0.02em] text-white mb-4">
+                Take practice AI interview
+              </h2>
+              <p className="text-white/70 text-[15px] sm:text-[16px] leading-relaxed max-w-lg mb-8">
+                Put your skills to the test and receive instant feedback on your performance — tailored specifically for the <span className="text-white font-semibold">{meta.title}</span> role.
+              </p>
+              {startError && (
+                <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-6 max-w-sm">
+                  <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                  <span>{startError}</span>
+                </div>
+              )}
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={handleStartInterview}
+                disabled={starting}
+                style={monoStyle}
+                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-[#eb3a14] hover:bg-[#d63410] text-white text-[13px] font-bold tracking-[0.08em] uppercase cursor-pointer transition-colors shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Mic size={15} />
+                {starting ? "Starting…" : "Start now"}
+              </motion.button>
+            </div>
+          </motion.div>
+
         </div>
       </div>
     </DashboardShell>
