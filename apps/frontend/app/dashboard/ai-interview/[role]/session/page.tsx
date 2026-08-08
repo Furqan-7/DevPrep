@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Mic, MicOff, Clock3, PhoneOff, AlertOctagon,
   VideoOff, CheckCircle2, ChevronDown, Volume2,
@@ -20,6 +20,28 @@ type SessionData = RoleData & {
 
 type Phase = "setup" | "active" | "done";
 
+const sansStyle = {
+  fontFamily: "var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif)",
+} as const;
+
+const monoStyle = {
+  fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)",
+} as const;
+
+const EASE = [0.25, 0.8, 0.25, 1] as const;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
+};
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
@@ -546,105 +568,130 @@ export default function InterviewSessionPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-brand-bg text-white flex items-center justify-center">
-        <p className="text-brand-muted text-sm">Loading session…</p>
+      <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] flex items-center justify-center font-sans">
+        <p className="text-[#666666] text-sm">Loading session…</p>
       </div>
     );
   }
 
-  // ── SETUP ────────────────────────────────────────────────────────────────────
+  // ── SETUP (READY SCREEN) ──────────────────────────────────────────────────
   if (phase === "setup") return (
-    <div className="min-h-screen bg-brand-bg text-white flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Subtle radial glow */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-white/[0.03] blur-[120px]" />
-
-      <div className="relative z-10 flex flex-col items-center text-center max-w-sm w-full px-6">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] flex flex-col items-center justify-center relative overflow-hidden antialiased font-sans">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 flex flex-col items-center text-center max-w-md w-full px-6 py-12"
+      >
         {/* Logo */}
-        <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter mb-10">
-          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
-          DevPrep
-        </div>
+        <motion.div variants={itemVariants} className="flex items-center gap-2 font-bold tracking-tight mb-8">
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" />
+          <span className="text-[15px] font-bold text-[#1A1A1A] tracking-[-0.01em]">DevPrep</span>
+        </motion.div>
 
-        {/* Mini orb */}
-        <div className="relative flex items-center justify-center mb-8">
-          <motion.div
-            animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ repeat: Infinity, duration: 3 }}
-            className="absolute w-[120px] h-[120px] rounded-full bg-white/10 blur-2xl"
-          />
+        {/* Zara Avatar Orb (Clean Light Surface per design.md) */}
+        <motion.div variants={itemVariants} className="relative flex items-center justify-center mb-6">
           <motion.div
             animate={{ scale: [1, 1.04, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="relative w-[72px] h-[72px] rounded-full bg-gradient-to-b from-white to-[#e0e0ff] shadow-[0_0_40px_rgba(255,255,255,0.2)] flex items-center justify-center border border-white/30"
+            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+            className="relative w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center border border-[#E5E5E5]"
           >
-            <div className="absolute inset-2 rounded-full bg-white/40 blur-lg" />
-            <span className="relative z-10 text-xl font-black text-black">D<span className="text-[#7C6CFF]">.</span></span>
+            <span className="relative z-10 text-2xl font-extrabold text-[#1A1A1A]">
+              D<span className="text-[#EB3A14]">.</span>
+            </span>
           </motion.div>
-        </div>
+        </motion.div>
 
-        <h1 className="text-2xl font-display font-bold tracking-tight mb-2">Ready for your interview?</h1>
-        <p className="text-brand-muted text-sm leading-relaxed mb-8">
-          Starting a <span className="text-white font-semibold">{data.title}</span> practice interview —{" "}
+        {/* Headline — Sentence Case Inter Font matching design.md */}
+        <motion.h1
+          variants={itemVariants}
+          className="text-2xl sm:text-3xl font-extrabold tracking-[-0.02em] text-[#1A1A1A] mb-2.5"
+        >
+          Ready for your interview?
+        </motion.h1>
+
+        <motion.p
+          variants={itemVariants}
+          className="text-[#666666] text-sm leading-relaxed mb-8 max-w-sm"
+        >
+          Starting a <span className="text-[#1A1A1A] font-semibold">{data.title}</span> practice interview —{" "}
           {data.questions.length} questions, ~{data.duration} mins.
-        </p>
+        </motion.p>
 
-        <div className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left space-y-3 mb-8">
+        {/* Restyled Checklist Card with Light Surface & Accent Icons */}
+        <motion.div
+          variants={itemVariants}
+          className="w-full bg-white border border-[#E5E5E5] rounded-2xl p-6 text-left space-y-4 mb-8 shadow-sm"
+        >
           {[
             "Your microphone will be used to capture your answers",
             "Zara will speak each question — just respond naturally",
-            "When you\'re done answering, click \'Done →\' to submit",
+            "When you're done answering, click 'Done →' to submit",
             "You can end the interview at any time",
-          ].map(tip => (
-            <div key={tip} className="flex items-start gap-2.5 text-xs text-brand-muted">
-              <CheckCircle2 size={13} className="text-white/50 mt-0.5 flex-shrink-0" />
-              {tip}
+          ].map((tip) => (
+            <div key={tip} className="flex items-start gap-3.5 text-xs">
+              <div className="w-6 h-6 rounded-full bg-[#EB3A14]/[0.08] border border-[#EB3A14]/20 flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 size={13} className="text-[#EB3A14]" />
+              </div>
+              <span className="text-[#1A1A1A] font-medium leading-normal pt-0.5">
+                {tip}
+              </span>
             </div>
           ))}
-        </div>
+        </motion.div>
 
-        <button
+        {/* Primary CTA */}
+        <motion.button
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => setPhase("active")}
-          className="w-full py-3 rounded-full bg-white text-black font-bold text-sm hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          className="w-full py-3.5 rounded-full bg-[#1A1A1A] hover:bg-black text-white font-bold text-xs uppercase tracking-[0.08em] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
         >
           <Mic size={14} /> Start Interview
-        </button>
-        <button
+        </motion.button>
+
+        <motion.button
+          variants={itemVariants}
           onClick={() => router.push(`/dashboard/ai-interview/${slug}`)}
-          className="mt-4 text-xs text-brand-muted hover:text-white transition-colors"
+          className="mt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-[#666666] hover:text-[#1A1A1A] transition-colors cursor-pointer"
         >
           Go back
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </div>
   );
 
-  // ── DONE ─────────────────────────────────────────────────────────────────────
+  // ── DONE SCREEN ──────────────────────────────────────────────────────────────
   if (phase === "done") return (
-    <div className="min-h-screen bg-brand-bg text-white flex flex-col items-center justify-center px-6 relative overflow-hidden">
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] rounded-full bg-green-500/5 blur-[120px]" />
-      <div className="relative z-10 flex flex-col items-center text-center max-w-sm w-full">
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] flex flex-col items-center justify-center px-6 relative overflow-hidden antialiased font-sans">
+      <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full py-12">
         {/* Logo */}
-        <div className="flex items-center gap-1.5 font-display text-base font-bold tracking-tighter mb-10">
-          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
-          DevPrep
+        <div className="flex items-center gap-2 font-bold tracking-tight mb-8">
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" />
+          <span className="text-[15px] font-bold text-[#1A1A1A] tracking-[-0.01em]">DevPrep</span>
         </div>
 
-        <div className="w-12 h-12 rounded-full bg-green-400/10 border border-green-400/20 flex items-center justify-center mb-5">
-          <CheckCircle2 size={22} className="text-green-400" />
+        <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mb-5 shadow-sm">
+          <CheckCircle2 size={24} className="text-[#22C55E]" />
         </div>
-        <h2 className="text-2xl font-display font-bold tracking-tight mb-1">Interview Complete!</h2>
-        <p className="text-sm text-brand-muted">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-[-0.02em] text-[#1A1A1A] mb-1.5">
+          Interview complete!
+        </h2>
+        <p className="text-sm text-[#666666]">
           {answered.size} of {data.questions.length} questions answered in{" "}
-          <span className="text-white">{formatTime(elapsed)}</span>.
+          <span className="text-[#1A1A1A] font-semibold">{formatTime(elapsed)}</span>.
         </p>
 
-        <div className="mt-8 w-full bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-left">
-          <p className="text-[10px] uppercase tracking-widest text-brand-muted font-bold mb-3">Questions covered</p>
-          <div className="space-y-2">
+        <div className="mt-7 w-full bg-white border border-[#E5E5E5] rounded-2xl p-5 text-left shadow-sm">
+          <p className="text-[11px] font-semibold text-[#666666] uppercase tracking-[0.08em] mb-3">
+            Questions covered
+          </p>
+          <div className="space-y-2.5">
             {data.questions.map((q, i) => (
-              <div key={i} className="flex items-start gap-2.5 text-xs text-brand-muted">
-                <CheckCircle2 size={12} className={`mt-0.5 flex-shrink-0 ${answered.has(i) ? "text-green-400" : "text-white/20"}`} />
-                <span className="line-clamp-1">{q}</span>
+              <div key={i} className="flex items-start gap-2.5 text-xs">
+                <CheckCircle2 size={13} className={`mt-0.5 flex-shrink-0 ${answered.has(i) ? "text-[#22C55E]" : "text-[#666666]/30"}`} />
+                <span className="text-[#1A1A1A] font-normal line-clamp-1">{q}</span>
               </div>
             ))}
           </div>
@@ -653,13 +700,13 @@ export default function InterviewSessionPage() {
         <div className="mt-6 flex gap-3 w-full">
           <button
             onClick={() => router.push("/dashboard/ai-interview")}
-            className="flex-1 py-2.5 rounded-full border border-white/10 bg-white/[0.03] text-xs font-semibold text-brand-muted hover:text-white hover:border-white/30 transition-all"
+            className="flex-1 py-3 rounded-full border border-[#E5E5E5] bg-white text-xs font-bold uppercase tracking-[0.08em] text-[#666666] hover:text-[#1A1A1A] hover:border-[#1A1A1A] transition-all cursor-pointer shadow-sm"
           >
             Back to roles
           </button>
           <button
             onClick={() => { setPhase("setup"); setCurrentQ(0); setAnswered(new Set()); setElapsed(0); setIsRecording(false); }}
-            className="flex-1 py-2.5 rounded-full bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-95 transition-all"
+            className="flex-1 py-3 rounded-full bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-[0.08em] active:scale-95 transition-all cursor-pointer shadow-sm"
           >
             Retry
           </button>
@@ -672,45 +719,43 @@ export default function InterviewSessionPage() {
   const topicTabs = data.skills.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-brand-bg text-white overflow-hidden relative flex flex-col">
-      {/* Background glow */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] rounded-full bg-white/[0.025] blur-[160px]" />
-
+    <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] overflow-hidden relative flex flex-col antialiased font-sans">
       {/* ── TTS not-supported banner (shown once, non-blocking) ── */}
       {!ttsSupported && (
-        <div className="relative z-20 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-400">
+        <div className="relative z-20 flex items-center justify-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-700">
           <Volume2 size={12} />
-          Your browser doesn&apos;t support text-to-speech — questions will appear as text only.
+          <span>Your browser doesn&apos;t support text-to-speech — questions will appear as text only.</span>
         </div>
       )}
 
-      {/* ── TOP NAV ── */}
-      <div className="flex items-center justify-between px-10 pt-5 pb-4 border-b border-white/[0.06] relative z-10 flex-shrink-0">
+      {/* ── TOP NAV (Clean Light Theme) ── */}
+      <div className="flex items-center justify-between px-8 pt-4 pb-3.5 border-b border-[#E5E5E5] relative z-10 flex-shrink-0 bg-white shadow-xs">
         {/* Logo + role */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-1.5 font-display text-sm font-bold tracking-tighter">
-            <Image src="/devprep-logo.png" alt="DevPrep logo" width={22} height={22} className="rounded-sm" style={{ mixBlendMode: "lighten" }} />
-            DevPrep
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 font-bold tracking-tight">
+            <Image src="/devprep-logo.png" alt="DevPrep logo" width={22} height={22} className="rounded-sm" />
+            <span className="text-sm font-bold text-[#1A1A1A] tracking-[-0.01em]">DevPrep</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            <span className="text-brand-muted">{data.title}</span>
+          <div className="h-4 w-px bg-[#E5E5E5]" />
+          <div className="flex items-center gap-2 text-xs">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+            <span className="text-[#666666] font-medium">{data.title}</span>
           </div>
         </div>
 
-        {/* Progress tabs */}
+        {/* Progress tabs with #EB3A14 accent color */}
         <div className="hidden md:flex gap-6">
           {topicTabs.map((item, i) => (
             <div key={i}>
-              <p className="text-xs text-brand-muted mb-1.5 truncate max-w-[120px]">{item}</p>
-              <div className="w-28 h-1 rounded-full bg-white/10 overflow-hidden">
-                {i < currentQ && <div className="w-full h-full bg-white/50" />}
+              <p className="text-xs text-[#666666] font-medium mb-1.5 truncate max-w-[140px]">{item}</p>
+              <div className="w-28 h-1 rounded-full bg-[#E5E5E5] overflow-hidden">
+                {i < currentQ && <div className="w-full h-full bg-[#EB3A14]" />}
                 {i === Math.min(currentQ, topicTabs.length - 1) && (
                   <motion.div
-                    className="h-full bg-white"
+                    className="h-full bg-[#EB3A14] rounded-full"
                     initial={{ width: "0%" }}
-                    animate={{ width: isRecording ? "70%" : "25%" }}
-                    transition={{ duration: 0.6 }}
+                    animate={{ width: isRecording ? "75%" : "30%" }}
+                    transition={{ duration: 0.6, ease: EASE }}
                   />
                 )}
               </div>
@@ -719,26 +764,28 @@ export default function InterviewSessionPage() {
         </div>
 
         {/* Timer */}
-        <div className="border border-white/10 bg-white/[0.04] backdrop-blur-xl rounded-xl px-4 py-2 flex items-center gap-2">
-          <Clock3 size={13} className="text-brand-muted" />
-          <span className="text-sm font-mono font-medium">{formatTime(elapsed)}</span>
+        <div className="border border-[#E5E5E5] bg-[#F5F5F7] rounded-xl px-3.5 py-1.5 flex items-center gap-2">
+          <Clock3 size={13} className="text-[#666666]" />
+          <span className="text-xs font-semibold text-[#1A1A1A] tracking-wide">{formatTime(elapsed)}</span>
         </div>
       </div>
 
-      {/* ── MAIN 2-COL ── */}
-      <div className="grid grid-cols-2 gap-8 px-10 pt-6 pb-24 relative z-10 flex-1 min-h-0">
+      {/* ── MAIN 2-COL (Light Cards) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-8 pt-6 pb-6 relative z-10 flex-1 min-h-0 items-center max-w-6xl mx-auto w-full">
 
         {/* LEFT – camera */}
-        <div className="flex flex-col gap-4 min-h-0">
-          {/* Mic bar */}
-          <div className="border border-white/[0.08] rounded-xl bg-white/[0.02] px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="flex flex-col gap-4 min-h-0 w-full max-w-md mx-auto lg:max-w-none">
+          {/* Mic bar matching design system card specs */}
+          <div className="border border-[#E5E5E5] rounded-xl bg-white px-4.5 py-3 flex items-center justify-between flex-shrink-0 shadow-xs">
             <div className="flex items-center gap-3">
-              <Mic size={14} className={micOn ? "text-white/60" : "text-red-400"} />
-              <p className="text-xs text-brand-muted">{micOn ? "Mic: Active" : "Mic: Muted"}</p>
+              <Mic size={14} className={micOn ? "text-[#EB3A14]" : "text-rose-500"} />
+              <p className="text-xs font-semibold text-[#1A1A1A]">
+                {micOn ? "Mic active" : "Mic muted"}
+              </p>
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={toggleMic}>
-                {micOn ? <Mic size={13} className="text-brand-muted" /> : <MicOff size={13} className="text-red-400" />}
+              <button onClick={toggleMic} className="cursor-pointer hover:opacity-80 transition-opacity">
+                {micOn ? <Mic size={14} className="text-[#666666]" /> : <MicOff size={14} className="text-rose-500" />}
               </button>
               {micOn && (
                 <div className="flex gap-[3px] items-end h-4">
@@ -747,138 +794,141 @@ export default function InterviewSessionPage() {
                       key={i}
                       animate={{ height: [h, h + 6, h] }}
                       transition={{ repeat: Infinity, duration: 1, delay: i * 0.1 }}
-                      className="w-[3px] rounded-full bg-white/40"
+                      className="w-[3px] rounded-full bg-[#EB3A14]"
                       style={{ height: h }}
                     />
                   ))}
                 </div>
               )}
-              <button onClick={toggleCam}><ChevronDown size={13} className="text-brand-muted" /></button>
+              <button onClick={toggleCam} className="cursor-pointer hover:opacity-80 transition-opacity">
+                <ChevronDown size={14} className="text-[#666666]" />
+              </button>
             </div>
           </div>
 
-          {/* Camera feed — compact fixed size matching reference */}
-          <div className="w-full h-[280px] rounded-2xl border border-white/[0.08] overflow-hidden bg-black relative flex-shrink-0">
+          {/* Camera feed / preview placeholder state per design.md tokens */}
+          <div className="w-full h-[280px] rounded-2xl border border-[#E5E5E5] overflow-hidden bg-white relative flex-shrink-0 shadow-xs flex items-center justify-center">
             <video
               ref={videoRef}
               autoPlay
               muted
               playsInline
-              className={`w-full h-full object-cover ${camOn ? "opacity-90" : "opacity-0"}`}
+              className={`w-full h-full object-cover ${camOn && !camError ? "opacity-95" : "opacity-0 absolute"}`}
             />
+            {camOn && !camError && (
+              <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm border border-[#E5E5E5] rounded-full px-3 py-1 flex items-center gap-2 z-10 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                <span className="text-[11px] font-semibold text-[#1A1A1A]">
+                  Camera preview
+                </span>
+              </div>
+            )}
             {(!camOn || camError) && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-brand-muted">
-                <VideoOff size={24} />
-                <span className="text-xs">Camera off</span>
+              <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#F5F5F7] border border-[#E5E5E5] flex items-center justify-center text-[#666666]">
+                  <VideoOff size={20} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-[#1A1A1A]">
+                    {camError ? "Camera access blocked" : "Camera preview off"}
+                  </p>
+                  <p className="text-[11px] text-[#666666] mt-1 max-w-[220px]">
+                    {camError ? "Audio interview mode active" : "Toggle controls anytime during the session"}
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
           {/* Status */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className={`w-1.5 h-1.5 rounded-full ${camError ? "bg-amber-400" : "bg-green-500"}`} />
-            <p className="text-brand-muted text-xs">
-              {camError ? "Camera denied — audio only" : "Camera and microphone active"}
+          <div className="flex items-center gap-2 flex-shrink-0 px-1">
+            <div className={`w-2 h-2 rounded-full ${camError ? "bg-amber-500" : "bg-[#22C55E]"}`} />
+            <p className="text-[#666666] text-xs font-medium">
+              {camError ? "Camera denied — audio interview mode active" : "Camera and microphone connected"}
             </p>
           </div>
         </div>
 
-        {/* RIGHT – AI + question */}
-        <div className="flex flex-col items-center justify-center relative">
-          {/* AI Orb */}
+        {/* RIGHT – AI + Question Area */}
+        <div className="flex flex-col items-center justify-center relative w-full max-w-md mx-auto lg:max-w-none py-4">
+          {/* AI Zara Avatar Orb (Clean light design system treatment) */}
           <div className="relative flex items-center justify-center mb-8">
             <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.5, 0.2] }}
-              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-              className="absolute w-[160px] h-[160px] rounded-full bg-white/10 blur-3xl"
-            />
-            <motion.div
-              animate={{ scale: [1, 1.08, 1], opacity: [0.2, 0.5, 0.2] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-              className="absolute w-[120px] h-[120px] rounded-full border border-white/10"
-            />
-            <motion.div
-              animate={{ scale: aiSpeaking ? [1, 1.1, 0.98, 1] : [1, 1.04, 1] }}
-              transition={{ repeat: Infinity, duration: aiSpeaking ? 0.5 : 2, ease: "easeInOut" }}
-              className="relative w-[90px] h-[90px] rounded-full bg-gradient-to-b from-white to-[#e0e0ff] shadow-[0_0_50px_rgba(255,255,255,0.15)] flex items-center justify-center border border-white/30"
+              animate={{ scale: aiSpeaking ? [1, 1.05, 1] : [1, 1.02, 1] }}
+              transition={{ repeat: Infinity, duration: aiSpeaking ? 0.6 : 2.5, ease: "easeInOut" }}
+              className="relative w-24 h-24 rounded-full bg-white shadow-md flex items-center justify-center border border-[#E5E5E5]"
             >
-              <div className="absolute inset-2 rounded-full bg-white/40 blur-lg" />
-              <motion.div
-                animate={{ scale: [1, 1.06, 1] }}
-                transition={{ repeat: Infinity, duration: 1.5 }}
-                className="relative z-10"
-              >
-                <span className="text-2xl font-black text-black">D<span className="text-[#7C6CFF]">.</span></span>
-              </motion.div>
+              <span className="text-3xl font-extrabold text-[#1A1A1A]">
+                D<span className="text-[#EB3A14]">.</span>
+              </span>
             </motion.div>
           </div>
 
-          {/* Question text — word-by-word via onboundary */}
-          {displayedText && (
-            <div className="max-w-lg w-full mb-6">
-              <motion.div
-                key={currentQ}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                {currentQ === 0 && !answered.has(0) && (
-                  <p className="text-[11px] font-mono tracking-widest text-white/40 uppercase mb-3">
-                    Zara · AI Interviewer
-                  </p>
-                )}
-                <p
-                  className="text-[13px] leading-[1.8] tracking-wide"
-                  style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.82)" }}
+          {/* Question text — Inter typeface with animated reveal */}
+          <div className="max-w-lg w-full mb-6 text-center min-h-[90px] flex flex-col items-center justify-center">
+            <AnimatePresence mode="wait">
+              {displayedText ? (
+                <motion.div
+                  key={`${currentQ}-${displayedText.length}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25, ease: EASE }}
                 >
-                  {displayedText}
-                </p>
-              </motion.div>
-            </div>
-          )}
+                  {currentQ === 0 && !answered.has(0) && (
+                    <p className="text-[11px] font-semibold text-[#EB3A14] uppercase tracking-[0.08em] mb-2">
+                      Zara · AI Interviewer
+                    </p>
+                  )}
+                  <p className="text-[16px] sm:text-[18px] leading-relaxed text-[#1A1A1A] font-semibold tracking-[-0.015em]">
+                    {displayedText}
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.5 }}
+                  className="text-sm text-[#666666] font-normal italic"
+                >
+                  Question text will appear here as Zara speaks...
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
 
-          {/* Recording status — auto-starts when Zara finishes; auto-submits on silence */}
+          {/* Session Status Pill */}
           {isSubmitting ? (
-            <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-3.5 flex items-center gap-3">
+            <div className="w-full max-w-lg rounded-2xl border border-[#E5E5E5] bg-white px-5 py-3.5 flex items-center justify-center gap-3 shadow-xs">
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/70 flex-shrink-0"
+                className="w-3.5 h-3.5 rounded-full border-2 border-[#E5E5E5] border-t-[#EB3A14] flex-shrink-0"
               />
-              <span
-                className="text-[13px] tracking-wide"
-                style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.5)" }}
-              >
+              <span className="text-xs font-semibold text-[#1A1A1A]">
                 Evaluating your answer…
               </span>
             </div>
           ) : isRecording ? (
-            <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-3.5 flex items-center gap-3">
+            <div className="w-full max-w-lg rounded-2xl border border-[#EB3A14]/30 bg-white px-5 py-3.5 flex items-center justify-center gap-3 shadow-xs">
               <motion.div
-                animate={{ scale: [1, 1.4, 1], opacity: [1, 0.5, 1] }}
+                animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
                 transition={{ repeat: Infinity, duration: 1 }}
-                className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
+                className="w-2.5 h-2.5 rounded-full bg-[#EB3A14] flex-shrink-0"
               />
-              <span
-                className="text-[13px] tracking-wide"
-                style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.82)" }}
-              >
-                Recording…
+              <span className="text-xs font-semibold text-[#EB3A14]">
+                Recording your answer… (speak naturally)
               </span>
             </div>
           ) : (
-            <div className="w-full max-w-lg rounded-2xl border border-white/[0.06] bg-white/[0.01] px-5 py-3.5 flex items-center gap-3">
+            <div className="w-full max-w-lg rounded-2xl border border-[#E5E5E5] bg-white px-5 py-3.5 flex items-center justify-center gap-3 shadow-xs">
               {aiSpeaking ? (
                 <>
                   <motion.div
                     animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
                     transition={{ repeat: Infinity, duration: 1.2 }}
-                    className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0"
+                    className="w-2.5 h-2.5 rounded-full bg-[#EB3A14] flex-shrink-0"
                   />
-                  <span
-                    className="text-[13px] tracking-wide"
-                    style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.4)" }}
-                  >
+                  <span className="text-xs font-semibold text-[#1A1A1A]">
                     Zara is speaking…
                   </span>
                 </>
@@ -887,46 +937,55 @@ export default function InterviewSessionPage() {
                   <motion.div
                     animate={{ opacity: [0.4, 0.9, 0.4] }}
                     transition={{ repeat: Infinity, duration: 1.8 }}
-                    className="w-2 h-2 rounded-full bg-white/30 flex-shrink-0"
+                    className="w-2 h-2 rounded-full bg-[#666666]/40 flex-shrink-0"
                   />
-                  <span
-                    className="text-[13px] tracking-wide"
-                    style={{ fontFamily: "'Georgia', 'Times New Roman', serif", color: "rgba(255,255,255,0.4)" }}
-                  >
-                    Waiting for microphone…
+                  <span className="text-xs font-medium text-[#666666]">
+                    Listening for response…
                   </span>
                 </>
               )}
             </div>
           )}
 
-
           {!isTranscribing && error && (
-            <div className="w-full max-w-lg mt-4 rounded-2xl border border-red-500/20 bg-red-500/[0.04] px-5 py-3">
-              <p className="text-xs text-red-400">{error}</p>
+            <div className="w-full max-w-lg mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+              <p className="text-xs text-rose-600 font-medium">{error}</p>
             </div>
           )}
 
-          <p className="mt-3 text-xs text-brand-muted font-mono">
+          <p className="mt-4 text-xs text-[#666666] font-medium">
             Question {currentQ + 1} of {totalQuestions}
           </p>
         </div>
       </div>
 
-      {/* ── BOTTOM ACTIONS ── */}
-      <div className="fixed bottom-6 right-8 flex gap-3 z-20">
-        <button
-          onClick={endInterview}
-          className="px-4 py-2.5 rounded-xl border border-white/[0.08] bg-brand-bg/80 backdrop-blur-xl flex items-center gap-2 hover:bg-red-500/10 hover:border-red-500/20 transition-all text-xs"
-        >
-          <PhoneOff size={13} className="text-red-500" />
-          <span>End Interview</span>
-        </button>
-        <button className="px-4 py-2.5 rounded-xl border border-white/[0.08] bg-brand-bg/80 backdrop-blur-xl flex items-center gap-2 hover:bg-white/[0.04] transition-all text-xs">
-          <AlertOctagon size={13} className="text-brand-muted" />
-          <span className="text-brand-muted">Having trouble?</span>
-        </button>
+      {/* ── ANCHORED BOTTOM SESSION CONTROLS BAR (Light Theme) ── */}
+      <div className="border-t border-[#E5E5E5] bg-white px-8 py-3.5 flex items-center justify-between relative z-20 flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+          <span className="text-xs font-medium text-[#666666]">
+            Live session · {data.title}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => alert("Troubleshooting Tip: Make sure your microphone permission is granted in the browser address bar. If audio stops, you can refresh the page safely.")}
+            className="px-4 py-2 rounded-full border border-[#E5E5E5] bg-white hover:bg-[#F5F5F7] transition-all text-xs font-semibold text-[#666666] hover:text-[#1A1A1A] flex items-center gap-2 cursor-pointer shadow-xs"
+          >
+            <AlertOctagon size={14} className="text-[#666666]" />
+            <span>Having trouble?</span>
+          </button>
+          <button
+            onClick={endInterview}
+            className="px-4.5 py-2 rounded-full border border-[#E5E5E5] bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all text-xs font-semibold text-[#1A1A1A] flex items-center gap-2 cursor-pointer shadow-xs"
+          >
+            <PhoneOff size={14} />
+            <span>End interview</span>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
