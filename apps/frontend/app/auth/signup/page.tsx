@@ -18,7 +18,7 @@ import { useState } from "react";
 import { Eye, EyeOff, ArrowRight, Loader2, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import api from "@/lib/api";
 import { motion } from "motion/react";
 
 import {
@@ -139,7 +139,7 @@ export default function SignUpPage() {
     setServerError("");
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:3001/api/auth/signup", {
+      const res = await api.post("/api/auth/signup", {
         username: fullName,
         email,
         password,

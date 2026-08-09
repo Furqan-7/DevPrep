@@ -568,8 +568,31 @@ export default function InterviewSessionPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] flex items-center justify-center font-sans">
-        <p className="text-[#666666] text-sm">Loading session…</p>
+      <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] flex flex-col items-center justify-center font-sans">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center gap-4 text-center px-6"
+        >
+          <motion.div
+            animate={{ scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }}
+            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+            className="w-16 h-16 rounded-full bg-white shadow-md flex items-center justify-center border border-[#E5E5E5] relative"
+          >
+            <span className="text-xl font-extrabold text-[#1A1A1A]">
+              D<span className="text-[#EB3A14]">.</span>
+            </span>
+          </motion.div>
+          <div>
+            <h3 className="text-base font-extrabold text-[#1A1A1A] tracking-[-0.01em]">
+              Zara is preparing your first question...
+            </h3>
+            <p className="text-xs text-[#666666] mt-1 font-medium">
+              Initializing AI interview session
+            </p>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -577,20 +600,25 @@ export default function InterviewSessionPage() {
   // ── SETUP (READY SCREEN) ──────────────────────────────────────────────────
   if (phase === "setup") return (
     <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] flex flex-col items-center justify-center relative overflow-hidden antialiased font-sans">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative z-10 flex flex-col items-center text-center max-w-md w-full px-6 py-12"
-      >
+      <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full px-6 py-12">
         {/* Logo */}
-        <motion.div variants={itemVariants} className="flex items-center gap-2 font-bold tracking-tight mb-8">
-          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" />
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: EASE }}
+          className="flex items-center gap-2 font-bold tracking-tight mb-8"
+        >
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm" />
           <span className="text-[15px] font-bold text-[#1A1A1A] tracking-[-0.01em]">DevPrep</span>
         </motion.div>
 
         {/* Zara Avatar Orb (Clean Light Surface per design.md) */}
-        <motion.div variants={itemVariants} className="relative flex items-center justify-center mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05, ease: EASE }}
+          className="relative flex items-center justify-center mb-6"
+        >
           <motion.div
             animate={{ scale: [1, 1.04, 1] }}
             transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
@@ -604,23 +632,29 @@ export default function InterviewSessionPage() {
 
         {/* Headline — Sentence Case Inter Font matching design.md */}
         <motion.h1
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: EASE }}
           className="text-2xl sm:text-3xl font-extrabold tracking-[-0.02em] text-[#1A1A1A] mb-2.5"
         >
           Ready for your interview?
         </motion.h1>
 
         <motion.p
-          variants={itemVariants}
-          className="text-[#666666] text-sm leading-relaxed mb-8 max-w-sm"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15, ease: EASE }}
+          className="text-[#666666] text-sm sm:text-base leading-relaxed mb-8 max-w-sm"
         >
           Starting a <span className="text-[#1A1A1A] font-semibold">{data.title}</span> practice interview —{" "}
           {data.questions.length} questions, ~{data.duration} mins.
         </motion.p>
 
-        {/* Restyled Checklist Card with Light Surface & Accent Icons */}
+        {/* Restyled Checklist Card with Light Surface & Flat Icons per design.md */}
         <motion.div
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2, ease: EASE }}
           className="w-full bg-white border border-[#E5E5E5] rounded-2xl p-6 text-left space-y-4 mb-8 shadow-sm"
         >
           {[
@@ -630,35 +664,39 @@ export default function InterviewSessionPage() {
             "You can end the interview at any time",
           ].map((tip) => (
             <div key={tip} className="flex items-start gap-3.5 text-xs">
-              <div className="w-6 h-6 rounded-full bg-[#EB3A14]/[0.08] border border-[#EB3A14]/20 flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 size={13} className="text-[#EB3A14]" />
+              <div className="w-5 h-5 rounded-full bg-[#F5F5F7] border border-[#E5E5E5] flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 size={12} className="text-[#1A1A1A]" />
               </div>
-              <span className="text-[#1A1A1A] font-medium leading-normal pt-0.5">
+              <span className="text-[#1A1A1A] text-[13px] font-medium leading-normal pt-0.5">
                 {tip}
               </span>
             </div>
           ))}
         </motion.div>
 
-        {/* Primary CTA */}
+        {/* Primary CTA — Sentence Case Inter Font matching role & landing page */}
         <motion.button
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.25, ease: EASE }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => setPhase("active")}
-          className="w-full py-3.5 rounded-full bg-[#1A1A1A] hover:bg-black text-white font-bold text-xs uppercase tracking-[0.08em] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+          className="w-full py-4 rounded-full bg-[#1A1A1A] hover:bg-black text-white font-semibold text-[15px] tracking-tight transition-all flex items-center justify-center gap-2.5 shadow-sm cursor-pointer"
         >
-          <Mic size={14} /> Start Interview
+          <Mic size={16} /> Start interview
         </motion.button>
 
         <motion.button
-          variants={itemVariants}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3, ease: EASE }}
           onClick={() => router.push(`/dashboard/ai-interview/${slug}`)}
-          className="mt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-[#666666] hover:text-[#1A1A1A] transition-colors cursor-pointer"
+          className="mt-4 text-[13px] font-medium text-[#666666] hover:text-[#1A1A1A] transition-colors cursor-pointer border-0 bg-transparent p-0"
         >
           Go back
         </motion.button>
-      </motion.div>
+      </div>
     </div>
   );
 
@@ -668,7 +706,7 @@ export default function InterviewSessionPage() {
       <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full py-12">
         {/* Logo */}
         <div className="flex items-center gap-2 font-bold tracking-tight mb-8">
-          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} className="rounded-sm" />
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm" />
           <span className="text-[15px] font-bold text-[#1A1A1A] tracking-[-0.01em]">DevPrep</span>
         </div>
 
@@ -700,15 +738,15 @@ export default function InterviewSessionPage() {
         <div className="mt-6 flex gap-3 w-full">
           <button
             onClick={() => router.push("/dashboard/ai-interview")}
-            className="flex-1 py-3 rounded-full border border-[#E5E5E5] bg-white text-xs font-bold uppercase tracking-[0.08em] text-[#666666] hover:text-[#1A1A1A] hover:border-[#1A1A1A] transition-all cursor-pointer shadow-sm"
+            className="flex-1 py-3.5 rounded-full border border-[#E5E5E5] bg-white text-[14px] font-semibold text-[#666666] hover:text-[#1A1A1A] hover:border-[#1A1A1A] transition-all cursor-pointer shadow-xs"
           >
             Back to roles
           </button>
           <button
             onClick={() => { setPhase("setup"); setCurrentQ(0); setAnswered(new Set()); setElapsed(0); setIsRecording(false); }}
-            className="flex-1 py-3 rounded-full bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-[0.08em] active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="flex-1 py-3.5 rounded-full bg-[#1A1A1A] hover:bg-black text-white text-[14px] font-semibold active:scale-95 transition-all cursor-pointer shadow-xs"
           >
-            Retry
+            Try again
           </button>
         </div>
       </div>
@@ -733,7 +771,7 @@ export default function InterviewSessionPage() {
         {/* Logo + role */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 font-bold tracking-tight">
-            <Image src="/devprep-logo.png" alt="DevPrep logo" width={22} height={22} className="rounded-sm" />
+            <Image src="/devprep-logo.png" alt="DevPrep logo" width={22} height={22} unoptimized className="rounded-sm" />
             <span className="text-sm font-bold text-[#1A1A1A] tracking-[-0.01em]">DevPrep</span>
           </div>
           <div className="h-4 w-px bg-[#E5E5E5]" />

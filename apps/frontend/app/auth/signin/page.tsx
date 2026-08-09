@@ -21,7 +21,7 @@ import { useState } from "react";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import api from "@/lib/api";
 import { motion } from "motion/react";
 
 import {
@@ -83,7 +83,7 @@ export default function SignInPage() {
     setServerError("");
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:3001/api/auth/signin", {
+      const res = await api.post("/api/auth/signin", {
         email,
         password,
       });

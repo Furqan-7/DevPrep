@@ -21,6 +21,73 @@ interface EvalResponse {
 
 
 
+/**
+ * Curated initial interview question bank per role.
+ * Instant lookup (<1ms) avoids blocking 3-7s LLM generation on start.
+ */
+const ROLE_FIRST_QUESTIONS: Record<string, string[]> = {
+    "frontend-engineer": [
+        "What best practices should be followed for maintaining scalable and maintainable CSS/JS codebases?",
+        "How do you ensure cross-browser compatibility and handle performance bottlenecks in complex front-end applications?",
+        "Can you explain the Virtual DOM in React and how reconciliation works under the hood?",
+    ],
+    "backend-engineer": [
+        "How do you design a scalable RESTful API, and what architectural considerations do you keep in mind?",
+        "What strategies do you use for database indexing and query optimization when handling high concurrency?",
+        "Can you explain the CAP theorem and its practical trade-offs in distributed systems?",
+    ],
+    "full-stack-developer": [
+        "How do you structure data flow and authentication across the frontend and backend in a modern web app?",
+        "What factors guide your decision when choosing server-side rendering (SSR) versus client-side rendering (CSR)?",
+        "How do you handle database migration and schema updates with zero downtime in production?",
+    ],
+    "dsa": [
+        "What is the difference between dynamic programming and recursion with memoization? Can you give an example?",
+        "How do you analyze the time and space complexity of sorting algorithms like QuickSort and MergeSort?",
+        "When would you choose a Hash Table over a Binary Search Tree, and what are the trade-offs?",
+    ],
+    "system-design": [
+        "How would you approach designing a high-throughput rate limiter for a global microservice architecture?",
+        "What strategies do you use for data partitioning and consistent hashing in distributed databases?",
+        "How do load balancers distribute traffic, and how do you handle single points of failure?",
+    ],
+    "machine-learning-engineer": [
+        "What is the bias-variance tradeoff, and how do you detect and mitigate overfitting in complex models?",
+        "Can you walk me through feature engineering techniques and how they impact model accuracy?",
+        "How do you approach model deployment, monitoring, and handling data drift in production?",
+    ],
+    "devops-engineer": [
+        "What are the core principles of continuous integration and continuous deployment (CI/CD) pipelines?",
+        "How does Kubernetes manage container orchestration, networking, and automatic pod scaling?",
+        "How do you enforce Infrastructure as Code (IaC) and manage environment secrets securely?",
+    ],
+    "android-developer": [
+        "How does the Android Activity lifecycle work, and how do you prevent memory leaks during config changes?",
+        "What are the key benefits of Jetpack Compose compared to the legacy XML layout view system?",
+        "How do Kotlin Coroutines simplify asynchronous processing and main thread safety in Android?",
+    ],
+    "ios-developer": [
+        "How does Automatic Reference Counting (ARC) work in Swift, and how do you avoid strong reference cycles?",
+        "What are the key differences between SwiftUI and UIKit, and when would you bridge the two?",
+        "How do you manage asynchronous network calls using Swift's async/await syntax?",
+    ],
+    "data-engineer": [
+        "What is the difference between ETL and ELT data pipelines, and when would you use each?",
+        "How does Apache Spark process large-scale datasets across distributed clusters?",
+        "How do you handle late-arriving data and state management in real-time streaming architectures?",
+    ],
+    "product-manager": [
+        "How do you evaluate and prioritize competing product features when resources are constrained?",
+        "Walk me through how you define key performance metrics (KPIs) for a newly launched feature?",
+        "How do you navigate technical debt trade-offs with engineering teams while meeting business goals?",
+    ],
+    "behavioral-round": [
+        "Tell me about a time you led a team through a complex technical challenge under strict deadlines.",
+        "How do you handle technical disagreements or architectural conflicts within your development team?",
+        "Describe a situation where a project didn't go as planned and what key lessons you took away.",
+    ],
+};
+
 export const startInterview = async (req: Request, res: Response) => {
 
     try {
@@ -32,12 +99,16 @@ export const startInterview = async (req: Request, res: Response) => {
             return res.status(411).json({
                 message: "Invalid Format",
                 success: false
-            })
-        };
+            });
+        }
         const { role, difficulty, introduction } = Response.data;
 
-        console.log("user Id " + userId + " data " + Response.data);
+        // Select initial question from curated role pool (<1ms execution)
+        const defaultFallback = "Can you walk me through your technical background and a recent project you built?";
+        const pool = ROLE_FIRST_QUESTIONS[role] ?? [defaultFallback];
+        const question: string = pool[Math.floor(Math.random() * pool.length)] ?? defaultFallback;
 
+        // Single nested Prisma transaction (1 DB roundtrip instead of 4 sequential queries)
         let session: any;
         try {
             session = await prisma.interviewSession.create({
@@ -47,68 +118,24 @@ export const startInterview = async (req: Request, res: Response) => {
                     difficulty: difficulty,
                     introduction: introduction,
                     status: "active",
-                    currentQues: 0,
-                }
+                    currentQues: 1,
+                    questions: {
+                        create: [
+                            {
+                                order: 0,
+                                question: "Tell me about yourself.",
+                                answer: introduction ?? null,
+                            },
+                            {
+                                order: 1,
+                                question: question,
+                            },
+                        ],
+                    },
+                },
             });
         } catch (dbError: any) {
             console.error("[/api/interview/generate] DB error creating session:", dbError?.message ?? dbError);
-            return res.status(503).json({
-                success: false,
-                message: "Unable to start your interview right now. Please try again in a moment.",
-            });
-        }
-
-        try {
-            await prisma.interviewQuestion.create({
-                data: {
-                    sessionId: session.id,
-                    order: 0,
-                    question: "Tell me about yourself.",
-                    answer: introduction ?? null,
-                }
-            });
-        } catch (dbError: any) {
-            console.error("[/api/interview/generate] DB error creating intro question:", dbError?.message ?? dbError);
-            return res.status(503).json({
-                success: false,
-                message: "Unable to start your interview right now. Please try again in a moment.",
-            });
-        }
-
-        const prompt = `
-You are a senior technical interviewer for a "${role}" role at "${difficulty}" difficulty.
-The candidate just introduced themselves: "${introduction || "(no introduction given)"}"
-
-Generate the FIRST real interview question (order 1), using their introduction as light
-context if relevant. Keep it focused and not overly long.
-
-Respond ONLY with valid JSON, no markdown, no preamble:
-{ "question": "string" }
-        `.trim();
-
-        let question: string;
-        try {
-            const result = await generateJSON<NextQuestionResponse>(prompt);
-            question = result.question;
-        } catch (aiError: any) {
-            console.error("[/api/interview/generate] AI generation error:", aiError?.message ?? aiError);
-            return res.status(502).json({
-                success: false,
-                message: "Failed to generate interview question. Please try again.",
-            });
-        }
-
-        try {
-            await prisma.interviewQuestion.create({
-                data: { sessionId: session.id, order: 1, question },
-            });
-
-            await prisma.interviewSession.update({
-                where: { id: session.id },
-                data: { currentQues: 1 },
-            });
-        } catch (dbError: any) {
-            console.error("[/api/interview/generate] DB error saving first question:", dbError?.message ?? dbError);
             return res.status(503).json({
                 success: false,
                 message: "Unable to start your interview right now. Please try again in a moment.",
@@ -124,7 +151,6 @@ Respond ONLY with valid JSON, no markdown, no preamble:
         });
 
     } catch (error: any) {
-        // Catch-all: log full error server-side, never expose internals to client
         console.error("[/api/interview/generate] Unexpected error:", error?.message ?? error);
         return res.status(500).json({
             success: false,

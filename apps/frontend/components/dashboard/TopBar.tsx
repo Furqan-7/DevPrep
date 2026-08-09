@@ -12,6 +12,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ChevronDown, LogOut, Settings, User } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import Image from "next/image";
 
 /* ─────────────────────────────────────────────
    Design-system mono style helper
@@ -93,9 +94,10 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
           onClick={() => router.push("/dashboard/ai-interview")}
           aria-label="Go to AI Interview home"
           style={monoStyle}
-          className="text-[15px] font-bold tracking-[0.02em] text-[#1a1a1a] cursor-pointer bg-transparent border-0 p-0 shrink-0"
+          className="flex items-center gap-2.5 text-[15px] font-bold tracking-[0.02em] text-[#1a1a1a] cursor-pointer bg-transparent border-0 p-0 shrink-0"
         >
-          DevPrep
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm shrink-0" />
+          <span>DevPrep</span>
         </button>
 
         {/* ── Desktop nav links (centered in navbar) ─────── */}

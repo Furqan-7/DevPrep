@@ -18,7 +18,10 @@ import interviewRouter from "./routes/interview.route";
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "*",
+  credentials: true,
+}));
 
 
 
@@ -28,95 +31,95 @@ app.use('/api/auth', authRouter);
 app.use('/api/interview', interviewRouter);
 
 
-app.get("/api/dsa/problems", async (req, res) => {
-    const userId = res.locals.userId;
+// app.get("/api/dsa/problems", async (req, res) => {
+//     const userId = res.locals.userId;
 
-    try {
-        const problems = await prisma.problem.findMany({
-            include: {
-                companies: true
-            },
-        });
+//     try {
+//         const problems = await prisma.problem.findMany({
+//             include: {
+//                 companies: true
+//             },
+//         });
 
-        return res.status(200).json({
-            success: true,
-            problems,
-        });
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: false,
-            error
-        });
-    }
+//         return res.status(200).json({
+//             success: true,
+//             problems,
+//         });
+//     } catch (error) {
+//         console.log(error);
+//         return res.status(500).json({
+//             success: false,
+//             error
+//         });
+//     }
 
-});
+// });
 
-app.get("/api/dsa/problems", async (req, res) => {
-    const compony = req.body.compony;
+// app.get("/api/dsa/problems", async (req, res) => {
+//     const compony = req.body.compony;
 
-    try {
-        const ComponyProblems = await prisma.problem.findMany({
-            include: {
-                companies: true,
-            },
-        });
+//     try {
+//         const ComponyProblems = await prisma.problem.findMany({
+//             include: {
+//                 companies: true,
+//             },
+//         });
 
-        return res.status(200).json({
-            success: true,
-            ComponyProblems: ComponyProblems
-        });
+//         return res.status(200).json({
+//             success: true,
+//             ComponyProblems: ComponyProblems
+//         });
 
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: false,
-            error
-        });
-    }
-});
+//     } catch (error) {
+//         console.log(error);
+//         return res.status(500).json({
+//             success: false,
+//             error
+//         });
+//     }
+// });
 
-app.get("/api/dsa/progress", async (req, res) => {
-    const userId = res.locals.userId;
-
-
-    try {
-
-    } catch (error) {
-
-    }
-});
+// app.get("/api/dsa/progress", async (req, res) => {
+//     const userId = res.locals.userId;
 
 
-app.get("/api/cscore/questions", async (req, res) => {
+//     try {
+
+//     } catch (error) {
+
+//     }
+// });
 
 
-    try {
-
-    }
-    catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: false,
-            error
-        });
-    }
-});
-
-app.get("/api/cscore/progress", async (req, res) => {
-    const userId = res.locals.userId;
+// app.get("/api/cscore/questions", async (req, res) => {
 
 
-    try {
+//     try {
 
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: false,
-            error
-        });
-    }
-});
+//     }
+//     catch (error) {
+//         console.log(error);
+//         return res.status(500).json({
+//             success: false,
+//             error
+//         });
+//     }
+// });
+
+// app.get("/api/cscore/progress", async (req, res) => {
+//     const userId = res.locals.userId;
+
+
+//     try {
+
+//     } catch (error) {
+//         console.log(error);
+//         return res.status(500).json({
+//             success: false,
+//             error
+//         });
+//     }
+// });
 
 
 
@@ -175,76 +178,76 @@ app.get("/api/cscore/progress", async (req, res) => {
 // TempJobs();
 
 
-const jobs = new CronJob("0 */8 * * *", async () => {
-    try {
-        const response = await Promise.allSettled([
-            GetJobsRemotive(),
-            GetJobsRapid(),
-        ]);
+// const jobs = new CronJob("0 */8 * * *", async () => {
+//     try {
+//         const response = await Promise.allSettled([
+//             GetJobsRemotive(),
+//             GetJobsRapid(),
+//         ]);
 
 
-        console.log(response);
+//         console.log(response);
 
-        const remotiveResult = response[0];
-        const rapidResult = response[1];
+//         const remotiveResult = response[0];
+//         const rapidResult = response[1];
 
-        let remotiveJobs: any[] = [];
-        let rapidJobs: any[] = [];
+//         let remotiveJobs: any[] = [];
+//         let rapidJobs: any[] = [];
 
-        if (remotiveResult.status === "fulfilled") {
-            remotiveJobs = remotiveResult.value;
-        } else {
-            console.error("❌ Remotive API failed:", remotiveResult.reason);
-        }
+//         if (remotiveResult.status === "fulfilled") {
+//             remotiveJobs = remotiveResult.value;
+//         } else {
+//             console.error("❌ Remotive API failed:", remotiveResult.reason);
+//         }
 
-        if (rapidResult.status === "fulfilled") {
-            rapidJobs = rapidResult.value;
-        } else {
-            console.error("❌ Rapid API failed:", rapidResult.reason);
-        }
+//         if (rapidResult.status === "fulfilled") {
+//             rapidJobs = rapidResult.value;
+//         } else {
+//             console.error("❌ Rapid API failed:", rapidResult.reason);
+//         }
 
-        let MappedRemotive = [];
-        let MappedRapidJob = [];
+//         let MappedRemotive = [];
+//         let MappedRapidJob = [];
 
-        for (let i = 0; i < remotiveJobs.length; i++) {
-            MappedRemotive.push(mapRemotiveJob(remotiveJobs[i]));
-        }
+//         for (let i = 0; i < remotiveJobs.length; i++) {
+//             MappedRemotive.push(mapRemotiveJob(remotiveJobs[i]));
+//         }
 
-        for (let i = 0; i < rapidJobs.length; i++) {
-            MappedRapidJob.push(mapRapidJob(rapidJobs[i]));
-        }
+//         for (let i = 0; i < rapidJobs.length; i++) {
+//             MappedRapidJob.push(mapRapidJob(rapidJobs[i]));
+//         }
 
-        const jobs = [...MappedRemotive, ...MappedRapidJob];
+//         const jobs = [...MappedRemotive, ...MappedRapidJob];
 
-        await prisma.job.createMany({
-            data: jobs,
-            skipDuplicates: true
-        });
-
-
-
-    } catch (error) {
-        throw new Error("[JOB ERROR]" + error);
-    }
-
-});
-jobs.start();
+//         await prisma.job.createMany({
+//             data: jobs,
+//             skipDuplicates: true
+//         });
 
 
 
-app.get("/api/jobs", async (req, res) => {
+//     } catch (error) {
+//         throw new Error("[JOB ERROR]" + error);
+//     }
 
-    try {
-        // make a db call here to fetch the jobs 
+// });
+// jobs.start();
 
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: false,
-            error
-        });
-    }
-});
+
+
+// app.get("/api/jobs", async (req, res) => {
+
+//     try {
+//         // make a db call here to fetch the jobs 
+
+//     } catch (error) {
+//         console.log(error);
+//         return res.status(500).json({
+//             success: false,
+//             error
+//         });
+//     }
+// });
 
 
 
@@ -503,6 +506,7 @@ app.get("/api/jobs", async (req, res) => {
 // });
 
 
-app.listen(3001, () => {
-    console.log("Server is Running on 3001 Port ");
-})
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+    console.log(`Server is Running on Port ${PORT}`);
+});

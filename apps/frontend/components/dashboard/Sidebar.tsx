@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import {
   Search, ChevronDown, ChevronRight, MoreHorizontal, PanelLeftClose,
 } from "lucide-react";
@@ -45,14 +46,7 @@ export default function Sidebar({
       {/* Logo */}
       <div style={{ padding: "16px 14px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 13, fontWeight: 800, color: "#fff",
-          }}>
-            D
-          </div>
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized style={{ borderRadius: 4 }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", letterSpacing: 0.3 }}>
             DevPrep
           </span>

@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "motion/react";
+import Image from "next/image";
 
 /* ─────────────────────────────────────────────
    Design token helpers
@@ -39,18 +40,21 @@ export function NoiseOverlay() {
 }
 
 /* ─────────────────────────────────────────────
-   Logo — text wordmark
+   Logo — text wordmark + icon
 ───────────────────────────────────────────── */
 export function Logo({ dark = false }: { dark?: boolean }) {
   return (
-    <span
-      style={monoStyle}
-      className={`text-[15px] font-bold tracking-[0.02em] ${
-        dark ? "text-white" : "text-[#1a1a1a]"
-      }`}
-    >
-      DevPrep
-    </span>
+    <div className="flex items-center gap-2.5">
+      <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm shrink-0" />
+      <span
+        style={monoStyle}
+        className={`text-[15px] font-bold tracking-[0.02em] ${
+          dark ? "text-white" : "text-[#1a1a1a]"
+        }`}
+      >
+        DevPrep
+      </span>
+    </div>
   );
 }
 

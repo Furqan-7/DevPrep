@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 /* ─────────────────────────────────────────────
    ROUTES — VERIFY THESE AGAINST YOUR APP
@@ -196,9 +197,10 @@ function GlobalNav() {
         <button
           onClick={() => router.push("/")}
           style={monoStyle}
-          className="text-[15px] font-bold tracking-[0.02em] text-[#1a1a1a] cursor-pointer"
+          className="flex items-center gap-2.5 text-[15px] font-bold tracking-[0.02em] text-[#1a1a1a] cursor-pointer"
         >
-          DevPrep
+          <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm shrink-0" />
+          <span>DevPrep</span>
         </button>
 
         {/* Desktop links */}
@@ -1056,8 +1058,9 @@ function Footer() {
       <div className="max-w-[1200px] mx-auto">
         <div className="flex flex-col md:flex-row gap-12 pb-12">
           <div className="md:max-w-[300px]">
-            <div style={monoStyle} className="text-[15px] font-bold text-[#1a1a1a] mb-4">
-              DevPrep
+            <div style={monoStyle} className="flex items-center gap-2.5 text-[15px] font-bold text-[#1a1a1a] mb-4">
+              <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm shrink-0" />
+              <span>DevPrep</span>
             </div>
             <p className="text-[14px] text-[#666] leading-relaxed mb-5">
               AI-powered mock interviews for the roles that matter. Practice with Zara, get real feedback, walk in

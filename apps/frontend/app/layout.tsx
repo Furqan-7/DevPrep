@@ -24,9 +24,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DevPrep — Master DSA, Jobs, AI Mock Interviews & CS Core",
+  title: "DevPrep — AI Mock Interviews for Placement Prep",
   description:
-    "Reverent preparation platform for engineering placements. Master DSA practice, live job listings, real-time AI mock interviews, and structured CS core notes.",
+    "Practice real interview questions with Zara, your AI interviewer. Get instant feedback tailored to your role and walk into your next interview prepared.",
   icons: {
     icon: "/devprep-logo.png",
     shortcut: "/devprep-logo.png",
