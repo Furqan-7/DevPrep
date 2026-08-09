@@ -7,6 +7,7 @@ const inter = Inter({
   variable: "--font-sans",
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
+  fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
 const outfit = Outfit({
@@ -14,6 +15,7 @@ const outfit = Outfit({
   variable: "--font-display",
   display: "swap",
   weight: ["400", "600", "700"],
+  fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -21,6 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jbmono",
   display: "swap",
   weight: ["400", "500"],
+  fallback: ["ui-monospace", "monospace"],
 });
 
 export const metadata: Metadata = {

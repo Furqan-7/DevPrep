@@ -293,7 +293,8 @@ function QuestionItem({ index, question }: { index: number; question: string }) 
 export default function RoleInterviewPage() {
   const params = useParams();
   const router = useRouter();
-  const slug = Array.isArray(params.role) ? params.role[0] : params.role ?? "";
+  const rawRole = Array.isArray(params.role) ? params.role[0] : params.role;
+  const slug = rawRole ?? "";
   const meta = ROLE_META[slug];
   const questions = PREVIEW_QUESTIONS[slug] ?? [];
 

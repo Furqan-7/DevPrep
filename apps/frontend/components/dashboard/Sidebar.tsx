@@ -176,7 +176,7 @@ export default function Sidebar({
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0,
           }}>
-            {username[0].toUpperCase()}
+            {(username.slice(0, 1) || "F").toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#ffffff" }}>{username}</p>

@@ -82,7 +82,8 @@ function pickBestInterviewVoice(
 export default function InterviewSessionPage() {
   const params = useParams();
   const router = useRouter();
-  const slug = Array.isArray(params.role) ? params.role[0] : (params.role ?? "");
+  const rawRole = Array.isArray(params.role) ? params.role[0] : params.role;
+  const slug = rawRole ?? "";
 
   const [data, setData] = useState<SessionData | null>(null);
 
@@ -256,7 +257,8 @@ export default function InterviewSessionPage() {
 
       revealTimerRef.current = setInterval(() => {
         if (wordIndex >= words.length) { clearRevealTimer(); return; }
-        revealed = wordIndex === 0 ? words[0] : revealed + " " + words[wordIndex];
+        const currentWord = words[wordIndex] ?? "";
+        revealed = wordIndex === 0 ? currentWord : `${revealed} ${currentWord}`;
         wordIndex++;
         setDisplayedText(revealed);
       }, 400); // ~150 WPM
@@ -336,10 +338,11 @@ export default function InterviewSessionPage() {
     }
 
     // Build the text to speak for this question.
+    const qText = data.questions[currentQ] ?? "";
     const questionText =
       currentQ === 0 && !answered.has(0)
-        ? `Hi, I'm Zara, your AI interviewer at DevPrep. ${data.questions[currentQ]}`
-        : data.questions[currentQ];
+        ? `Hi, I'm Zara, your AI interviewer at DevPrep. ${qText}`
+        : qText;
 
     speakWithBoundary(questionText);
     // eslint-disable-next-line react-hooks/exhaustive-deps

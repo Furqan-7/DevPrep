@@ -212,7 +212,7 @@ function CompanyLogo({ name, domain }: { name: string; domain: string }) {
 
 export default function CSCorePage() {
   const [subject, setSubject] = useState<Subject>("os");
-  const [topic, setTopic] = useState<string>(getTopics("os")[0]);
+  const [topic, setTopic] = useState<string>(getTopics("os")[0] ?? "");
   const [qIndex, setQIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [scratchpad, setScratchpad] = useState<Record<string, string>>({});
@@ -232,7 +232,7 @@ export default function CSCorePage() {
 
   const handleSubjectChange = (s: Subject) => {
     setSubject(s);
-    const firstTopic = getTopics(s)[0];
+    const firstTopic = getTopics(s)[0] ?? "";
     setTopic(firstTopic);
     setQIndex(0);
     setShowAnswer(false);
@@ -459,7 +459,7 @@ export default function CSCorePage() {
                             <div className="flex items-center justify-between mb-4">
                               <DifficultyBadge difficulty={question.difficulty} />
                               <div className="flex items-center gap-1.5">
-                                {questions.map((_, i) => (
+                                {questions.map((q, i) => (
                                   <button
                                     key={i}
                                     onClick={() => { setQIndex(i); setShowAnswer(false); }}
@@ -467,7 +467,7 @@ export default function CSCorePage() {
                                     className={`rounded-full transition-all duration-200 ${
                                       i === qIndex
                                         ? "w-4 h-2 bg-white"
-                                        : ratings[questions[i].id]
+                                        : ratings[q.id]
                                         ? "w-2 h-2 bg-white/30"
                                         : "w-2 h-2 bg-white/10 hover:bg-white/20"
                                     }`}

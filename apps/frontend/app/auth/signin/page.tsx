@@ -141,7 +141,7 @@ export default function SignInPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] }}
+          transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] as const }}
           className="w-full max-w-[420px] relative"
         >
           {/* Logo — only on mobile (desktop shows it inside terminal panel) */}

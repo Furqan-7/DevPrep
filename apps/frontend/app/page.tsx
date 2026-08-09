@@ -81,7 +81,7 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
@@ -90,7 +90,7 @@ const fadeUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
@@ -115,7 +115,7 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
       return;
     }
     const prefix = match[1] || "";
-    const numStr = match[2].replace(/,/g, "");
+    const numStr = (match[2] || "").replace(/,/g, "");
     const suffix = match[3] || "";
     const isFloat = numStr.includes(".");
     const targetNum = parseFloat(numStr);

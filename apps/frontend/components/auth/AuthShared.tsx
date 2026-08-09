@@ -292,7 +292,7 @@ function TerminalLine({
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4, ease: [0.25, 0.8, 0.25, 1] }}
+      transition={{ delay, duration: 0.4, ease: [0.25, 0.8, 0.25, 1] as const }}
       style={monoStyle}
       className={`text-[13px] leading-relaxed ${color}`}
     >
