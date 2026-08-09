@@ -48,7 +48,8 @@ function getStrength(password: string): { score: number; label: string } {
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
-  return { score, label: password.length > 0 ? labels[score] : "" };
+  const label = password.length > 0 ? (labels[score] ?? "") : "";
+  return { score, label };
 }
 
 function StrengthMeter({ password }: { password: string }) {
@@ -58,8 +59,9 @@ function StrengthMeter({ password }: { password: string }) {
   const barColor = (i: number) => {
     if (i > score) return "bg-[#e5e5e5]";
     if (score >= 4) return "bg-[#22c55e]";
-    const opacities = ["", "opacity-40", "opacity-65", "opacity-100"];
-    return `bg-[#eb3a14] ${opacities[score]}`;
+    const opacities = ["", "opacity-40", "opacity-65", "opacity-100", "opacity-100"];
+    const op = opacities[score] ?? "opacity-100";
+    return `bg-[#eb3a14] ${op}`;
   };
 
   return (
