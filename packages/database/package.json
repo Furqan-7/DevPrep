@@ -11,19 +11,19 @@
     }
   },
   "scripts": {
-    "build": "prisma generate && tsc && node -e \"const{cpSync}=require('fs');cpSync('generated',`dist/generated`,{recursive:true})\"",
+    "build": "prisma generate --schema=./prisma/schema.prisma && tsc && node -e \"const { cpSync } = require('fs'); cpSync('generated', 'dist/generated', { recursive: true })\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "prisma": "^5.22.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^20.0.0",
-    "prisma": "^5.22.0",
     "dotenv": "^16.0.0"
   }
 }
