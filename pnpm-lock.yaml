@@ -149,6 +149,9 @@ importers:
       '@prisma/client':
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
+      prisma:
+        specifier: ^5.22.0
+        version: 5.22.0
     devDependencies:
       '@repo/typescript-config':
         specifier: workspace:*
@@ -159,9 +162,6 @@ importers:
       dotenv:
         specifier: ^16.0.0
         version: 16.0.3
-      prisma:
-        specifier: ^5.22.0
-        version: 5.22.0
 
   packages/eslint-config:
     devDependencies:
