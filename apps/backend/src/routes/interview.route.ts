@@ -3,7 +3,7 @@ import { Router } from "express";
 import { MiddleWhere } from "../Middlewhere";
 
 
-const routes = Router();
+const routes: Router = Router();
 
 routes.post('/generate', MiddleWhere, startInterview);
 routes.post('/answer', MiddleWhere, submitAnswer);
