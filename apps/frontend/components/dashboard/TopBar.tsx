@@ -27,8 +27,8 @@ const EASE = [0.25, 0.8, 0.25, 1] as const;
    Nav links — AI Interview flow only
 ───────────────────────────────────────────── */
 const NAV_LINKS = [
-  { label: "AI INTERVIEW",  href: "/dashboard/ai-interview" },
-  { label: "HOW IT WORKS",  href: "/dashboard/ai-interview/how-it-works" },
+  { label: "AI INTERVIEW", href: "/dashboard/ai-interview" },
+  { label: "HOW IT WORKS", href: "/dashboard/ai-interview/how-it-works" },
   { label: "YOUR FEEDBACK", href: "/dashboard/ai-interview/feedback" },
 ] as const;
 
@@ -37,11 +37,11 @@ interface TopBarProps {
 }
 
 export default function TopBar({ username = "Furqan" }: TopBarProps) {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
 
-  const [scrolled,     setScrolled]     = useState(false);
-  const [profileOpen,  setProfileOpen]  = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   /* ── Scroll shadow trigger ── */
   useEffect(() => {
@@ -82,11 +82,10 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
     <nav
       id="dashboard-top-nav"
       aria-label="Main navigation"
-      className={`fixed top-0 left-0 right-0 z-40 h-16 flex items-center transition-colors duration-300 ${
-        scrolled
+      className={`fixed top-0 left-0 right-0 z-40 h-16 flex items-center transition-colors duration-300 ${scrolled
           ? "bg-[#f5f5f7]/90 backdrop-blur-md border-b border-[#e5e5e5]"
           : "bg-[#f5f5f7] border-b border-transparent"
-      }`}
+        }`}
     >
       <div className="max-w-[1200px] w-full mx-auto px-6 sm:px-10 flex items-center justify-between">
         {/* ── Logo (solid black, no box/border/exclusion) ─────── */}
@@ -109,9 +108,8 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
                 key={link.href}
                 onClick={() => router.push(link.href)}
                 style={monoStyle}
-                className={`text-[13px] font-bold tracking-[0.08em] transition-colors cursor-pointer relative bg-transparent border-0 p-0 whitespace-nowrap ${
-                  active ? "text-[#1a1a1a]" : "text-[#1a1a1a]/70 hover:text-[#1a1a1a]"
-                }`}
+                className={`text-[13px] font-bold tracking-[0.08em] transition-colors cursor-pointer relative bg-transparent border-0 p-0 whitespace-nowrap ${active ? "text-[#1a1a1a]" : "text-[#1a1a1a]/70 hover:text-[#1a1a1a]"
+                  }`}
                 aria-current={active ? "page" : undefined}
               >
                 {link.label}
@@ -159,9 +157,8 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
 
             <ChevronDown
               size={12}
-              className={`text-[#666666] transition-transform duration-200 ${
-                profileOpen ? "rotate-180" : ""
-              }`}
+              className={`text-[#666666] transition-transform duration-200 ${profileOpen ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -218,4 +215,3 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
     </nav>
   );
 }
-
