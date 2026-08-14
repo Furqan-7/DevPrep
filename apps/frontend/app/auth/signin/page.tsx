@@ -32,7 +32,6 @@ import {
   InputField,
   OAuthButton,
   GoogleIcon,
-  GitHubIcon,
   OrDivider,
   MagneticButton,
   TerminalPanel,
@@ -257,12 +256,8 @@ export default function SignInPage() {
               <OAuthButton
                 icon={<GoogleIcon />}
                 label="Continue with Google"
-                onClick={() => {}}
-              />
-              <OAuthButton
-                icon={<GitHubIcon />}
-                label="Continue with GitHub"
-                onClick={() => {}}
+                disabled
+                badge="Coming Soon"
               />
             </div>
           </div>
@@ -283,7 +278,7 @@ export default function SignInPage() {
             style={monoStyle}
             className="text-center lg:text-left text-[10px] text-[#bbb] font-medium mt-6 uppercase tracking-[0.1em] lg:hidden"
           >
-            Free forever for students · No credit card required
+            No credit card required
           </p>
         </motion.div>
       </div>

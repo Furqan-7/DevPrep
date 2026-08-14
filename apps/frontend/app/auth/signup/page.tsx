@@ -25,11 +25,9 @@ import {
   monoStyle,
   NoiseOverlay,
   Logo,
-  Eyebrow,
   InputField,
   OAuthButton,
   GoogleIcon,
-  GitHubIcon,
   OrDivider,
   MagneticButton,
   TerminalPanel,
@@ -208,11 +206,6 @@ export default function SignUpPage() {
             <Logo />
           </div>
 
-          {/* Eyebrow badge */}
-          <div className="mb-6 flex justify-center lg:justify-start">
-            <Eyebrow>Free for students</Eyebrow>
-          </div>
-
           {/* Heading — fluid font size via clamp so it never overflows */}
           <div className="mb-8 text-center lg:text-left">
             <h1
@@ -378,12 +371,8 @@ export default function SignUpPage() {
               <OAuthButton
                 icon={<GoogleIcon />}
                 label="Continue with Google"
-                onClick={() => {}}
-              />
-              <OAuthButton
-                icon={<GitHubIcon />}
-                label="Continue with GitHub"
-                onClick={() => {}}
+                disabled
+                badge="Coming Soon"
               />
             </div>
           </div>
@@ -404,7 +393,7 @@ export default function SignUpPage() {
             style={monoStyle}
             className="text-center lg:text-left text-[10px] text-[#bbb] font-medium mt-6 uppercase tracking-[0.1em] lg:hidden"
           >
-            Free forever for students · No credit card required
+            No credit card required
           </p>
         </motion.div>
       </div>

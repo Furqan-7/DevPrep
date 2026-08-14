@@ -135,22 +135,39 @@ export function OAuthButton({
   icon,
   label,
   onClick,
+  disabled = false,
+  badge,
 }: {
   icon: React.ReactNode;
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
+  disabled?: boolean;
+  badge?: string;
 }) {
   return (
     <motion.button
-      whileTap={{ scale: 0.98 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
       type="button"
-      onClick={onClick}
+      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
       /* min-height 44px for touch */
-      className="w-full flex items-center justify-center gap-3 px-4 rounded-full border border-[#e5e5e5] bg-white text-[13px] font-medium text-[#1a1a1a]/70 hover:border-[#1a1a1a]/30 hover:text-[#1a1a1a] transition-all duration-200 cursor-pointer"
+      className={`relative w-full flex items-center justify-center gap-3 px-4 rounded-full border text-[13px] font-medium transition-all duration-200 ${
+        disabled
+          ? "bg-[#fafafa] text-[#888] border-[#e5e5e5] cursor-not-allowed opacity-80"
+          : "bg-white text-[#1a1a1a]/70 border-[#e5e5e5] hover:border-[#1a1a1a]/30 hover:text-[#1a1a1a] cursor-pointer"
+      }`}
       style={{ minHeight: 44 }}
     >
-      {icon}
-      {label}
+      <span className="shrink-0">{icon}</span>
+      <span>{label}</span>
+      {badge && (
+        <span
+          style={monoStyle}
+          className="sm:absolute right-3.5 text-[9px] font-bold uppercase tracking-[0.08em] px-2 py-0.5 rounded-full bg-[#1a1a1a]/[0.06] text-[#777] shrink-0 ml-auto sm:ml-0"
+        >
+          {badge}
+        </span>
+      )}
     </motion.button>
   );
 }
@@ -306,11 +323,13 @@ export function TerminalPanel({
   subheading,
   lines,
   windowTitle,
+  statusText = "No credit card required",
 }: {
   heading: string;
   subheading: string;
   lines: TerminalLineData[];
   windowTitle: string;
+  statusText?: string;
 }) {
   return (
     <div className="hidden lg:flex flex-col justify-between w-1/2 bg-[#1a1a1a] px-14 py-16 relative overflow-hidden antialiased">
@@ -351,7 +370,7 @@ export function TerminalPanel({
           style={monoStyle}
           className="text-[11px] uppercase tracking-[0.1em] text-white/30"
         >
-          Free for students · No credit card required
+          {statusText}
         </span>
       </div>
     </div>
