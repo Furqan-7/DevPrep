@@ -75,6 +75,10 @@ export default function SignInPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleOauth = () => {
+    window.location.href = "http://localhost:3001/api/auth/google";
+  };
+
   /* ── Submit ─────────────────────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +104,7 @@ export default function SignInPage() {
         // Server responded with a non-2xx status — show its message
         setServerError(
           err.response.data?.message ??
-            "Sign in failed. Please check your credentials and try again."
+          "Sign in failed. Please check your credentials and try again."
         );
       } else if (err.request) {
         // Request made but no response (server down / network issue)
@@ -227,11 +231,10 @@ export default function SignInPage() {
             <MagneticButton
               type="submit"
               disabled={isLoading}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-[13px] tracking-[0.04em] font-bold transition-colors duration-200 mt-2 ${
-                isLoading
-                  ? "bg-[#e5e5e5] text-[#bbb] cursor-not-allowed"
-                  : "bg-[#eb3a14] hover:bg-[#d63410] text-white cursor-pointer"
-              }`}
+              className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-[13px] tracking-[0.04em] font-bold transition-colors duration-200 mt-2 ${isLoading
+                ? "bg-[#e5e5e5] text-[#bbb] cursor-not-allowed"
+                : "bg-[#eb3a14] hover:bg-[#d63410] text-white cursor-pointer"
+                }`}
             >
               <span style={monoStyle} className="flex items-center gap-2">
                 {isLoading ? (
@@ -256,8 +259,7 @@ export default function SignInPage() {
               <OAuthButton
                 icon={<GoogleIcon />}
                 label="Continue with Google"
-                disabled
-                badge="Coming Soon"
+                onClick={handleOauth}
               />
             </div>
           </div>

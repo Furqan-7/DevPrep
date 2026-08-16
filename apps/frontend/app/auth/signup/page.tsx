@@ -74,9 +74,8 @@ function StrengthMeter({ password }: { password: string }) {
       </div>
       <p
         style={monoStyle}
-        className={`text-[10px] font-bold uppercase tracking-[0.1em] ${
-          score >= 4 ? "text-[#22c55e]" : "text-[#999]"
-        }`}
+        className={`text-[10px] font-bold uppercase tracking-[0.1em] ${score >= 4 ? "text-[#22c55e]" : "text-[#999]"
+          }`}
       >
         {label}
       </p>
@@ -132,6 +131,10 @@ export default function SignUpPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleOauth = () => {
+    window.location.href = "http://localhost:3001/api/auth/google";
+  };
+
   /* ── Submit ─────────────────────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +147,10 @@ export default function SignUpPage() {
         email,
         password,
       });
+
+
+
+
       const data = res.data;
       if (data.success) {
         localStorage.setItem("token", data.token);
@@ -311,11 +318,10 @@ export default function SignUpPage() {
                   onClick={() => setTermsAccepted((v) => !v)}
                   aria-checked={termsAccepted}
                   role="checkbox"
-                  className={`w-4 h-4 rounded-[4px] border transition-all duration-200 flex items-center justify-center cursor-pointer ${
-                    termsAccepted
-                      ? "bg-[#eb3a14] border-[#eb3a14] text-white"
-                      : "bg-white border-[#e5e5e5] group-hover:border-[#1a1a1a]/30"
-                  }`}
+                  className={`w-4 h-4 rounded-[4px] border transition-all duration-200 flex items-center justify-center cursor-pointer ${termsAccepted
+                    ? "bg-[#eb3a14] border-[#eb3a14] text-white"
+                    : "bg-white border-[#e5e5e5] group-hover:border-[#1a1a1a]/30"
+                    }`}
                 >
                   {termsAccepted && <Check size={11} strokeWidth={3} />}
                 </button>
@@ -342,11 +348,10 @@ export default function SignUpPage() {
             <MagneticButton
               type="submit"
               disabled={isSubmitDisabled}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-[13px] tracking-[0.04em] font-bold transition-colors duration-200 mt-2 ${
-                isSubmitDisabled
-                  ? "bg-[#e5e5e5] text-[#bbb] cursor-not-allowed"
-                  : "bg-[#eb3a14] hover:bg-[#d63410] text-white cursor-pointer"
-              }`}
+              className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-[13px] tracking-[0.04em] font-bold transition-colors duration-200 mt-2 ${isSubmitDisabled
+                ? "bg-[#e5e5e5] text-[#bbb] cursor-not-allowed"
+                : "bg-[#eb3a14] hover:bg-[#d63410] text-white cursor-pointer"
+                }`}
             >
               <span style={monoStyle} className="flex items-center gap-2">
                 {isLoading ? (
@@ -371,8 +376,7 @@ export default function SignUpPage() {
               <OAuthButton
                 icon={<GoogleIcon />}
                 label="Continue with Google"
-                disabled
-                badge="Coming Soon"
+                onClick={handleOauth}
               />
             </div>
           </div>
