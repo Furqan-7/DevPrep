@@ -9,12 +9,8 @@ dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env")
 import axios from "axios";
 
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID as string;
-const GOOGLE_REDIRECT_URL = process.env.GOOGLE_REDIRECT_URI as string;
-
-if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URL) {
-    throw new Error("Google environment variables are not defined");
-}
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_REDIRECT_URL = process.env.GOOGLE_REDIRECT_URI;
 
 
 
@@ -150,11 +146,16 @@ export const signin = async (req: Request, res: Response) => {
 
 export const google = async (req: Request, res: Response) => {
     console.log("Reached Google Auth");
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URL) {
+        return res.status(503).json({ error: "Google OAuth is not configured on this server" });
+    }
+
     const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
     const options = {
-        redirect_uri: GOOGLE_REDIRECT_URL as string,
-        client_id: GOOGLE_CLIENT_ID as string,
+        redirect_uri: GOOGLE_REDIRECT_URL,
+        client_id: GOOGLE_CLIENT_ID,
         access_type: "offline",
         response_type: "code",
         prompt: "consent",
