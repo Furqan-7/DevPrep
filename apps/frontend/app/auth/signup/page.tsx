@@ -132,7 +132,7 @@ export default function SignUpPage() {
   };
 
   const handleOauth = () => {
-    window.location.href = "http://localhost:3001/api/auth/google";
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
   };
 
   /* ── Submit ─────────────────────────────── */
