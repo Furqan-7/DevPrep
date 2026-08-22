@@ -5,7 +5,10 @@ import jwt from "jsonwebtoken";
 import { response, type Request, type Response } from "express";
 import dotenv from "dotenv";
 import path from "path";
-dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
+// Load .env file for local dev; in production (Render), env vars are injected directly.
+// `override: false` ensures platform-injected vars are never overwritten.
+dotenv.config({ path: path.resolve(__dirname, "../../.env"), override: false });
+dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env"), override: false });
 import axios from "axios";
 
 
@@ -186,7 +189,7 @@ export const googleCallback = async (req: Request, res: Response) => {
             grant_type: "authorization_code",
         });
 
-        const { access_token, id_token } = tokenRes.data;
+        const { access_token } = tokenRes.data;
 
         // 2. Use the access_token to fetch the user's Google profile
         const profileRes = await axios.get(
@@ -194,28 +197,37 @@ export const googleCallback = async (req: Request, res: Response) => {
             { headers: { Authorization: `Bearer ${access_token}` } }
         );
 
-        const { id: googleId, email, name, picture } = profileRes.data;
+        const { id: googleId, email, name } = profileRes.data;
 
-        const user = await prisma.user.create({
-            data: {
-                username: name,
-                email: email,
-            }
+        // 3. Upsert the user — handles both new sign-ups and returning users
+        const user = await prisma.user.upsert({
+            where: { email },
+            update: { username: name },
+            create: { username: name, email },
         });
 
-        const account = await prisma.account.create({
-            data: {
+        // 4. Upsert the linked OAuth account
+        await prisma.account.upsert({
+            where: {
+                provider_providerAccountId: {
+                    provider: "google",
+                    providerAccountId: googleId,
+                },
+            },
+            update: {},
+            create: {
                 provider: "google",
                 providerAccountId: googleId,
                 userId: user.id,
             },
         });
 
-        const token = jwt.sign({
-            userId: user.id, username: user.username
-        }, process.env.JWT_TOKEN as string, {
-            expiresIn: "7d"
-        });
+        // 5. Sign a JWT and set it as a cookie
+        const token = jwt.sign(
+            { userId: user.id, username: user.username },
+            process.env.JWT_TOKEN as string,
+            { expiresIn: "7d" }
+        );
 
         res.cookie("token", token, {
             httpOnly: true,
@@ -224,11 +236,14 @@ export const googleCallback = async (req: Request, res: Response) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        res.redirect("http://localhost:3000/dashboard");
+        const redirectTo = process.env.NODE_ENV === "production"
+            ? "https://devprep-frontend.vercel.app/dashboard"
+            : "http://localhost:3000/dashboard";
 
+        res.redirect(redirectTo);
 
-    } catch (err) {
-        console.error(err);
+    } catch (err: any) {
+        console.error("Google OAuth callback error:", err?.response?.data ?? err);
         res.status(500).json({ error: "Google auth failed" });
     }
 };
