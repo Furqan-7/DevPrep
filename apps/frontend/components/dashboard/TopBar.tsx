@@ -33,10 +33,16 @@ const NAV_LINKS = [
 ] as const;
 
 interface TopBarProps {
+  /**
+   * The logged-in user's display name, resolved by useCurrentUser() in
+   * DashboardShell. An empty string means the name is still loading (only
+   * possible on the Google OAuth path — JWT login resolves synchronously).
+   * No default is set here; DashboardShell is always the source of truth.
+   */
   username?: string;
 }
 
-export default function TopBar({ username = "Furqan" }: TopBarProps) {
+export default function TopBar({ username = "" }: TopBarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -76,7 +82,9 @@ export default function TopBar({ username = "Furqan" }: TopBarProps) {
     router.push("/");
   };
 
-  const initials = username.slice(0, 2).toUpperCase();
+  // Derive avatar initials: show "…" while name is loading (empty string).
+  // Once resolved, take the first two characters of the name.
+  const initials = username ? username.slice(0, 2).toUpperCase() : "…";
 
   return (
     <nav

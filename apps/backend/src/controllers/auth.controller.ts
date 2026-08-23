@@ -248,3 +248,54 @@ export const googleCallback = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * GET /api/auth/me
+ *
+ * A lightweight "who am I?" endpoint used exclusively by the Google OAuth path.
+ *
+ * After a successful Google sign-in the backend sets an httpOnly "token" cookie
+ * (see googleCallback above). Because httpOnly cookies are inaccessible to JS,
+ * the frontend can't read the JWT directly. This endpoint:
+ *   1. Reads the "token" cookie from the request (cookie-parser middleware must
+ *      be registered in index.ts for req.cookies to be populated).
+ *   2. Verifies the JWT signature and expiry.
+ *   3. Fetches the user's username & email from the database.
+ *   4. Returns { username, email } so the frontend can display the correct name.
+ *
+ * For JWT-login users this endpoint is never called — the frontend reads
+ * "username" from localStorage directly (set during sign-in / sign-up).
+ */
+export const me = async (req: Request, res: Response) => {
+    // req.cookies is populated by the cookie-parser middleware in index.ts.
+    const token = (req as any).cookies?.token;
+
+    if (!token) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_TOKEN as string) as {
+            userId: number;
+            username: string;
+        };
+
+        // Fetch fresh data from DB so we always return the current username/email,
+        // even if the JWT was issued before a profile update.
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { username: true, email: true },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        return res.status(200).json({
+            username: user.username,
+            email: user.email,
+        });
+
+    } catch (err) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+    }
+};

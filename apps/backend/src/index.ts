@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { config } from "dotenv";
 import { CronJob } from "cron";
+import cookieParser from "cookie-parser";
 config();
 // Load DATABASE_URL from the database package .env at runtime
 dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
@@ -18,6 +19,9 @@ import interviewRouter from "./routes/interview.route";
 
 const app = express();
 app.use(express.json());
+// Parse cookies — required for reading the httpOnly "token" cookie set by
+// the Google OAuth callback (used by the /api/auth/me endpoint).
+app.use(cookieParser());
 
 
 app.use(cors({
