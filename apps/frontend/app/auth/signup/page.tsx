@@ -159,12 +159,13 @@ export default function SignUpPage() {
       } else {
         setServerError(data.message || "Sign up failed. Please try again.");
       }
-    } catch (err: any) {
-      if (err.response) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } }; request?: unknown };
+      if (axiosErr.response) {
         setServerError(
-          err.response.data?.message ?? "Sign up failed. Please try again."
+          axiosErr.response.data?.message ?? "Sign up failed. Please try again."
         );
-      } else if (err.request) {
+      } else if (axiosErr.request) {
         setServerError(
           "Unable to reach the server. Please check your connection and try again."
         );

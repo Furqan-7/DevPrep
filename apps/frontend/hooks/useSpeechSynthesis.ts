@@ -141,7 +141,7 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
 
   /** Pick a voice from the cached list using PRIORITY_VOICES order. */
   const resolveVoice = useCallback(
-    (preferredVoice: string, _lang: string): SpeechSynthesisVoice | null =>
+    (preferredVoice: string): SpeechSynthesisVoice | null =>
       pickBestVoice(voicesRef.current, preferredVoice || undefined),
     []
   );
@@ -162,7 +162,7 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
       utterance.pitch = opts.pitch;
       utterance.volume = opts.volume;
 
-      const voice = resolveVoice(opts.preferredVoice, opts.lang);
+      const voice = resolveVoice(opts.preferredVoice);
       if (voice) utterance.voice = voice;
 
       utterance.onstart = () => setIsSpeaking(true);

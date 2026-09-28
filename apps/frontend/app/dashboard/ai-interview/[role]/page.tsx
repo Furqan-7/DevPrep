@@ -365,8 +365,9 @@ export default function RoleInterviewPage() {
       );
 
       router.push(`/dashboard/ai-interview/${slug}/session`);
-    } catch (err: any) {
-      const serverMsg: string | undefined = err?.response?.data?.message;
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      const serverMsg: string | undefined = axiosErr?.response?.data?.message;
       showError(serverMsg ?? "Failed to start interview. Please try again.");
     } finally {
       setStarting(false);

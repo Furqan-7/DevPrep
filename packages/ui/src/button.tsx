@@ -14,6 +14,7 @@ export const Button = ({ children, className, appName, onClick }: ButtonProps) =
     <button
       className={className}
       onClick={onClick}
+      data-app-name={appName}
     >
       {children}
     </button>

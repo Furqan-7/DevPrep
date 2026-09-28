@@ -99,14 +99,15 @@ export default function SignInPage() {
       } else {
         setServerError(res.data.message || "Sign in failed. Please try again.");
       }
-    } catch (err: any) {
-      if (err.response) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } }; request?: unknown };
+      if (axiosErr.response) {
         // Server responded with a non-2xx status — show its message
         setServerError(
-          err.response.data?.message ??
+          axiosErr.response.data?.message ??
           "Sign in failed. Please check your credentials and try again."
         );
-      } else if (err.request) {
+      } else if (axiosErr.request) {
         // Request made but no response (server down / network issue)
         setServerError(
           "Unable to reach the server. Please check your connection and try again."

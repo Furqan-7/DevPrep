@@ -107,7 +107,7 @@ export default function FeedbackPage() {
                 margin: 0,
               }}
             >
-              After each session, Zara's full breakdown of your answers — strengths,
+              After each session, Zara&apos;s full breakdown of your answers — strengths,
               gaps, and what to sharpen — will appear here.
             </p>
           </motion.div>

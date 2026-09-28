@@ -1,1 +1,1 @@
-{"root":["./src/index.ts"],"version":"5.9.2"}
+{"root":["./src/index.ts","./src/services/authoritative-interview.service.ts","./src/services/transcription.service.ts","./src/services/tts.service.ts"],"version":"5.9.2"}

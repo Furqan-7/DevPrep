@@ -11,9 +11,7 @@ import {
   Star,
   ChevronDown,
   Filter,
-  ArrowRight,
   Database,
-  Code2,
   Trash2,
   X
 } from "lucide-react";
@@ -455,7 +453,7 @@ function EmptyState({ onClear }: { onClear: () => void }) {
       </div>
       <h3 className="text-xl font-display font-bold mb-2">No problems match your filters</h3>
       <p className="text-sm text-brand-muted/60 max-w-sm mb-8">
-        Try adjusting your filters or search query to find the problems you're looking for.
+        Try adjusting your filters or search query to find the problems you&apos;re looking for.
       </p>
       <button
         onClick={onClear}
