@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import http from "http";
 import express from "express";
 import { WebSocket, WebSocketServer, RawData } from "ws";
 import { transcribeAudio } from "./services/transcription.service";
@@ -5,9 +9,18 @@ import { streamAuthoritativeInterviewTurn } from "./services/authoritative-inter
 import { TextChunker, DeepgramStreamingTtsSession } from "./services/tts.service";
 
 const app = express();
-const wss = new WebSocketServer({ port: 8080 });
+const server = http.createServer(app);
 
-console.log("WebSocket server listening on ws://localhost:8080");
+const wss = new WebSocketServer({ noServer: true });
+
+const PORT = Number(process.env.PORT) || 8080;
+
+app.get("/health", (_req, res) => {
+    res.status(200).json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+    });
+});
 
 interface ClientSession {
     sessionId?: number;
@@ -482,4 +495,14 @@ wss.on("connection", (client) => {
     client.on("error", (err) => {
         console.error("[ws-server] Client error:", err);
     });
+});
+
+server.on("upgrade", (req, socket, head) => {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit("connection", ws, req);
+    });
+});
+
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`[ws-server] Running on port ${PORT}`);
 });

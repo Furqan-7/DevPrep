@@ -122,8 +122,6 @@ export const signin = async (req: Request, res: Response) => {
             })
         };
 
-        console.log("Reached at JWT Token" + process.env.JWT_TOKEN);
-
         const token = jwt.sign({
             userId: user.id, username: user.username
         }, process.env.JWT_TOKEN as string, {
