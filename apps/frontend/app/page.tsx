@@ -41,6 +41,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Footer } from "@/components/shared/Footer";
 
 /* ─────────────────────────────────────────────
    ROUTES — VERIFY THESE AGAINST YOUR APP
@@ -1050,73 +1051,45 @@ function FinalCTA() {
 }
 
 /* ─────────────────────────────────────────────
-   Footer
+   Footer — data for the landing page.
+   The shared <Footer> component is imported from
+   @/components/shared/Footer; there is no duplicate
+   footer implementation here.
 ───────────────────────────────────────────── */
-function Footer() {
+function LandingFooter() {
   return (
-    <footer className="bg-white pt-16 sm:pt-20 pb-10 px-6 border-t border-[#e5e5e5]">
-      <div className="max-w-[1200px] mx-auto">
-        <div className="flex flex-col md:flex-row gap-12 pb-12">
-          <div className="md:max-w-[300px]">
-            <div style={monoStyle} className="flex items-center gap-2.5 text-[15px] font-bold text-[#1a1a1a] mb-4">
-              <Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm shrink-0" />
-              <span>DevPrep</span>
-            </div>
-            <p className="text-[14px] text-[#666] leading-relaxed mb-5">
-              AI-powered mock interviews for the roles that matter. Practice with Zara, get real feedback, walk in
-              confident.
-            </p>
-            <div
-              style={monoStyle}
-              className="inline-flex items-center gap-2 bg-[#1a1a1a] text-white text-[12px] font-medium px-4 py-2.5 rounded-md"
-            >
-              <span className="text-[#eb3a14]">➜</span>
-              devprep --start
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-col sm:flex-row gap-10 sm:gap-16">
-            <div>
-              <div style={monoStyle} className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#999] mb-4">
-                Product
-              </div>
-              <ul className="space-y-3 text-[14px] text-[#1a1a1a]/75">
-                <li><button onClick={() => scrollToId("features")} className="hover:text-[#eb3a14] transition-colors cursor-pointer">Features</button></li>
-                <li><button onClick={() => scrollToId("pricing")} className="hover:text-[#eb3a14] transition-colors cursor-pointer">Pricing</button></li>
-                <li><button onClick={() => scrollToId("how-it-works")} className="hover:text-[#eb3a14] transition-colors cursor-pointer">How It Works</button></li>
-                <li><a href={ROUTES.allRoles} className="hover:text-[#eb3a14] transition-colors">All Roles</a></li>
-              </ul>
-            </div>
-            <div>
-              <div style={monoStyle} className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#999] mb-4">
-                Company
-              </div>
-              <ul className="space-y-3 text-[14px] text-[#1a1a1a]/75">
-                <li><a href={ROUTES.about} className="hover:text-[#eb3a14] transition-colors">About</a></li>
-                <li><a href={ROUTES.blog} className="hover:text-[#eb3a14] transition-colors">Blog</a></li>
-                <li><a href={ROUTES.privacy} className="hover:text-[#eb3a14] transition-colors">Privacy Policy</a></li>
-                <li><a href={ROUTES.terms} className="hover:text-[#eb3a14] transition-colors">Terms of Service</a></li>
-              </ul>
-            </div>
-            <div>
-              <div style={monoStyle} className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#999] mb-4">
-                Follow
-              </div>
-              <ul className="space-y-3 text-[14px] text-[#1a1a1a]/75">
-                <li><a href={ROUTES.twitter} className="hover:text-[#eb3a14] transition-colors">Twitter / X</a></li>
-                <li><a href={ROUTES.linkedin} className="hover:text-[#eb3a14] transition-colors">LinkedIn</a></li>
-                <li><a href={ROUTES.github} className="hover:text-[#eb3a14] transition-colors">GitHub</a></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-8 border-t border-[#e5e5e5] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[#999]">
-          <span>© 2026 DevPrep. All rights reserved.</span>
-          <span style={monoStyle}>Built by Furqan</span>
-        </div>
-      </div>
-    </footer>
+    <Footer
+      copyrightText="\u00a9 2026 DevPrep. All rights reserved."
+      attributionText="Built by Furqan"
+      linkGroups={[
+        {
+          heading: "Product",
+          links: [
+            { label: "Features", onClick: () => scrollToId("features") },
+            { label: "Pricing", onClick: () => scrollToId("pricing") },
+            { label: "How It Works", onClick: () => scrollToId("how-it-works") },
+            { label: "All Roles", href: ROUTES.allRoles },
+          ],
+        },
+        {
+          heading: "Company",
+          links: [
+            { label: "About", href: ROUTES.about },
+            { label: "Blog", href: ROUTES.blog },
+            { label: "Privacy Policy", href: ROUTES.privacy },
+            { label: "Terms of Service", href: ROUTES.terms },
+          ],
+        },
+        {
+          heading: "Follow",
+          links: [
+            { label: "Twitter / X", href: ROUTES.twitter },
+            { label: "LinkedIn", href: ROUTES.linkedin },
+            { label: "GitHub", href: ROUTES.github },
+          ],
+        },
+      ]}
+    />
   );
 }
 
@@ -1139,7 +1112,7 @@ export default function LandingPage() {
       <TestimonialsSection />
       <FAQSection />
       <FinalCTA />
-      <Footer />
+      <LandingFooter />
     </div>
   );
 }

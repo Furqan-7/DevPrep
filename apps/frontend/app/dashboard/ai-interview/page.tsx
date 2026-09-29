@@ -23,6 +23,7 @@ import { Search, SlidersHorizontal, Clock, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { monoStyle } from "@/components/auth/AuthShared";
+import { Footer } from "@/components/shared/Footer";
 
 /* ─────────────────────────────────────────────
    Design-system motion constants
@@ -680,6 +681,39 @@ export default function AIInterviewPage() {
           )}
         </section>
       </div>
+
+      {/* ── Shared Footer ────────────────────────────────── */}
+      <Footer
+        copyrightText="© 2026 DevPrep. All rights reserved."
+        attributionText="Built by Furqan"
+        linkGroups={[
+          {
+            heading: "Product",
+            links: [
+              { label: "AI Interview", href: "/dashboard/ai-interview" },
+              { label: "How It Works", href: "/dashboard/ai-interview/how-it-works" },
+              { label: "All Roles", href: "/roles" },
+            ],
+          },
+          {
+            heading: "Company",
+            links: [
+              { label: "Privacy Policy", href: "/privacy" },
+              { label: "Terms of Service", href: "/terms" },
+              { label: "Send Feedback", href: "mailto:feedback@devprep.io" },
+              { label: "Request a Feature", href: "mailto:features@devprep.io" },
+            ],
+          },
+          {
+            heading: "Follow",
+            links: [
+              { label: "Twitter / X", href: "https://x.com/B_Furqan07" },
+              { label: "LinkedIn", href: "https://www.linkedin.com/in/furqan-bodarni-132378327/" },
+              { label: "GitHub", href: "https://github.com/Furqan-7" },
+            ],
+          },
+        ]}
+      />
     </DashboardShell>
   );
 }
