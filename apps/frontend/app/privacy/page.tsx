@@ -268,7 +268,7 @@ export default function PrivacyPage() {
                 <GlobalNav />
 
                 <section className="pt-[112px] px-6">
-                    <div className="max-w-[780px] mx-auto text-center pt-12 pb-10">
+                    <div className="max-w-[1200px] mx-auto text-center pt-12 pb-10">
                         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
                             <div style={monoStyle} className="inline-flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[#666] mb-6">
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#eb3a14]" />
@@ -289,7 +289,7 @@ export default function PrivacyPage() {
                         initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                        className="max-w-[780px] mx-auto bg-white rounded-[20px] shadow-[0_4px_40px_rgba(0,0,0,0.07),0_1px_4px_rgba(0,0,0,0.04)] border border-[#e5e5e5]/60 px-8 sm:px-12 py-12"
+                        className="max-w-[1200px] mx-auto bg-white rounded-[20px] shadow-[0_4px_40px_rgba(0,0,0,0.07),0_1px_4px_rgba(0,0,0,0.04)] border border-[#e5e5e5]/60 px-8 sm:px-12 py-12"
                     >
                         <nav aria-label="Table of contents" className="mb-10 p-5 bg-[#f5f5f7] rounded-xl border border-[#e5e5e5]">
                             <p style={monoStyle} className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#999] mb-3">Contents</p>
