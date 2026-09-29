@@ -58,9 +58,9 @@ const ROUTES = {
   privacy: "/privacy", // GUESS
   terms: "/terms", // GUESS
   contact: "/contact", // GUESS — Teams/Campus "Contact Us"
-  twitter: "#", // PLACEHOLDER — needs real handle
-  linkedin: "#", // PLACEHOLDER — needs real handle
-  github: "#", // PLACEHOLDER — needs real handle
+  twitter: "https://x.com/B_Furqan07",
+  linkedin: "https://www.linkedin.com/in/furqan-bodarni-132378327/",
+  github: "https://github.com/Furqan-7",
 };
 
 const monoStyle = { fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)" };
@@ -1113,7 +1113,7 @@ function Footer() {
 
         <div className="pt-8 border-t border-[#e5e5e5] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[#999]">
           <span>© 2026 DevPrep. All rights reserved.</span>
-          <span style={monoStyle}>Built with Groq Whisper · Judge0 · Gemini</span>
+          <span style={monoStyle}>Built by Furqan</span>
         </div>
       </div>
     </footer>
