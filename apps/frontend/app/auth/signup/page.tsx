@@ -378,6 +378,8 @@ export default function SignUpPage() {
                 icon={<GoogleIcon />}
                 label="Continue with Google"
                 onClick={handleOauth}
+                disabled
+                badge="Coming soon"
               />
             </div>
           </div>
