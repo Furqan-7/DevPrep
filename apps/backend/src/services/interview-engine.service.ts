@@ -30,10 +30,12 @@ export interface ProcessTurnInput {
 export async function processInterviewTurn(input: ProcessTurnInput): Promise<TurnResult> {
     const { sessionId, candidateAnswer, currentQuestionText, onSpokenChunk } = input;
 
-    // 1. Fetch authoritative session and question history
+    // 1. Fetch authoritative session + question history
     const session = await prisma.interviewSession.findUnique({
         where: { id: sessionId },
-        include: { questions: { orderBy: { order: "asc" } } },
+        include: {
+            questions: { orderBy: { order: "asc" } },
+        },
     });
 
     if (!session) {
@@ -56,39 +58,84 @@ export async function processInterviewTurn(input: ProcessTurnInput): Promise<Tur
     // 2. Identify current question being answered
     const currentQues = session.questions.find((q: any) => q.order === session.currentQues);
     const questionText = currentQues?.question || currentQuestionText || "Can you explain your experience in this domain?";
+    // isLastQuestion fires at question 10 (the 10th technical question, order 10)
     const isLastQuestion = session.currentQues >= TOTAL_QUESTIONS;
 
-    // 3. Build structured conversation history
+    // Candidate identity context ─ fetch username via separate query (no relation on InterviewSession schema)
+    const candidateUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { username: true },
+    });
+    const candidateName: string | null = candidateUser?.username ?? null;
+
+    // 3. Build structured conversation history (intro + all answered technical turns)
     const history = session.questions
-        .filter((q: any) => q.order > 0 && q.answer)
-        .map((q: any) => `Q${q.order}: ${q.question}\nA${q.order}: ${q.answer}`)
+        .filter((q: any) => q.order >= 0 && q.answer)   // include order:0 intro in history
+        .map((q: any) => {
+            const label = q.order === 0 ? "Introduction" : `Q${q.order}`;
+            return `${label}: ${q.question}\nA${q.order === 0 ? "(Intro)" : q.order}: ${q.answer}`;
+        })
         .join("\n\n");
+
+    // Candidate context block injected once at the top of each prompt
+    const candidateContext = [
+        candidateName ? `Candidate name: ${candidateName}` : null,
+        session.introduction ? `Candidate's written introduction: "${session.introduction}"` : null,
+    ].filter(Boolean).join("\n");
+
+    const isIntroTurn = session.currentQues === 0;
 
     // 4. Construct prompt for single unified streaming generation
     const prompt = `You are Zara, DevPrep's professional, supportive, and conversational AI technical interviewer conducting a LIVE interview for a "${session.role}" role at "${session.difficulty}" difficulty.
-
+${
+  candidateContext
+    ? `\nCandidate Context:\n${candidateContext}\n`
+    : ""
+}
 Previous Interview Turns:
-${history || "(This is the candidate's first answered question)"}
+${history || "(No previous turns — this is the start of the interview)"}
 
-You just asked: "${questionText}"
+${
+  isIntroTurn
+    ? `The candidate just answered the opening introduction: "Tell me about yourself."
 Candidate's spoken answer: "${candidateAnswer}"
 
-CRITICAL INSTRUCTIONS:
-1. Provide your spoken response to the candidate enclosed strictly within [SPOKEN] and [/SPOKEN] tags.
-   - Start immediately with [SPOKEN].
-   - In 1 to 2 spoken sentences, naturally acknowledge and assess their answer (e.g. "That's a clear explanation of...", "Good point on...", or gently clarify if incomplete).
-   ${isLastQuestion
-     ? "- This was the FINAL interview question. Conclude the interview warmly in 1 sentence, thanking the candidate and informing them their report is ready."
-     : `- Seamlessly transition and ask the NEXT relevant technical interview question suitable for this ${session.role} role.`
-   }
-   - Total spoken response MUST be 2 to 4 sentences maximum.
-   - Formatted for natural human speech (NO markdown, NO bullets, NO asterisks, NO headers, NO robotic phrases like "Question 3:").
+INTRO TURN INSTRUCTIONS:
+- In 1 sentence, warmly acknowledge their introduction.
+${
+  candidateName
+    ? `- Address them by name (${candidateName}) in this response — this is the ONLY time you should use their name unprompted. Do NOT use their name in any subsequent question.`
+    : "- If you naturally heard their name in their answer, you may use it once. Do not invent or guess a name."
+}
+- Immediately follow with the first technical interview question for the "${session.role}" role. Ask naturally without numbering it.
+- Total spoken response: 2 to 3 sentences maximum.`
+    : `You just asked: "${questionText}"
+Candidate's spoken answer: "${candidateAnswer}"
+
+RESPONSE INSTRUCTIONS:
+- In 1 to 2 sentences, naturally acknowledge and assess their answer.
+${
+  isLastQuestion
+    ? "- This was the FINAL interview question. Conclude the interview warmly, thanking the candidate and informing them their report is ready."
+    : `- Seamlessly transition and ask the NEXT relevant technical interview question for the ${session.role} role.`
+}
+${
+  candidateName
+    ? `- NAME RULE: Do NOT address the candidate as "${candidateName}" in this response. Their name was already used in the post-introduction response. Only use their name again if it arises completely naturally and at least 3 technical questions have passed.`
+    : ""
+}
+- Total spoken response: 2 to 4 sentences maximum.`
+}
+
+FORMATTING RULES (apply to ALL turns):
+1. Provide your spoken response enclosed strictly within [SPOKEN] and [/SPOKEN] tags. Start immediately with [SPOKEN].
+   - Natural human speech only. NO markdown, NO bullets, NO asterisks, NO headers, NO "Question N:" prefixes.
    - End spoken text with [/SPOKEN].
 
-2. Immediately after [/SPOKEN], provide the internal evaluation metrics enclosed inside [METRICS] and [/METRICS] tags:
+2. Immediately after [/SPOKEN], provide evaluation metrics enclosed in [METRICS] and [/METRICS]:
 [METRICS]
-Score: <integer from 0 to 10 evaluating the candidate's answer>
-NextQuestion: <the exact new question you asked at the end of your spoken response, or "NONE" if final question>
+Score: <integer 0-10 evaluating the candidate's answer>
+NextQuestion: <the exact new question you asked in your spoken response, or "NONE" if final>
 IsComplete: <${isLastQuestion ? "true" : "false"}>
 [/METRICS]`.trim();
 

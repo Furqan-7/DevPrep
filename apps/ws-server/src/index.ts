@@ -152,7 +152,7 @@ wss.on("connection", (client) => {
                     const reg = activeSessionRegistry.get(sessId);
                     if (reg) reg.hasSpokenQuestion1 = true;
 
-                    const greeting = `Hi, I'm Zara, your AI interviewer at DevPrep. Let's begin. ${parsedMessage.firstQuestion}`;
+                    const greeting = `Hi, I'm Zara, your AI interviewer at DevPrep. ${parsedMessage.firstQuestion}`;
                     console.log(`[ws-server] Delivering authoritative Question 1: "${greeting}"`);
 
                     session.isSpeaking = true;

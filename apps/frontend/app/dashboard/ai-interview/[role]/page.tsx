@@ -341,6 +341,7 @@ export default function RoleInterviewPage() {
         question: string;
         questionNum: number;
         totalQuestions: number;
+        candidateName?: string | null;
         message?: string;
       }>("/api/interview/generate", {
         role: slug,
@@ -356,13 +357,15 @@ export default function RoleInterviewPage() {
         `interview_session_${slug}`,
         JSON.stringify({
           sessionId: json.sessionId,
-          firstQuestion: json.question,
+          firstQuestion: json.question,   // now "Tell me about yourself."
           totalQuestions: json.totalQuestions,
+          candidateName: json.candidateName ?? null,
           title: meta.title,
           duration: meta.duration,
           skills: meta.skills,
         })
       );
+
 
       router.push(`/dashboard/ai-interview/${slug}/session`);
     } catch (err: unknown) {

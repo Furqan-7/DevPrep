@@ -15,6 +15,7 @@ type SessionData = RoleData & {
   sessionId?: number;
   firstQuestion?: string;
   totalQuestions?: number;
+  candidateName?: string | null;
 };
 
 type Phase = "setup" | "active" | "done";
@@ -123,6 +124,8 @@ export default function InterviewSessionPage() {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as SessionData;
+        // firstQuestion is now "Tell me about yourself." — keep it as questions[0]
+        // so the questions list on the done screen starts with the intro turn.
         if (parsed.firstQuestion && (!parsed.questions || parsed.questions.length === 0)) {
           parsed.questions = [parsed.firstQuestion];
         }
@@ -141,8 +144,8 @@ export default function InterviewSessionPage() {
       title: roleTitle || "Technical Interview",
       duration: 20,
       skills: ["System Design", "Problem Solving", "Core Architecture"],
-      questions: ["Can you walk me through your technical background and a recent project you built?"],
-      firstQuestion: "Can you walk me through your technical background and a recent project you built?",
+      questions: ["Tell me about yourself."],
+      firstQuestion: "Tell me about yourself.",
       totalQuestions: 10,
     });
   }, [slug]);
@@ -743,9 +746,7 @@ export default function InterviewSessionPage() {
                     style={sansStyle}
                     className="text-[16px] sm:text-[18px] leading-relaxed text-[#1A1A1A] font-semibold tracking-[-0.015em]"
                   >
-                    {currentQ === 0 && !answered.has(0)
-                      ? `Hi, I'm Zara, your AI interviewer at DevPrep. ${currentQuestionText}`
-                      : currentQuestionText}
+                    {currentQuestionText}
                   </p>
                 </motion.div>
               )}

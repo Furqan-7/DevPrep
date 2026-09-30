@@ -93,7 +93,15 @@ export const startInterview = async (req: Request, res: Response) => {
         const pool = ROLE_FIRST_QUESTIONS[role] ?? [defaultFallback];
         const question: string = pool[Math.floor(Math.random() * pool.length)] ?? defaultFallback;
 
-        // Atomically create session with intro (order 0) and Question 1 (order 1)
+        // Fetch candidate username for AI context
+        const candidateUser = await prisma.user.findUnique({
+            where: { id: parseInt(userId, 10) },
+            select: { username: true },
+        });
+        const candidateName = candidateUser?.username ?? null;
+
+        // Atomically create session with intro (order 0) and first technical question (order 1).
+        // currentQues starts at 0 so the intro is the authoritative first spoken question.
         const session = await prisma.interviewSession.create({
             data: {
                 userId: parseInt(userId, 10),
@@ -101,12 +109,13 @@ export const startInterview = async (req: Request, res: Response) => {
                 difficulty,
                 introduction,
                 status: "active",
-                currentQues: 1,
+                currentQues: 0,
                 questions: {
                     create: [
                         {
                             order: 0,
                             question: "Tell me about yourself.",
+                            // Pre-populate with written intro if provided; will be overwritten by spoken answer
                             answer: introduction ?? null,
                         },
                         {
@@ -118,12 +127,15 @@ export const startInterview = async (req: Request, res: Response) => {
             },
         });
 
+        // Return the intro question as the authoritative firstQuestion so the
+        // ws-server speaks "Tell me about yourself." — not the technical question.
         return res.status(200).json({
             success: true,
             sessionId: session.id,
-            questionNum: 1,
+            questionNum: 0,
             totalQuestions: TOTAL_QUESTIONS,
-            question,
+            question: "Tell me about yourself.",
+            candidateName,
         });
     } catch (error: any) {
         console.error("[/api/interview/generate] Error starting interview:", error?.message ?? error);
