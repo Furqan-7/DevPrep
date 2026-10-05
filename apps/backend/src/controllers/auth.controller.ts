@@ -149,15 +149,24 @@ export const signin = async (req: Request, res: Response) => {
 export const google = async (req: Request, res: Response) => {
     console.log("Reached Google Auth");
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_REDIRECT_URL) {
-        return res.status(503).json({ error: "Google OAuth is not configured on this server" });
+    const clientId = GOOGLE_CLIENT_ID;
+    const redirectUrl = GOOGLE_REDIRECT_URL;
+    if (!clientId || !redirectUrl) {
+        const missingConfig = [
+            !clientId && "GOOGLE_CLIENT_ID",
+            !redirectUrl && "GOOGLE_REDIRECT_URL or GOOGLE_REDIRECT_URI",
+        ].filter(Boolean);
+
+        return res.status(503).json({
+            error: `Google OAuth configuration is missing: ${missingConfig.join(", ")}`,
+        });
     }
 
     const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
     const options = {
         redirect_uri: GOOGLE_REDIRECT_URL,
-        client_id: GOOGLE_CLIENT_ID,
+        client_id: clientId,
         access_type: "offline",
         response_type: "code",
         prompt: "consent",
