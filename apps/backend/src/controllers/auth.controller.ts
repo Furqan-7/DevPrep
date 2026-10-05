@@ -13,7 +13,8 @@ import axios from "axios";
 
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_REDIRECT_URL = process.env.GOOGLE_REDIRECT_URI;
+const GOOGLE_REDIRECT_URL =
+    process.env.GOOGLE_REDIRECT_URL ?? process.env.GOOGLE_REDIRECT_URI;
 
 
 
@@ -183,7 +184,7 @@ export const googleCallback = async (req: Request, res: Response) => {
             code,
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_SECRET_KEY,
-            redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+            redirect_uri: GOOGLE_REDIRECT_URL,
             grant_type: "authorization_code",
         });
 
