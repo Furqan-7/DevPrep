@@ -12,9 +12,54 @@ dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env")
 import axios from "axios";
 
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_REDIRECT_URL =
-    process.env.GOOGLE_REDIRECT_URL ?? process.env.GOOGLE_REDIRECT_URI;
+const getGoogleOAuthConfig = () => {
+    const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+    const clientSecret = process.env.GOOGLE_SECRET_KEY?.trim();
+    const redirectUrl = (
+        process.env.GOOGLE_REDIRECT_URL?.trim() ??
+        process.env.GOOGLE_REDIRECT_URI?.trim()
+    );
+
+    const missing = [
+        !clientId && "GOOGLE_CLIENT_ID",
+        !clientSecret && "GOOGLE_SECRET_KEY",
+        !redirectUrl && "GOOGLE_REDIRECT_URL or GOOGLE_REDIRECT_URI",
+    ].filter((name): name is string => Boolean(name));
+
+    let redirectUrlError: string | undefined;
+    if (redirectUrl) {
+        try {
+            const parsedUrl = new URL(redirectUrl);
+            if (parsedUrl.protocol !== "https:" && parsedUrl.hostname !== "localhost") {
+                redirectUrlError = "redirect URL must use HTTPS outside localhost";
+            }
+        } catch {
+            redirectUrlError = "redirect URL is not a valid URL";
+        }
+    }
+
+    return {
+        clientId,
+        clientSecret,
+        redirectUrl,
+        missing,
+        redirectUrlError,
+    };
+};
+
+const logGoogleOAuthConfig = (context: string, config: ReturnType<typeof getGoogleOAuthConfig>) => {
+    console.error(`[Google OAuth] ${context}`, {
+        missing: config.missing,
+        redirectUrlError: config.redirectUrlError ?? null,
+        clientIdFormat: config.clientId
+            ? config.clientId.endsWith(".apps.googleusercontent.com")
+                ? "valid-looking"
+                : "unexpected-format"
+            : "missing",
+        clientSecretPresent: Boolean(config.clientSecret),
+        redirectUrl: config.redirectUrl ?? null,
+    });
+};
 
 
 
@@ -137,8 +182,8 @@ export const signin = async (req: Request, res: Response) => {
             token
         });
 
-    } catch (e) {
-        console.log("Error" + e);
+    } catch (error) {
+        console.log("Error" + error);
         return res.status(500).json({
             message: "Internal Server Error",
             success: false
@@ -149,23 +194,37 @@ export const signin = async (req: Request, res: Response) => {
 export const google = async (req: Request, res: Response) => {
     console.log("Reached Google Auth");
 
-    const clientId = GOOGLE_CLIENT_ID;
-    const redirectUrl = GOOGLE_REDIRECT_URL;
-    if (!clientId || !redirectUrl) {
-        const missingConfig = [
-            !clientId && "GOOGLE_CLIENT_ID",
-            !redirectUrl && "GOOGLE_REDIRECT_URL or GOOGLE_REDIRECT_URI",
-        ].filter(Boolean);
+    const config = getGoogleOAuthConfig();
+    if (
+        config.missing.length > 0 ||
+        config.redirectUrlError ||
+        !config.clientId ||
+        !config.redirectUrl
+    ) {
+        logGoogleOAuthConfig("Invalid configuration while starting login", config);
 
         return res.status(503).json({
-            error: `Google OAuth configuration is missing: ${missingConfig.join(", ")}`,
+            error: "Google OAuth configuration is invalid",
+            details: {
+                missing: config.missing,
+                redirectUrlError: config.redirectUrlError ?? null,
+                clientIdFormat: config.clientId
+                    ? config.clientId.endsWith(".apps.googleusercontent.com")
+                        ? "valid-looking"
+                        : "unexpected-format"
+                    : "missing",
+                clientSecretPresent: Boolean(config.clientSecret),
+                redirectUrl: config.redirectUrl ?? null,
+            },
         });
     }
 
+    const clientId = config.clientId;
+    const redirectUrl = config.redirectUrl;
     const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
     const options = {
-        redirect_uri: GOOGLE_REDIRECT_URL,
+        redirect_uri: redirectUrl,
         client_id: clientId,
         access_type: "offline",
         response_type: "code",
@@ -188,12 +247,24 @@ export const googleCallback = async (req: Request, res: Response) => {
     }
 
     try {
+        const config = getGoogleOAuthConfig();
+        if (config.missing.length > 0 || config.redirectUrlError) {
+            logGoogleOAuthConfig("Invalid configuration during callback", config);
+            return res.status(503).json({
+                error: "Google OAuth callback configuration is invalid",
+                details: {
+                    missing: config.missing,
+                    redirectUrlError: config.redirectUrlError ?? null,
+                },
+            });
+        }
+
         // 1. Exchange the code for tokens
         const tokenRes = await axios.post("https://oauth2.googleapis.com/token", {
             code,
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_SECRET_KEY,
-            redirect_uri: GOOGLE_REDIRECT_URL,
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
+            redirect_uri: config.redirectUrl,
             grant_type: "authorization_code",
         });
 
@@ -250,9 +321,22 @@ export const googleCallback = async (req: Request, res: Response) => {
 
         res.redirect(redirectTo);
 
-    } catch (err: any) {
-        console.error("Google OAuth callback error:", err?.response?.data ?? err);
-        res.status(500).json({ error: "Google auth failed" });
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error("[Google OAuth] Google API request failed", {
+                status: error.response?.status ?? null,
+                data: error.response?.data ?? null,
+            });
+            return res.status(502).json({
+                error: "Google OAuth request failed",
+                googleStatus: error.response?.status ?? null,
+                googleError: error.response?.data?.error ?? null,
+                googleErrorDescription: error.response?.data?.error_description ?? null,
+            });
+        }
+
+        console.error("[Google OAuth] Unexpected callback error", error);
+        return res.status(500).json({ error: "Google OAuth callback failed" });
     }
 };
 
