@@ -48,18 +48,50 @@ const getGoogleOAuthConfig = () => {
 };
 
 const logGoogleOAuthConfig = (context: string, config: ReturnType<typeof getGoogleOAuthConfig>) => {
+    let callbackUrlDetails: {
+        exists: boolean;
+        length: number;
+        protocol?: string;
+        host?: string;
+        path?: string;
+        valid: boolean;
+    } = {
+        exists: Boolean(config.redirectUrl),
+        length: config.redirectUrl?.length ?? 0,
+        valid: !config.redirectUrlError,
+    };
+
+    if (config.redirectUrl && !config.redirectUrlError) {
+        const parsedUrl = new URL(config.redirectUrl);
+        callbackUrlDetails = {
+            ...callbackUrlDetails,
+            protocol: parsedUrl.protocol,
+            host: parsedUrl.host,
+            path: parsedUrl.pathname,
+        };
+    }
+
     console.error(`[Google OAuth] ${context}`, {
         missing: config.missing,
         redirectUrlError: config.redirectUrlError ?? null,
-        clientIdFormat: config.clientId
-            ? config.clientId.endsWith(".apps.googleusercontent.com")
-                ? "valid-looking"
-                : "unexpected-format"
-            : "missing",
-        clientSecretPresent: Boolean(config.clientSecret),
-        redirectUrl: config.redirectUrl ?? null,
+        GOOGLE_CLIENT_ID: {
+            exists: Boolean(config.clientId),
+            length: config.clientId?.length ?? 0,
+            format: config.clientId
+                ? config.clientId.endsWith(".apps.googleusercontent.com")
+                    ? "valid-looking"
+                    : "unexpected-format"
+                : "missing",
+        },
+        GOOGLE_SECRET_KEY: {
+            exists: Boolean(config.clientSecret),
+            length: config.clientSecret?.length ?? 0,
+        },
+        GOOGLE_CALLBACK_URL: callbackUrlDetails,
     });
 };
+
+logGoogleOAuthConfig("Environment configuration loaded", getGoogleOAuthConfig());
 
 
 
