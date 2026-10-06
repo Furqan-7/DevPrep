@@ -131,10 +131,6 @@ export default function SignUpPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleOauth = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
-  };
-
   /* ── Submit ─────────────────────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,7 +373,8 @@ export default function SignUpPage() {
               <OAuthButton
                 icon={<GoogleIcon />}
                 label="Continue with Google"
-                onClick={handleOauth}
+                disabled
+                badge="Coming soon"
               />
             </div>
           </div>
