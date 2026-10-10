@@ -68,6 +68,10 @@ class PcmStreamPlayer {
   private sampleRate: number = 24000;
   private nextStartTime: number = 0;
   private activeSources: AudioBufferSourceNode[] = [];
+  private pendingBuffers: AudioBuffer[] = [];
+  private pendingDuration = 0;
+  private isPrimed = false;
+  private readonly initialBufferSeconds = 0.12;
 
   constructor(sampleRate: number = 24000) {
     this.sampleRate = sampleRate;
@@ -91,6 +95,9 @@ class PcmStreamPlayer {
   }
 
   public resetTurnTimeline() {
+    this.pendingBuffers = [];
+    this.pendingDuration = 0;
+    this.isPrimed = false;
     if (this.audioCtx && this.audioCtx.state !== "closed") {
       this.nextStartTime = this.audioCtx.currentTime;
     } else {
@@ -119,21 +126,41 @@ class PcmStreamPlayer {
 
     const audioBuffer = this.audioCtx.createBuffer(1, float32.length, this.sampleRate);
     audioBuffer.copyToChannel(float32, 0);
+    this.pendingBuffers.push(audioBuffer);
+    this.pendingDuration += audioBuffer.duration;
 
-    const source = this.audioCtx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(this.audioCtx.destination);
+    this.schedulePendingBuffers();
+  }
 
-    source.onended = () => {
-      const idx = this.activeSources.indexOf(source);
-      if (idx !== -1) this.activeSources.splice(idx, 1);
-    };
-    this.activeSources.push(source);
+  public flush() {
+    this.schedulePendingBuffers(true);
+  }
 
+  private schedulePendingBuffers(force = false) {
+    if (!this.audioCtx || this.audioCtx.state === "closed") return;
+    if (!force && !this.isPrimed && this.pendingDuration < this.initialBufferSeconds) return;
+
+    this.isPrimed = true;
     const currentTime = this.audioCtx.currentTime;
-    const startTime = Math.max(currentTime, this.nextStartTime);
-    source.start(startTime);
-    this.nextStartTime = startTime + audioBuffer.duration;
+    let startTime = Math.max(currentTime, this.nextStartTime);
+
+    while (this.pendingBuffers.length > 0) {
+      const audioBuffer = this.pendingBuffers.shift();
+      if (!audioBuffer) continue;
+      this.pendingDuration -= audioBuffer.duration;
+
+      const scheduledSource = this.audioCtx.createBufferSource();
+      scheduledSource.buffer = audioBuffer;
+      scheduledSource.connect(this.audioCtx.destination);
+      scheduledSource.onended = () => {
+        const idx = this.activeSources.indexOf(scheduledSource);
+        if (idx !== -1) this.activeSources.splice(idx, 1);
+      };
+      this.activeSources.push(scheduledSource);
+      scheduledSource.start(startTime);
+      startTime += audioBuffer.duration;
+      this.nextStartTime = startTime;
+    }
   }
 
   public getRemainingPlayTime(): number {
@@ -151,6 +178,9 @@ class PcmStreamPlayer {
       }
     }
     this.activeSources = [];
+    this.pendingBuffers = [];
+    this.pendingDuration = 0;
+    this.isPrimed = false;
 
     if (this.audioCtx && this.audioCtx.state !== "closed") {
       try {
@@ -410,13 +440,14 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             pcmPlayerRef.current.resetTurnTimeline();
             optionsRef.current.onTtsStart?.(data);
           } else if (data.type === "tts_end") {
+            pcmPlayerRef.current?.flush();
             setTtsMetrics({
               timeToFirstAudioMs: data.timeToFirstAudioMs,
               totalTtsLatencyMs: data.totalTtsLatencyMs,
               totalBytes: data.totalBytes,
               audioDurationSec: data.audioDurationSec,
               sampleRate: data.sampleRate || 24000,
-              model: data.model || "aura-2-thalia-en",
+              model: data.model || "flux-hannah-en",
               groqLatencyMs: data.groqLatencyMs,
             });
 

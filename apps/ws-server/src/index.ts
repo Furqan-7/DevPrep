@@ -162,7 +162,7 @@ wss.on("connection", (client) => {
                             format: "linear16",
                             sampleRate: 24000,
                             channels: 1,
-                            model: "aura-2-thalia-en",
+                            model: "flux-hannah-en",
                         }));
                         client.send(JSON.stringify({
                             type: "ai_text_chunk",
@@ -171,7 +171,7 @@ wss.on("connection", (client) => {
                     }
 
                     const ttsSession = new DeepgramStreamingTtsSession({
-                        model: "aura-2-thalia-en",
+                        model: "flux-hannah-en",
                         sampleRate: 24000,
                         onAudioChunk: (audioChunk) => {
                             if (client.readyState === WebSocket.OPEN) {
@@ -188,7 +188,7 @@ wss.on("connection", (client) => {
                     if (client.readyState === WebSocket.OPEN) {
                         client.send(JSON.stringify({
                             type: "ai_text_end",
-                            model: "aura-2-thalia-en",
+                            model: "flux-hannah-en",
                         }));
                         client.send(JSON.stringify({
                             type: "tts_end",
@@ -239,7 +239,7 @@ wss.on("connection", (client) => {
                 // Pre-warm single Deepgram WebSocket during candidate speech turn
                 try {
                     session.prewarmedTtsSession = new DeepgramStreamingTtsSession({
-                        model: "aura-2-thalia-en",
+                        model: "flux-hannah-en",
                         sampleRate: 24000,
                         onAudioChunk: (audioChunk) => {
                             if (client.readyState === WebSocket.OPEN) {
@@ -354,21 +354,23 @@ wss.on("connection", (client) => {
                             format: "linear16",
                             sampleRate: 24000,
                             channels: 1,
-                            model: "aura-2-thalia-en",
+                            model: "flux-hannah-en",
                         }));
                     }
 
                     // Obtain TTS session
-                    const ttsSession = session.prewarmedTtsSession || new DeepgramStreamingTtsSession({
-                        model: "aura-2-thalia-en",
-                        sampleRate: 24000,
-                        onAudioChunk: (audioChunk) => {
-                            if (client.readyState === WebSocket.OPEN) {
-                                client.send(audioChunk, { binary: true });
-                            }
-                        },
-                    });
-                    if (!session.prewarmedTtsSession) {
+                    const ttsSession = (session.prewarmedTtsSession && session.prewarmedTtsSession.isAlive())
+                        ? session.prewarmedTtsSession
+                        : new DeepgramStreamingTtsSession({
+                            model: "flux-hannah-en",
+                            sampleRate: 24000,
+                            onAudioChunk: (audioChunk) => {
+                                if (client.readyState === WebSocket.OPEN) {
+                                    client.send(audioChunk, { binary: true });
+                                }
+                            },
+                        });
+                    if (ttsSession !== session.prewarmedTtsSession) {
                         ttsSession.start();
                     }
                     session.prewarmedTtsSession = null;

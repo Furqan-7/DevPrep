@@ -1,12 +1,14 @@
-import express from "express";
 import dotenv from "dotenv";
 import path from "path";
-import { config } from "dotenv";
-import cookieParser from "cookie-parser";
-config();
-// Load DATABASE_URL from the database package .env at runtime
+dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
+if (process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace("&channel_binding=require", "").replace("channel_binding=require&", "");
+}
+console.log("[Backend Startup] DATABASE_URL:", process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:[^:@]+@/, ":***@") : "UNDEFINED");
 
+import express from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import authRouter from "./routes/auth.route";
 import interviewRouter from "./routes/interview.route";

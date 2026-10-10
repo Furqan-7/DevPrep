@@ -34,7 +34,7 @@ export interface TTSResult {
     firstTextSentTimestamp?: number | null;
 }
 
-const DEFAULT_MODEL = "aura-2-thalia-en";
+const DEFAULT_MODEL = "flux-hannah-en";
 const SAMPLE_RATE = 24000;
 const ENCODING = "linear16";
 
@@ -191,13 +191,19 @@ export class DeepgramStreamingTtsSession {
         this.onAudioChunk = options.onAudioChunk;
     }
 
+    public isAlive(): boolean {
+        return this.ws !== null && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING);
+    }
+
     public start() {
         if (!this.apiKey) {
             throw new Error("DEEPGRAM_API_KEY is not configured.");
         }
 
         this.startTime = Date.now();
-        const url = `wss://api.deepgram.com/v1/speak?model=${encodeURIComponent(this.model)}&encoding=${ENCODING}&sample_rate=${this.sampleRate}`;
+        const isV2 = this.model.startsWith("flux-");
+        const endpointVersion = isV2 ? "v2" : "v1";
+        const url = `wss://api.deepgram.com/${endpointVersion}/speak?model=${encodeURIComponent(this.model)}&encoding=${ENCODING}&sample_rate=${this.sampleRate}`;
         
         console.log(`[DeepgramSession] Initiating persistent WS connection to: ${url}`);
         this.ws = new WebSocket(url, {
@@ -259,8 +265,10 @@ export class DeepgramStreamingTtsSession {
             } else {
                 try {
                     const msg = JSON.parse(data.toString());
-                    if (msg.type === "Flushed") {
-                        console.log(`[DeepgramSession] Received 'Flushed' acknowledgment. All audio chunks received.`);
+                    const isV2 = this.model.startsWith("flux-");
+                    const isCompletion = msg.type === "SpeechMetadata" || (!isV2 && msg.type === "Flushed");
+                    if (isCompletion) {
+                        console.log(`[DeepgramSession] Received '${msg.type}' completion acknowledgment. All audio chunks received.`);
                         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                             this.ws.send(JSON.stringify({ type: "Close" }));
                             this.ws.close();
