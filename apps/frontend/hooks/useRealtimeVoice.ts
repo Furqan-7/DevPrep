@@ -262,6 +262,9 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   const noiseFloorRef = useRef<number>(0.005);
   const transcriptRef = useRef<string | null>(null);
   const aiResponseRef = useRef<string>("");
+  const aiResponseWordsRef = useRef<string[]>([]);
+  const revealedAiWordsRef = useRef(0);
+  const aiRevealTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastTurnDataRef = useRef<TurnData | null>(null);
 
   const isInterviewActive = vadState !== "idle";
@@ -280,6 +283,10 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   }, []);
 
   const cleanupMicrophone = useCallback(() => {
+    if (aiRevealTimerRef.current) {
+      clearInterval(aiRevealTimerRef.current);
+      aiRevealTimerRef.current = null;
+    }
     if (scriptProcessorRef.current) {
       try {
         scriptProcessorRef.current.disconnect();
@@ -397,6 +404,8 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
           const data = JSON.parse(event.data.toString());
 
           if (data.type === "speech_started") {
+            transcriptRef.current = null;
+            setTranscript(null);
             optionsRef.current.onSpeechStarted?.();
           } else if (data.type === "processing_started") {
             vadStateRef.current = "processing";
@@ -412,8 +421,13 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             setIsAiResponding(true);
             optionsRef.current.onTranscript?.(data.text);
           } else if (data.type === "ai_text_chunk") {
-            aiResponseRef.current = aiResponseRef.current ? `${aiResponseRef.current} ${data.text || ""}` : (data.text || "");
-            setAiResponse(aiResponseRef.current);
+            const nextChunk = String(data.text || "").trim();
+            if (nextChunk) {
+              aiResponseRef.current = aiResponseRef.current
+                ? `${aiResponseRef.current} ${nextChunk}`
+                : nextChunk;
+              aiResponseWordsRef.current = aiResponseRef.current.split(/\s+/);
+            }
             setIsAiResponding(true);
             optionsRef.current.onAiChunk?.(data.text);
           } else if (data.type === "ai_text_end") {
@@ -438,9 +452,36 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             }
             pcmPlayerRef.current.init(sampleRate);
             pcmPlayerRef.current.resetTurnTimeline();
+            aiResponseRef.current = "";
+            setAiResponse("");
+            aiResponseWordsRef.current = [];
+            revealedAiWordsRef.current = 0;
+            if (aiRevealTimerRef.current) {
+              clearInterval(aiRevealTimerRef.current);
+            }
+            aiRevealTimerRef.current = setInterval(() => {
+              if (revealedAiWordsRef.current >= aiResponseWordsRef.current.length) return;
+              revealedAiWordsRef.current += 1;
+              setAiResponse(aiResponseWordsRef.current.slice(0, revealedAiWordsRef.current).join(" "));
+            }, 140);
             optionsRef.current.onTtsStart?.(data);
           } else if (data.type === "tts_end") {
             pcmPlayerRef.current?.flush();
+            if (aiRevealTimerRef.current) {
+              clearInterval(aiRevealTimerRef.current);
+              aiRevealTimerRef.current = null;
+            }
+            const remainingWords = aiResponseWordsRef.current.length - revealedAiWordsRef.current;
+            if (remainingWords > 0) {
+              const remainingPlaybackMs = Math.max(
+                0,
+                Math.ceil((pcmPlayerRef.current?.getRemainingPlayTime() ?? 0) * 1000),
+              );
+              setTimeout(() => {
+                revealedAiWordsRef.current = aiResponseWordsRef.current.length;
+                setAiResponse(aiResponseWordsRef.current.join(" "));
+              }, remainingPlaybackMs);
+            }
             setTtsMetrics({
               timeToFirstAudioMs: data.timeToFirstAudioMs,
               totalTtsLatencyMs: data.totalTtsLatencyMs,
@@ -554,6 +595,12 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     setError(null);
     setTranscript(null);
     setAiResponse("");
+    aiResponseWordsRef.current = [];
+    revealedAiWordsRef.current = 0;
+    if (aiRevealTimerRef.current) {
+      clearInterval(aiRevealTimerRef.current);
+      aiRevealTimerRef.current = null;
+    }
     setFirstTokenLatencyMs(null);
     setTotalAiLatencyMs(null);
     setAiModelUsed(null);

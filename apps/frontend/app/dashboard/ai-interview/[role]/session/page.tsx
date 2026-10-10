@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import {
   Mic, MicOff, Clock3, PhoneOff, AlertOctagon,
-  VideoOff, CheckCircle2, ChevronDown,
+  UserRound, CheckCircle2, ChevronDown,
 } from "lucide-react";
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
@@ -19,14 +19,12 @@ type SessionData = RoleData & {
 };
 
 type Phase = "setup" | "active" | "done";
-
-const sansStyle = {
-  fontFamily: "var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif)",
-} as const;
-
-const monoStyle = {
-  fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)",
-} as const;
+type ChatMessage = {
+  id: string;
+  role: "interviewer" | "user";
+  text: string;
+  timestamp: string;
+};
 
 const EASE = [0.25, 0.8, 0.25, 1] as const;
 
@@ -48,10 +46,14 @@ export default function InterviewSessionPage() {
   const [elapsed, setElapsed] = useState(0);
   const [answered, setAnswered] = useState<Set<number>>(new Set());
   const [camError, setCamError] = useState(false);
+  const [camLoading, setCamLoading] = useState(true);
   const [totalQuestions, setTotalQuestions] = useState<number>(10);
   const [error, setError] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
   const endRealtimeInterviewRef = useRef<() => void>(() => {});
 
   const handleTranscript = useCallback((userText: string) => {
@@ -94,7 +96,6 @@ export default function InterviewSessionPage() {
     vadState,
     speechEnergy,
     isRecording,
-    isTranscribing,
     isAiResponding,
     isTtsSpeaking,
     transcript,
@@ -117,6 +118,45 @@ export default function InterviewSessionPage() {
 
   // aiSpeaking drives the avatar pulsing animation
   const aiSpeaking = isAiResponding || isTtsSpeaking;
+  const userIsSpeaking = vadState === "speaking" || vadState === "silence_detecting";
+
+  const getTimestamp = () =>
+    new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date());
+
+  useEffect(() => {
+    if (!aiResponse) return;
+    setChatMessages((previous) => {
+      const last = previous[previous.length - 1];
+      if (last?.role === "interviewer") {
+        return [...previous.slice(0, -1), { ...last, text: aiResponse }];
+      }
+      return [...previous, { id: `ai-${Date.now()}`, role: "interviewer", text: aiResponse, timestamp: getTimestamp() }];
+    });
+  }, [aiResponse]);
+
+  useEffect(() => {
+    if (!transcript) return;
+    setChatMessages((previous) => {
+      const last = previous[previous.length - 1];
+      if (last?.role === "user") {
+        return [...previous.slice(0, -1), { ...last, text: transcript }];
+      }
+      return [...previous, { id: `user-${Date.now()}`, role: "user", text: transcript, timestamp: getTimestamp() }];
+    });
+  }, [transcript]);
+
+  const handleChatScroll = () => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    stickToBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  useEffect(() => {
+    const el = chatScrollRef.current;
+    if (!el || !stickToBottomRef.current) return;
+    el.scrollTop = el.scrollHeight;
+  }, [chatMessages, transcript, userIsSpeaking, aiSpeaking]);
 
   // Hydrate session data that was written by the role page after POST /api/interview/generate
   useEffect(() => {
@@ -195,6 +235,7 @@ export default function InterviewSessionPage() {
             return;
           }
           localStream = stream;
+          setCamLoading(false);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
           }
@@ -202,8 +243,12 @@ export default function InterviewSessionPage() {
         })
         .catch((err) => {
           console.warn("[InterviewSession] Camera permission blocked or unavailable:", err?.message || err);
+          setCamLoading(false);
           setCamError(true);
         });
+    } else {
+      setCamLoading(false);
+      setCamError(true);
     }
 
     return () => {
@@ -516,9 +561,9 @@ export default function InterviewSessionPage() {
       </div>
 
       {/* ── MAIN 2-COL (Light Cards) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-8 pt-6 pb-6 relative z-10 flex-1 min-h-0 items-center max-w-6xl mx-auto w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-8 pt-6 pb-6 relative z-10 flex-1 min-h-0 items-start overflow-hidden max-w-6xl mx-auto w-full">
         {/* LEFT – camera */}
-        <div className="flex flex-col gap-4 min-h-0 w-full max-w-md mx-auto lg:max-w-none">
+        <div className="flex flex-col gap-4 h-full min-h-0 w-full max-w-md mx-auto lg:max-w-none">
           {/* Mic bar matching design system card specs */}
           <div className="border border-[#E5E5E5] rounded-xl bg-white px-4.5 py-3 flex items-center justify-between flex-shrink-0 shadow-xs">
             <div className="flex items-center gap-3">
@@ -573,30 +618,23 @@ export default function InterviewSessionPage() {
               muted
               playsInline
               className={`w-full h-full object-cover ${
-                camOn && !camError ? "opacity-95" : "opacity-0 absolute"
+                camOn && !camError && !camLoading ? "opacity-95" : "opacity-0 absolute"
               }`}
             />
-            {camOn && !camError && (
-              <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm border border-[#E5E5E5] rounded-full px-3 py-1 flex items-center gap-2 z-10 shadow-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-                <span className="text-[11px] font-semibold text-[#1A1A1A]">
-                  Camera preview
-                </span>
-              </div>
-            )}
-            {(!camOn || camError) && (
+            <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm border border-[#E5E5E5] rounded-full px-3 py-1 flex items-center gap-2 z-10 shadow-xs">
+              <span className={`w-1.5 h-1.5 rounded-full ${camOn && !camError && !camLoading ? "bg-[#22C55E]" : "bg-[#666666]/50"}`} />
+              <span className="text-[11px] font-semibold text-[#1A1A1A]">
+                Camera preview
+              </span>
+            </div>
+            {(!camOn || camError || camLoading) && (
               <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <div className="w-12 h-12 rounded-full bg-[#F5F5F7] border border-[#E5E5E5] flex items-center justify-center text-[#666666]">
-                  <VideoOff size={20} />
+                <div className="w-16 h-16 rounded-full bg-[#E5E5E5] flex items-center justify-center text-[#666666]">
+                  <UserRound size={28} strokeWidth={1.7} />
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-[#1A1A1A]">
-                    {camError ? "Camera access blocked" : "Camera preview off"}
-                  </p>
-                  <p className="text-[11px] text-[#666666] mt-1 max-w-[220px]">
-                    {camError
-                      ? "Audio interview mode active"
-                      : "Toggle controls anytime during the session"}
+                    {camLoading ? "Starting camera…" : "Camera is off"}
                   </p>
                 </div>
               </div>
@@ -604,7 +642,7 @@ export default function InterviewSessionPage() {
           </div>
 
           {/* Status */}
-          <div className="flex items-center gap-2 flex-shrink-0 px-1">
+          <div className="flex items-center gap-2 flex-shrink-0 px-1 mt-auto">
             <div
               className={`w-2 h-2 rounded-full ${camError ? "bg-amber-500" : "bg-[#22C55E]"}`}
             />
@@ -616,203 +654,107 @@ export default function InterviewSessionPage() {
           </div>
         </div>
 
-        {/* RIGHT – AI + Question Area */}
-        <div className="flex flex-col items-center justify-center relative w-full max-w-md mx-auto lg:max-w-none py-4">
-          {/* AI Zara Avatar Orb */}
-          <div className="relative flex items-center justify-center mb-8">
-            <motion.div
-              animate={{ scale: aiSpeaking ? [1, 1.05, 1] : [1, 1.02, 1] }}
-              transition={{
-                repeat: Infinity,
-                duration: aiSpeaking ? 0.6 : 2.5,
-                ease: "easeInOut",
+        {/* RIGHT – chat panel */}
+        <div className="flex flex-col w-full max-w-md mx-auto lg:max-w-none lg:h-[calc(100dvh-230px)] h-[520px] min-h-[420px]">
+          <div className="w-full flex-1 min-h-0 rounded-2xl bg-transparent overflow-hidden flex flex-col">
+            {/* Chat header */}
+            <div className="px-4 py-3 border-b border-[#EFEFF2] bg-white flex items-center gap-3 flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#F5F5F7] border border-[#E5E5E5] flex items-center justify-center">
+                <span className="text-sm font-extrabold text-[#1A1A1A]">
+                  D<span className="text-[#EB3A14]">.</span>
+                </span>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-[#1A1A1A]">
+                  DevPrep Interviewer
+                </p>
+                <p className="text-[11px] text-[#22C55E] font-medium">
+                  {aiSpeaking ? "Speaking to you…" : "Listening to your response…"}
+                </p>
+              </div>
+            </div>
+
+            {/* Message list */}
+            <div
+              ref={chatScrollRef}
+              onScroll={handleChatScroll}
+              className="flex-1 min-h-0 overflow-y-auto px-4 pt-5 pb-4 space-y-3"
+              style={{
+                scrollbarWidth: "thin",
+                scrollbarColor: "#D1D5DB transparent",
               }}
-              className="relative w-24 h-24 rounded-full bg-white shadow-md flex items-center justify-center border border-[#E5E5E5]"
             >
-              <span className="text-3xl font-extrabold text-[#1A1A1A]">
-                D<span className="text-[#EB3A14]">.</span>
-              </span>
-            </motion.div>
-          </div>
-
-          {/* Question text / Conversation Component — Inter typeface with animated reveal per design.md */}
-          <div className="max-w-lg w-full mb-6 text-center min-h-[90px] flex flex-col items-center justify-center">
-            <AnimatePresence mode="wait">
-              {isAiResponding || isTtsSpeaking ? (
-                /* 1. When AI is actively streaming response or speaking TTS */
-                <motion.div
-                  key="ai-streaming"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25, ease: EASE }}
-                >
-                  <p
-                    style={monoStyle}
-                    className="text-[11px] font-semibold text-[#EB3A14] uppercase tracking-[0.08em] mb-2"
-                  >
-                    Zara · AI Interviewer
-                  </p>
-                  <p
-                    style={sansStyle}
-                    className="text-[16px] sm:text-[18px] leading-relaxed text-[#1A1A1A] font-semibold tracking-[-0.015em]"
-                  >
-                    {aiResponse}
-                    {isAiResponding && (
-                      <span className="inline-block w-1.5 h-4 ml-1 bg-[#EB3A14] animate-pulse align-middle" />
-                    )}
-                  </p>
-                </motion.div>
-              ) : vadState === "speaking" ||
-                vadState === "silence_detecting" ||
-                isTranscribing ||
-                transcript ? (
-                /* 2. When User is speaking or their transcript is live */
-                <motion.div
-                  key="user-speaking"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25, ease: EASE }}
-                >
-                  <p
-                    style={monoStyle}
-                    className="text-[11px] font-semibold text-[#22C55E] uppercase tracking-[0.08em] mb-2"
-                  >
-                    You · Candidate
-                  </p>
-                  <p
-                    style={sansStyle}
-                    className="text-[16px] sm:text-[18px] leading-relaxed text-[#1A1A1A] font-semibold tracking-[-0.015em]"
-                  >
-                    {transcript ? (
-                      <>
-                        &ldquo;{transcript}&rdquo;
-                        {isTranscribing && (
-                          <span className="inline-block w-1.5 h-4 ml-1 bg-[#22C55E] animate-pulse align-middle" />
-                        )}
-                      </>
-                    ) : isTranscribing ? (
-                      <>
-                        Transcribing your answer…
-                        <span className="inline-block w-1.5 h-4 ml-1 bg-amber-500 animate-pulse align-middle" />
-                      </>
-                    ) : (
-                      <>
-                        Listening to your response…
-                        <span className="inline-block w-1.5 h-4 ml-1 bg-[#22C55E] animate-pulse align-middle" />
-                      </>
-                    )}
-                  </p>
-                </motion.div>
-              ) : aiResponse ? (
-                /* 3. Zara completed previous turn, candidate listening/reading follow-up */
-                <motion.div
-                  key={`ai-done-${currentQ}`}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25, ease: EASE }}
-                >
-                  <p
-                    style={monoStyle}
-                    className="text-[11px] font-semibold text-[#EB3A14] uppercase tracking-[0.08em] mb-2"
-                  >
-                    Zara · AI Interviewer
-                  </p>
-                  <p
-                    style={sansStyle}
-                    className="text-[16px] sm:text-[18px] leading-relaxed text-[#1A1A1A] font-semibold tracking-[-0.015em]"
-                  >
-                    {aiResponse}
-                  </p>
-                </motion.div>
-              ) : (
-                /* 4. Initial question / starting prompt */
-                <motion.div
-                  key={`q-${currentQ}`}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25, ease: EASE }}
-                >
-                  <p
-                    style={monoStyle}
-                    className="text-[11px] font-semibold text-[#EB3A14] uppercase tracking-[0.08em] mb-2"
-                  >
-                    Zara · AI Interviewer
-                  </p>
-                  <p
-                    style={sansStyle}
-                    className="text-[16px] sm:text-[18px] leading-relaxed text-[#1A1A1A] font-semibold tracking-[-0.015em]"
-                  >
+              {/* Initial interviewer question */}
+              {chatMessages.length === 0 && (
+                <div className="flex justify-start">
+                  <div className="max-w-[82%] rounded-2xl rounded-tl-sm bg-white border border-[#E5E5E5] px-3.5 py-2.5 text-xs text-[#1A1A1A]">
                     {currentQuestionText}
-                  </p>
-                </motion.div>
+                    <span className="block text-[10px] text-[#666666] mt-1">
+                      {getTimestamp()}
+                    </span>
+                  </div>
+                </div>
               )}
-            </AnimatePresence>
+
+              {/* Chat messages */}
+              {chatMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                      message.role === "user"
+                        ? "rounded-tr-sm bg-[#EB3A14] text-white"
+                        : "rounded-tl-sm bg-white border border-[#E5E5E5] text-[#1A1A1A]"
+                    }`}
+                  >
+                    {message.text}
+                    <span
+                      className={`block text-[10px] mt-1 ${
+                        message.role === "user"
+                          ? "text-white/75"
+                          : "text-[#666666]"
+                      }`}
+                    >
+                      {message.timestamp}
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              {/* Typing indicator while user is speaking */}
+              {userIsSpeaking && !transcript && (
+                <div className="flex justify-end">
+                  <div className="rounded-2xl rounded-tr-sm bg-[#EB3A14] px-3.5 py-3 flex gap-1 items-center">
+                    {[0, 1, 2].map((dot) => (
+                      <motion.span
+                        key={dot}
+                        animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
+                        className="w-1.5 h-1.5 rounded-full bg-white"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Session Status Pill */}
-          {isTranscribing ? (
-            <div className="w-full max-w-lg rounded-2xl border border-[#E5E5E5] bg-white px-5 py-3.5 flex items-center justify-center gap-3 shadow-xs">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                className="w-3.5 h-3.5 rounded-full border-2 border-[#E5E5E5] border-t-[#EB3A14] flex-shrink-0"
-              />
-              <span className="text-xs font-semibold text-[#1A1A1A]">
-                Evaluating your answer…
-              </span>
-            </div>
-          ) : vadState === "speaking" || vadState === "silence_detecting" ? (
-            <div className="w-full max-w-lg rounded-2xl border border-[#EB3A14]/30 bg-white px-5 py-3.5 flex items-center justify-center gap-3 shadow-xs">
-              <motion.div
-                animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-                transition={{ repeat: Infinity, duration: 1 }}
-                className="w-2.5 h-2.5 rounded-full bg-[#EB3A14] flex-shrink-0"
-              />
-              <span className="text-xs font-semibold text-[#EB3A14]">
-                Recording your answer… (speak naturally)
-              </span>
-            </div>
-          ) : (
-            <div className="w-full max-w-lg rounded-2xl border border-[#E5E5E5] bg-white px-5 py-3.5 flex items-center justify-center gap-3 shadow-xs">
-              {aiSpeaking ? (
-                <>
-                  <motion.div
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
-                    transition={{ repeat: Infinity, duration: 1.2 }}
-                    className="w-2.5 h-2.5 rounded-full bg-[#EB3A14] flex-shrink-0"
-                  />
-                  <span className="text-xs font-semibold text-[#1A1A1A]">
-                    Zara is speaking…
-                  </span>
-                </>
-              ) : (
-                <>
-                  <motion.div
-                    animate={{ opacity: [0.4, 0.9, 0.4] }}
-                    transition={{ repeat: Infinity, duration: 1.8 }}
-                    className="w-2 h-2 rounded-full bg-[#666666]/40 flex-shrink-0"
-                  />
-                  <span className="text-xs font-medium text-[#666666]">
-                    Listening for response…
-                  </span>
-                </>
-              )}
-            </div>
-          )}
-
+          {/* Error message */}
           {(error || realtimeError) && (
-            <div className="w-full max-w-lg mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+            <div className="flex-shrink-0 w-full max-w-lg mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
               <p className="text-xs text-rose-600 font-medium">
                 {error || realtimeError}
               </p>
             </div>
           )}
 
-          <p className="mt-4 text-xs text-[#666666] font-medium">
+          {/* Question counter */}
+          <p className="flex-shrink-0 mt-4 text-xs text-[#666666] font-medium">
             Question {currentQ + 1} of {totalQuestions}
           </p>
         </div>
