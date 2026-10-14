@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type MutableRefObject } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   Mic, MicOff, Clock3, PhoneOff, AlertOctagon,
-  UserRound, CheckCircle2, ChevronDown,
+  UserRound, CheckCircle2, ChevronDown, Video, ArrowLeft,
 } from "lucide-react";
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
@@ -19,6 +19,8 @@ type SessionData = RoleData & {
 };
 
 type Phase = "setup" | "active" | "done";
+type PermissionState = "todo" | "done" | "blocked";
+type PermissionKind = "microphone" | "camera";
 type ChatMessage = {
   id: string;
   role: "interviewer" | "user";
@@ -50,8 +52,21 @@ export default function InterviewSessionPage() {
   const [totalQuestions, setTotalQuestions] = useState<number>(10);
   const [error, setError] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [microphonePermission, setMicrophonePermission] = useState<PermissionState>("todo");
+  const [cameraPermission, setCameraPermission] = useState<PermissionState>("todo");
+  const [permissionMessage, setPermissionMessage] = useState<{
+    microphone?: string;
+    camera?: string;
+  }>({});
+  const [micLevel, setMicLevel] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const microphoneStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const permissionStatusRefs = useRef<Partial<Record<PermissionKind, PermissionStatus>>>({});
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const endRealtimeInterviewRef = useRef<() => void>(() => {});
@@ -203,6 +218,18 @@ export default function InterviewSessionPage() {
   const handleStartInterview = async () => {
     if (isStartingInterviewRef.current) return;
     isStartingInterviewRef.current = true;
+    if (microphoneStreamRef.current) {
+      microphoneStreamRef.current.getTracks().forEach((track) => track.stop());
+      microphoneStreamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      await audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
     setPhase("active");
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -221,41 +248,126 @@ export default function InterviewSessionPage() {
     }
   };
 
-  // Camera preview setup
+  const stopPreviewStream = (streamRef: MutableRefObject<MediaStream | null>) => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  };
+
+  const showPermissionError = (kind: PermissionKind, error: unknown) => {
+    const errorName = error instanceof DOMException ? error.name : "";
+    const label = kind === "camera" ? "camera" : "microphone";
+    const message =
+      errorName === "NotFoundError"
+        ? `No ${label} found`
+        : "Click the lock icon in your address bar, set " +
+          `${kind === "camera" ? "Camera" : "Microphone"} to Allow, then press Try again.`;
+    if (kind === "camera") {
+      setCameraPermission("blocked");
+      setCamError(true);
+      setCamLoading(false);
+    } else {
+      setMicrophonePermission("blocked");
+    }
+    setPermissionMessage((previous) => ({ ...previous, [kind]: message }));
+  };
+
+  const startMicMeter = (stream: MediaStream) => {
+    const AudioContextConstructor = window.AudioContext;
+    if (!AudioContextConstructor) return;
+    const audioContext = new AudioContextConstructor();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+    const data = new Uint8Array(analyser.fftSize);
+    audioContextRef.current = audioContext;
+    analyserRef.current = analyser;
+
+    const updateLevel = () => {
+      analyser.getByteTimeDomainData(data);
+      const average = data.reduce((sum, value) => sum + Math.abs(value - 128), 0) / data.length;
+      setMicLevel(Math.min(1, average / 32));
+      animationFrameRef.current = requestAnimationFrame(updateLevel);
+    };
+    updateLevel();
+  };
+
+  const requestPermission = async (kind: PermissionKind) => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showPermissionError(kind, new Error("Media devices are unavailable"));
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(
+        kind === "camera" ? { video: true } : { audio: true }
+      );
+      if (kind === "camera") {
+        stopPreviewStream(cameraStreamRef);
+        cameraStreamRef.current = stream;
+        if (videoRef.current) videoRef.current.srcObject = stream;
+        setCamOn(true);
+        setCamError(false);
+        setCamLoading(false);
+        setCameraPermission("done");
+      } else {
+        stopPreviewStream(microphoneStreamRef);
+        microphoneStreamRef.current = stream;
+        setMicrophonePermission("done");
+        if (audioContextRef.current) await audioContextRef.current.close();
+        startMicMeter(stream);
+      }
+      setPermissionMessage((previous) => ({ ...previous, [kind]: undefined }));
+    } catch (error) {
+      showPermissionError(kind, error);
+    }
+  };
+
+  // Setup preview and permission state. The camera stream is handed to the active view.
   useEffect(() => {
     let active = true;
-    let localStream: MediaStream | null = null;
+    const permissionKinds: PermissionKind[] = ["microphone", "camera"];
 
-    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({ video: true })
-        .then((stream) => {
-          if (!active) {
-            stream.getTracks().forEach((t) => t.stop());
-            return;
+    const checkPermission = async (kind: PermissionKind) => {
+      try {
+        const status = await navigator.permissions.query({ name: kind as PermissionName });
+        if (!active) return;
+        permissionStatusRefs.current[kind] = status;
+        status.onchange = () => {
+          if (!active) return;
+          if (status.state === "granted") {
+            void requestPermission(kind);
+          } else if (status.state === "denied") {
+            showPermissionError(kind, new DOMException("Permission denied", "NotAllowedError"));
+          } else {
+            kind === "camera" ? setCameraPermission("todo") : setMicrophonePermission("todo");
           }
-          localStream = stream;
-          setCamLoading(false);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-          setCamError(false);
-        })
-        .catch((err) => {
-          console.warn("[InterviewSession] Camera permission blocked or unavailable:", err?.message || err);
-          setCamLoading(false);
-          setCamError(true);
-        });
-    } else {
-      setCamLoading(false);
-      setCamError(true);
+        };
+        if (status.state === "granted") {
+          await requestPermission(kind);
+        } else if (status.state === "denied") {
+          showPermissionError(kind, new DOMException("Permission denied", "NotAllowedError"));
+        }
+      } catch {
+        // Permission queries are not implemented consistently across browsers.
+      }
+    };
+
+    if (typeof navigator !== "undefined") {
+      permissionKinds.forEach((kind) => void checkPermission(kind));
     }
 
     return () => {
       active = false;
-      if (localStream) {
-        localStream.getTracks().forEach((t) => t.stop());
-      }
+      permissionKinds.forEach((kind) => {
+        if (permissionStatusRefs.current[kind]) {
+          permissionStatusRefs.current[kind]!.onchange = null;
+        }
+      });
+      stopPreviewStream(cameraStreamRef);
+      stopPreviewStream(microphoneStreamRef);
+      if (audioContextRef.current) void audioContextRef.current.close();
+      if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
     };
   }, []);
 
@@ -306,122 +418,19 @@ export default function InterviewSessionPage() {
       </div>
     );
   }
-
-  // ── SETUP (READY SCREEN) ──────────────────────────────────────────────────
+  // -- SETUP (READY SCREEN) --------------------------------------------------
   if (phase === "setup") {
-    return (
-      <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] flex flex-col items-center justify-center relative overflow-hidden antialiased font-sans">
-        <div className="relative z-10 flex flex-col items-center text-center max-w-md w-full px-6 py-12">
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: EASE }}
-            className="flex items-center gap-2 font-bold tracking-tight mb-8"
-          >
-            <Image
-              src="/devprep-logo.png"
-              alt="DevPrep logo"
-              width={26}
-              height={26}
-              unoptimized
-              className="rounded-sm"
-            />
-            <span className="text-[15px] font-bold text-[#1A1A1A] tracking-[-0.01em]">
-              DevPrep
-            </span>
-          </motion.div>
-
-          {/* Zara Avatar Orb */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.05, ease: EASE }}
-            className="relative flex items-center justify-center mb-6"
-          >
-            <motion.div
-              animate={{ scale: [1, 1.04, 1] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-              className="relative w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center border border-[#E5E5E5]"
-            >
-              <span className="relative z-10 text-2xl font-extrabold text-[#1A1A1A]">
-                D<span className="text-[#EB3A14]">.</span>
-              </span>
-            </motion.div>
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1, ease: EASE }}
-            className="text-2xl sm:text-3xl font-extrabold tracking-[-0.02em] text-[#1A1A1A] mb-2.5"
-          >
-            Ready for your interview?
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15, ease: EASE }}
-            className="text-[#666666] text-sm sm:text-base leading-relaxed mb-8 max-w-sm"
-          >
-            Starting a{" "}
-            <span className="text-[#1A1A1A] font-semibold">{data.title}</span> practice interview —{" "}
-            {data.questions.length} questions, ~{data.duration} mins.
-          </motion.p>
-
-          {/* Checklist Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2, ease: EASE }}
-            className="w-full bg-white border border-[#E5E5E5] rounded-2xl p-6 text-left space-y-4 mb-8 shadow-sm"
-          >
-            {[
-              "Your microphone will be used for continuous hands-free voice interaction",
-              "Zara will speak each question — just respond naturally",
-              "Voice Activity Detection (VAD) automatically senses when you finish speaking",
-              "You can end the interview at any time",
-            ].map((tip) => (
-              <div key={tip} className="flex items-start gap-3.5 text-xs">
-                <div className="w-5 h-5 rounded-full bg-[#F5F5F7] border border-[#E5E5E5] flex items-center justify-center shrink-0 mt-0.5">
-                  <CheckCircle2 size={12} className="text-[#1A1A1A]" />
-                </div>
-                <span className="text-[#1A1A1A] text-[13px] font-medium leading-normal pt-0.5">
-                  {tip}
-                </span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Primary CTA */}
-          <motion.button
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.25, ease: EASE }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleStartInterview}
-            className="w-full py-4 rounded-full bg-[#1A1A1A] hover:bg-black text-white font-semibold text-[15px] tracking-tight transition-all flex items-center justify-center gap-2.5 shadow-sm cursor-pointer"
-          >
-            <Mic size={16} /> Start interview
-          </motion.button>
-
-          <motion.button
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3, ease: EASE }}
-            onClick={() => router.push(`/dashboard/ai-interview/${slug}`)}
-            className="mt-4 text-[13px] font-medium text-[#666666] hover:text-[#1A1A1A] transition-colors cursor-pointer border-0 bg-transparent p-0"
-          >
-            Go back
-          </motion.button>
-        </div>
-      </div>
-    );
+    const count = data.totalQuestions ?? totalQuestions;
+    const ready = microphonePermission === "done" && cameraPermission === "done";
+    const completed = [microphonePermission, cameraPermission].filter((s) => s === "done").length;
+    const hint = ready ? "All set \u00b7 you can start" : cameraPermission === "blocked" ? "Fix camera access to continue" : "Allow microphone and camera to continue";
+    const row = (kind: PermissionKind, step: string, label: string) => {
+      const state = kind === "camera" ? cameraPermission : microphonePermission;
+      const message = permissionMessage[kind];
+      return <div className="border-b border-[#E5E5E5] last:border-b-0"><div className="flex items-center gap-3 px-5 py-5"><div aria-label={`${label}: ${state}`} className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] border-2 font-bold ${state === "done" ? "border-[#22C55E] bg-[#22C55E] text-white" : state === "blocked" ? "border-[#EB3A14] bg-[#EB3A14] text-white" : "border-[#1A1A1A] bg-white text-transparent"}`}>{state === "done" ? "\u2713" : state === "blocked" ? "!" : "\u00b7"}</div><div className="min-w-0 flex-1"><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#666666]">Step {step} \u00b7 Required</p><p className="mt-1 text-[15px] font-semibold">{label}</p>{state === "done" && <p className="mt-1 text-[13px] text-[#15803D]">Allowed</p>}{state === "blocked" && <p className="mt-1 text-[13px] text-[#B32A0A]">Blocked</p>}</div>{state !== "done" && <button type="button" onClick={() => void requestPermission(kind)} className={`min-h-11 shrink-0 rounded-full px-4 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB3A14] ${state === "blocked" ? "border border-[#EB3A14] text-[#EB3A14] hover:bg-[#EB3A14] hover:text-white" : "bg-[#EB3A14] text-white hover:opacity-90"}`}>{state === "blocked" ? "Try again" : `Allow ${kind === "camera" ? "camera" : "microphone"}`}</button>}</div>{state === "blocked" && message && <div className="mx-5 mb-5 rounded-[4px] bg-[#F5F5F7] px-4 py-3 text-[13px] text-[#B32A0A]">{message}</div>}</div>;
+    };
+    return <div className="min-h-screen bg-[#F5F5F7] text-[#1A1A1A] antialiased font-sans"><header className="mx-auto flex max-w-[1120px] items-center justify-between px-6 py-6 lg:px-8"><div className="flex items-center gap-2"><Image src="/devprep-logo.png" alt="DevPrep logo" width={26} height={26} unoptimized className="rounded-sm" /><span className="text-[15px] font-bold">DevPrep</span></div><button type="button" onClick={() => router.push(`/dashboard/ai-interview/${slug}`)} className="min-h-11 rounded-full px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-[#666666]"><ArrowLeft size={14} className="mr-2 inline" aria-hidden="true" /> Go back</button></header><main className="mx-auto grid max-w-[1120px] grid-cols-1 gap-12 px-6 pb-14 pt-8 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pt-14"><section><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#EB3A14]">{data.title} \u00b7 {count} {count === 1 ? "question" : "questions"} \u00b7 ~{data.duration} min</p><h1 className="mt-6 max-w-[520px] text-[42px] font-bold leading-[1] tracking-[-0.04em] sm:text-[52px]">Ready for your interview?</h1><p className="mt-5 max-w-[480px] text-[16px] leading-7 text-[#666666]">Check your microphone and camera before you begin. You can focus on the conversation once everything is ready.</p><div className="mt-10 flex items-end justify-between"><div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#666666]">Before you start</p><div className="mt-3 flex gap-2">{[microphonePermission, cameraPermission].map((s, i) => <span key={i} className={`h-1.5 w-24 rounded-full ${s === "done" ? "bg-[#EB3A14]" : "bg-[#E5E5E5]"}`} />)}</div></div><span className="font-mono text-[11px] tracking-[0.1em] text-[#666666]">{String(completed).padStart(2, "0")} / 02</span></div><div className="mt-5 overflow-hidden rounded-[12px] border border-[#E5E5E5] bg-white">{row("microphone", "01", "Microphone access")}{row("camera", "02", "Camera access")}</div><button type="button" disabled={!ready} onClick={handleStartInterview} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1A1A1A] px-5 text-[15px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#E5E5E5] disabled:text-[#666666]"><Mic size={16} aria-hidden="true" /> Start interview</button><p aria-live="polite" className={`mt-3 text-center text-[13px] ${ready ? "text-[#15803D]" : "text-[#666666]"}`}>{hint}</p></section><aside className="space-y-5"><div className="relative aspect-[4/3] overflow-hidden rounded-[12px] bg-[#1E1E1E]">{cameraPermission === "done" && <video ref={videoRef} autoPlay muted playsInline className="h-full w-full scale-x-[-1] object-cover" />}{cameraPermission !== "done" && <div className="absolute inset-0 flex flex-col items-center justify-center"><p className="text-5xl font-extrabold text-white">D<span className="text-[#EB3A14]">.</span></p><p className="mt-3 font-mono text-[11px] uppercase tracking-[0.1em] text-white/70">{cameraPermission === "blocked" ? "Camera blocked" : "Camera is off"}</p></div>}<div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[12px] font-semibold"><span className={`h-2 w-2 rounded-full ${cameraPermission === "done" ? "bg-[#22C55E]" : cameraPermission === "blocked" ? "bg-[#EB3A14]" : "bg-[#666666]"}`} />Camera preview</div></div><div className="rounded-[12px] border border-[#E5E5E5] bg-white p-5"><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#666666]">Mic level \u00b7 {microphonePermission === "done" ? "say hello" : "off"}</p><div className="mt-5 flex h-10 items-end gap-1">{Array.from({ length: 12 }, (_, i) => <span key={i} className={`flex-1 rounded-sm ${microphonePermission === "done" && micLevel > i / 12 ? "bg-[#EB3A14]" : "bg-[#E5E5E5]"}`} style={{ height: `${35 + (i % 4) * 15}%` }} />)}</div></div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#666666]">Tip \u00b7 Find a quiet space and keep your face well lit.</p></aside></main></div>;
   }
-
   // ── DONE SCREEN ──────────────────────────────────────────────────────────────
   if (phase === "done") {
     return (
