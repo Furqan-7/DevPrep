@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { MicVAD } from "@ricky0123/vad-web";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
 
@@ -46,7 +47,7 @@ export interface UseRealtimeVoiceOptions {
   silenceThresholdMs?: number;
   minSpeechDurationMs?: number;
   preRollMs?: number;
-  energyThreshold?: number;
+  speechThreshold?: number;
   onTranscript?: (text: string) => void;
   onAiChunk?: (chunk: string) => void;
   onAiEnd?: (result: { fullText: string; firstTokenLatencyMs?: number; totalLatencyMs?: number; model?: string }) => void;
@@ -209,10 +210,10 @@ function float32ToInt16Pcm(float32: Float32Array): ArrayBuffer {
 export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   const {
     wsUrl = WS_URL,
-    silenceThresholdMs = 800,
-    minSpeechDurationMs = 250,
-    preRollMs = 500,
-    energyThreshold: baseEnergyThreshold = 0.02,
+    silenceThresholdMs = 1200,
+    minSpeechDurationMs = 300,
+    preRollMs = 300,
+    speechThreshold = 0.5,
   } = options;
 
   const optionsRef = useRef(options);
@@ -247,19 +248,22 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   const wsConnectingPromiseRef = useRef<Promise<WebSocket> | null>(null);
   const isStartingInterviewRef = useRef<boolean>(false);
   const micStreamRef = useRef<MediaStream | null>(null);
-  const micAudioCtxRef = useRef<AudioContext | null>(null);
-  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
-  const muteGainRef = useRef<GainNode | null>(null);
+  const vadRef = useRef<MicVAD | null>(null);
   const pcmPlayerRef = useRef<PcmStreamPlayer | null>(null);
   const sampleRateRef = useRef<number>(16000);
 
   // VAD state trackers
   const vadStateRef = useRef<VadState>("idle");
-  const preRollQueueRef = useRef<Float32Array[]>([]);
-  const preRollSamplesRef = useRef<number>(0);
-  const consecutiveSilenceSamplesRef = useRef<number>(0);
-  const speechSamplesRef = useRef<number>(0);
-  const noiseFloorRef = useRef<number>(0.005);
+  const candidateSpeakingRef = useRef<boolean>(false);
+  const turnRef = useRef({
+    preRoll: [] as Float32Array[],
+    preRollMs: 0,
+    seg: [] as Float32Array[],
+    speechMs: 0,
+    silenceMs: 0,
+    turnMs: 0,
+    startCount: 0,
+  });
   const transcriptRef = useRef<string | null>(null);
   const aiResponseRef = useRef<string>("");
   const aiResponseWordsRef = useRef<string[]>([]);
@@ -287,30 +291,22 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
       clearInterval(aiRevealTimerRef.current);
       aiRevealTimerRef.current = null;
     }
-    if (scriptProcessorRef.current) {
+    if (vadRef.current) {
       try {
-        scriptProcessorRef.current.disconnect();
+        void vadRef.current.destroy();
       } catch {
         /* ignore */
       }
-      scriptProcessorRef.current = null;
+      vadRef.current = null;
     }
-    if (muteGainRef.current) {
-      try {
-        muteGainRef.current.disconnect();
-      } catch {
-        /* ignore */
-      }
-      muteGainRef.current = null;
-    }
-    if (micAudioCtxRef.current && micAudioCtxRef.current.state !== "closed") {
-      try {
-        micAudioCtxRef.current.close();
-      } catch {
-        /* ignore */
-      }
-      micAudioCtxRef.current = null;
-    }
+    candidateSpeakingRef.current = false;
+    turnRef.current.preRoll = [];
+    turnRef.current.preRollMs = 0;
+    turnRef.current.seg = [];
+    turnRef.current.speechMs = 0;
+    turnRef.current.silenceMs = 0;
+    turnRef.current.turnMs = 0;
+    turnRef.current.startCount = 0;
     if (micStreamRef.current) {
       micStreamRef.current.getTracks().forEach((track) => track.stop());
       micStreamRef.current = null;
@@ -501,10 +497,8 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
               // Multi-turn automatic resume: Return to listening with mic active
               vadStateRef.current = "listening";
               setVadState("listening");
-              preRollQueueRef.current = [];
-              preRollSamplesRef.current = 0;
-              consecutiveSilenceSamplesRef.current = 0;
-              speechSamplesRef.current = 0;
+              candidateSpeakingRef.current = false;
+              turnRef.current.silenceMs = 0;
               setSilenceProgress(0);
 
               setTurnCount((prev) => {
@@ -539,6 +533,8 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             setIsTranscribing(false);
             setIsAiResponding(false);
             setIsTtsSpeaking(false);
+            candidateSpeakingRef.current = false;
+            turnRef.current.silenceMs = 0;
             vadStateRef.current = "listening";
             setVadState("listening");
             setSilenceProgress(0);
@@ -548,6 +544,8 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             setIsTranscribing(false);
             setIsAiResponding(false);
             setIsTtsSpeaking(false);
+            candidateSpeakingRef.current = false;
+            turnRef.current.silenceMs = 0;
             vadStateRef.current = "listening";
             setVadState("listening");
             optionsRef.current.onError?.(data.message);
@@ -655,177 +653,176 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
       });
       micStreamRef.current = stream;
 
-      // 3. Initialize AudioContext for microphone capture and VAD
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const micAudioCtx = new AudioCtxClass();
-      if (micAudioCtx.state === "suspended") {
-        await micAudioCtx.resume();
-      }
-      micAudioCtxRef.current = micAudioCtx;
-      const sampleRate = micAudioCtx.sampleRate;
-      sampleRateRef.current = sampleRate;
+      // 3. Silero emits 16 kHz mono audio
+      const vadSampleRate = 16000;
+      sampleRateRef.current = vadSampleRate;
 
-      // 4. Calculate limits based on sample rate
-      const silenceSamplesLimit = Math.floor((silenceThresholdMs / 1000) * sampleRate);
-      const minSpeechSamplesLimit = Math.floor((minSpeechDurationMs / 1000) * sampleRate);
-      const preRollSamplesLimit = Math.floor((preRollMs / 1000) * sampleRate);
-
-      // 5. Notify server of recording format
+      // 4. Tell the server the recording format
       setMimeTypeUsed("audio/wav");
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: "start_recording",
           mimeType: "audio/wav",
-          sampleRate: sampleRate,
+          sampleRate: vadSampleRate,
         }));
       }
 
-      // 6. Set up Web Audio pipeline
-      const source = micAudioCtx.createMediaStreamSource(stream);
-      const scriptProcessor = micAudioCtx.createScriptProcessor(2048, 1, 1);
-      scriptProcessorRef.current = scriptProcessor;
+      // 5. Start Silero VAD (client-only, so dynamic import)
+      const { MicVAD } = await import("@ricky0123/vad-web");
+      const START_FRAMES = 3;
+      const startThreshold = Math.min(0.9, speechThreshold + 0.1);
+      const MIN_RMS = 0.008;
+      const MAX_TURN_MS = 90_000;
+      const TAIL_KEEP_MS = 300;
 
-      const muteGain = micAudioCtx.createGain();
-      muteGain.gain.value = 0;
-      muteGainRef.current = muteGain;
+      const resetTurn = () => {
+        const turn = turnRef.current;
+        turn.preRoll = [];
+        turn.preRollMs = 0;
+        turn.seg = [];
+        turn.speechMs = 0;
+        turn.silenceMs = 0;
+        turn.turnMs = 0;
+        turn.startCount = 0;
+        candidateSpeakingRef.current = false;
+      };
+      resetTurn();
 
-      source.connect(scriptProcessor);
-      scriptProcessor.connect(muteGain);
-      muteGain.connect(micAudioCtx.destination);
+      const finishTurn = (frameMs: number) => {
+        const turn = turnRef.current;
+        const enoughSpeech = turn.speechMs >= minSpeechDurationMs;
+        const dropFrames = Math.max(0, Math.floor((turn.silenceMs - TAIL_KEEP_MS) / frameMs));
+        const frames = turn.seg.slice(0, Math.max(0, turn.seg.length - dropFrames));
+        resetTurn();
+        setSilenceProgress(0);
+
+        const socket = wsRef.current;
+        if (!enoughSpeech || !socket || socket.readyState !== WebSocket.OPEN) {
+          vadStateRef.current = "listening";
+          setVadState("listening");
+          return;
+        }
+
+        const total = frames.reduce((length, currentFrame) => length + currentFrame.length, 0);
+        const audio = new Float32Array(total);
+        let offset = 0;
+        for (const currentFrame of frames) {
+          audio.set(currentFrame, offset);
+          offset += currentFrame.length;
+        }
+
+        vadStateRef.current = "processing";
+        setVadState("processing");
+        setIsTranscribing(true);
+        optionsRef.current.onSpeechEnded?.();
+
+        const pcm = float32ToInt16Pcm(audio);
+        socket.send(JSON.stringify({ type: "speech_started" }));
+        socket.send(pcm);
+        setChunksSent((prev) => prev + 1);
+        setBytesSent((prev) => prev + pcm.byteLength);
+        socket.send(JSON.stringify({ type: "speech_ended" }));
+      };
+
+      const vad = await MicVAD.new({
+        model: "v5",
+        baseAssetPath: "/vad/",
+        onnxWASMBasePath: "/vad/",
+        startOnLoad: false,
+        processorType: "auto",
+        getStream: async () => stream,
+        pauseStream: async () => {},
+        resumeStream: async () => stream,
+        positiveSpeechThreshold: speechThreshold,
+        submitUserSpeechOnPause: false,
+        onFrameProcessed: (probs, frame) => {
+          let sum = 0;
+          for (let i = 0; i < frame.length; i++) {
+            const value = frame[i] ?? 0;
+            sum += value * value;
+          }
+          const rms = Math.sqrt(sum / frame.length);
+          setSpeechEnergy(Math.min(1, rms * 15));
+
+          const state = vadStateRef.current;
+          if (state === "processing" || state === "ai_speaking") {
+            const turn = turnRef.current;
+            if (candidateSpeakingRef.current || turn.seg.length || turn.preRoll.length) {
+              resetTurn();
+            }
+            return;
+          }
+
+          const turn = turnRef.current;
+          const frameMs = (frame.length / vadSampleRate) * 1000;
+          const threshold = candidateSpeakingRef.current ? speechThreshold : startThreshold;
+          const isSpeech = probs.isSpeech >= threshold && rms >= MIN_RMS;
+          const copy = new Float32Array(frame);
+
+          if (!candidateSpeakingRef.current) {
+            turn.preRoll.push(copy);
+            turn.preRollMs += frameMs;
+            while (turn.preRoll.length > 1 && turn.preRollMs - frameMs >= preRollMs) {
+              turn.preRoll.shift();
+              turn.preRollMs -= frameMs;
+            }
+
+            turn.startCount = isSpeech ? turn.startCount + 1 : 0;
+            if (turn.startCount >= START_FRAMES) {
+              candidateSpeakingRef.current = true;
+              turn.seg = turn.preRoll;
+              turn.preRoll = [];
+              turn.preRollMs = 0;
+              turn.speechMs = turn.startCount * frameMs;
+              turn.silenceMs = 0;
+              turn.turnMs = turn.seg.length * frameMs;
+              turn.startCount = 0;
+
+              vadStateRef.current = "speaking";
+              setVadState("speaking");
+              setSilenceProgress(0);
+              setTranscript(null);
+              transcriptRef.current = null;
+              setAiResponse("");
+              aiResponseRef.current = "";
+              optionsRef.current.onSpeechStarted?.();
+            }
+            return;
+          }
+
+          turn.seg.push(copy);
+          turn.turnMs += frameMs;
+
+          if (isSpeech) {
+            turn.speechMs += frameMs;
+            turn.silenceMs = 0;
+            if (vadStateRef.current === "silence_detecting") {
+              vadStateRef.current = "speaking";
+              setVadState("speaking");
+            }
+            setSilenceProgress(0);
+          } else {
+            turn.silenceMs += frameMs;
+            if (vadStateRef.current === "speaking") {
+              vadStateRef.current = "silence_detecting";
+              setVadState("silence_detecting");
+            }
+            setSilenceProgress(Math.min(1, turn.silenceMs / silenceThresholdMs));
+          }
+
+          if (turn.silenceMs >= silenceThresholdMs || turn.turnMs >= MAX_TURN_MS) {
+            finishTurn(frameMs);
+          }
+        },
+      });
+
+      vadRef.current = vad;
 
       if (!config?.firstQuestion) {
         vadStateRef.current = "listening";
         setVadState("listening");
       }
-
-      preRollQueueRef.current = [];
-      preRollSamplesRef.current = 0;
-      consecutiveSilenceSamplesRef.current = 0;
-      speechSamplesRef.current = 0;
-      noiseFloorRef.current = 0.005;
-
-      scriptProcessor.onaudioprocess = (e: AudioProcessingEvent) => {
-        const inputData = e.inputBuffer.getChannelData(0);
-
-        let sum = 0;
-        for (let i = 0; i < inputData.length; i++) {
-          const val = inputData[i] ?? 0;
-          sum += val * val;
-        }
-        const rms = Math.sqrt(sum / inputData.length);
-        setSpeechEnergy(Math.min(1, rms * 15));
-
-        // Prevent acoustic feedback: Do NOT detect speech when AI is speaking or processing
-        if (vadStateRef.current === "processing" || vadStateRef.current === "ai_speaking") {
-          return;
-        }
-
-        // Adaptive noise floor & dynamic speech threshold
-        noiseFloorRef.current = Math.min(noiseFloorRef.current * 0.998 + rms * 0.002, rms);
-        const dynamicThreshold = Math.max(baseEnergyThreshold, noiseFloorRef.current * 2.5);
-        const isVoice = rms > dynamicThreshold;
-
-        // VAD State Machine:
-        if (vadStateRef.current === "listening") {
-          const blockCopy = new Float32Array(inputData);
-          preRollQueueRef.current.push(blockCopy);
-          preRollSamplesRef.current += blockCopy.length;
-          while (
-            preRollSamplesRef.current - (preRollQueueRef.current[0]?.length ?? 0) >=
-            preRollSamplesLimit
-          ) {
-            const removed = preRollQueueRef.current.shift();
-            if (removed) preRollSamplesRef.current -= removed.length;
-          }
-
-          if (isVoice) {
-            console.log("[VAD] Voice activity detected! Transitioning to SPEECH_ACTIVE.");
-            vadStateRef.current = "speaking";
-            setVadState("speaking");
-            setTranscript(null);
-            transcriptRef.current = null;
-            setAiResponse("");
-            aiResponseRef.current = "";
-            optionsRef.current.onSpeechStarted?.();
-
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({ type: "speech_started" }));
-
-              for (const block of preRollQueueRef.current) {
-                const pcm = float32ToInt16Pcm(block);
-                wsRef.current.send(pcm);
-                setChunksSent((prev) => prev + 1);
-                setBytesSent((prev) => prev + pcm.byteLength);
-              }
-            }
-            preRollQueueRef.current = [];
-            preRollSamplesRef.current = 0;
-            speechSamplesRef.current = 0;
-            consecutiveSilenceSamplesRef.current = 0;
-            setSilenceProgress(0);
-          }
-        } else if (vadStateRef.current === "speaking") {
-          speechSamplesRef.current += inputData.length;
-
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            const pcm = float32ToInt16Pcm(inputData);
-            wsRef.current.send(pcm);
-            setChunksSent((prev) => prev + 1);
-            setBytesSent((prev) => prev + pcm.byteLength);
-          }
-
-          if (!isVoice) {
-            vadStateRef.current = "silence_detecting";
-            setVadState("silence_detecting");
-            consecutiveSilenceSamplesRef.current = inputData.length;
-            setSilenceProgress(consecutiveSilenceSamplesRef.current / silenceSamplesLimit);
-          } else {
-            consecutiveSilenceSamplesRef.current = 0;
-            setSilenceProgress(0);
-          }
-        } else if (vadStateRef.current === "silence_detecting") {
-          speechSamplesRef.current += inputData.length;
-
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            const pcm = float32ToInt16Pcm(inputData);
-            wsRef.current.send(pcm);
-            setChunksSent((prev) => prev + 1);
-            setBytesSent((prev) => prev + pcm.byteLength);
-          }
-
-          if (isVoice) {
-            vadStateRef.current = "speaking";
-            setVadState("speaking");
-            consecutiveSilenceSamplesRef.current = 0;
-            setSilenceProgress(0);
-          } else {
-            consecutiveSilenceSamplesRef.current += inputData.length;
-            const progress = Math.min(1, consecutiveSilenceSamplesRef.current / silenceSamplesLimit);
-            setSilenceProgress(progress);
-
-            if (consecutiveSilenceSamplesRef.current >= silenceSamplesLimit) {
-              if (speechSamplesRef.current >= minSpeechSamplesLimit) {
-                console.log("[VAD] Finalized speech turn. Sending speech_ended.");
-                vadStateRef.current = "processing";
-                setVadState("processing");
-                setIsTranscribing(true);
-                optionsRef.current.onSpeechEnded?.();
-
-                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                  wsRef.current.send(JSON.stringify({ type: "speech_ended" }));
-                }
-              } else {
-                console.log("[VAD] Noise burst below minSpeechDuration. Discarding.");
-                vadStateRef.current = "listening";
-                setVadState("listening");
-              }
-              consecutiveSilenceSamplesRef.current = 0;
-              speechSamplesRef.current = 0;
-              setSilenceProgress(0);
-            }
-          }
-        }
-      };
+      await vad.start();
     } catch (err: unknown) {
       console.error("[useRealtimeVoice] Failed to start interview:", err);
       cleanupMicrophone();
@@ -844,7 +841,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     silenceThresholdMs,
     minSpeechDurationMs,
     preRollMs,
-    baseEnergyThreshold,
+    speechThreshold,
   ]);
 
   const endInterview = useCallback(() => {
