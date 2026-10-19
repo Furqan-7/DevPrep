@@ -1099,7 +1099,9 @@ function LandingFooter() {
 export default function LandingPage() {
   const reduceMotion = useReducedMotion();
   return (
-    <div className={`min-h-screen bg-[#f5f5f7] text-[#1a1a1a] overflow-x-hidden selection:bg-[#eb3a14]/20 ${reduceMotion ? "motion-reduce" : ""}`}>
+    <div
+      className={`min-h-screen bg-[#f5f5f7] text-[#1a1a1a] overflow-x-hidden selection:bg-[#eb3a14]/20 ${reduceMotion ? "motion-reduce" : ""}`}
+    >
       <GlobalNav />
       <HeroSection />
       <TrustedBy />

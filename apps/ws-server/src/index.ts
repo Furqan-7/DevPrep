@@ -37,6 +37,7 @@ interface ClientSession {
     isSpeaking: boolean;
     currentTtsSession?: DeepgramStreamingTtsSession | null;
     prewarmedTtsSession?: DeepgramStreamingTtsSession | null;
+    persistentTtsSession?: DeepgramStreamingTtsSession | null;
 }
 
 interface ActiveSessionRegistration {
@@ -89,6 +90,7 @@ wss.on("connection", (client) => {
         isSpeaking: false,
         currentTtsSession: null,
         prewarmedTtsSession: null,
+        persistentTtsSession: null,
     };
 
     client.on("message", async (data: RawData, isBinary: boolean) => {
@@ -228,16 +230,22 @@ wss.on("connection", (client) => {
                 if (session.currentTtsSession) {
                     session.currentTtsSession.abort();
                     session.currentTtsSession = null;
+                    session.persistentTtsSession = null;
                 }
 
-                // Abort previous pre-warmed session if exists
-                if (session.prewarmedTtsSession) {
+                // Reuse the completed OPEN session; only abort an unusable prewarm.
+                if (session.persistentTtsSession && session.persistentTtsSession.isAlive()) {
+                    session.persistentTtsSession.prepareForNextTurn();
+                    session.prewarmedTtsSession = session.persistentTtsSession;
+                } else if (session.prewarmedTtsSession) {
                     session.prewarmedTtsSession.abort();
                     session.prewarmedTtsSession = null;
+                    session.persistentTtsSession = null;
                 }
 
                 // Pre-warm single Deepgram WebSocket during candidate speech turn
                 try {
+                    if (!session.prewarmedTtsSession) {
                     session.prewarmedTtsSession = new DeepgramStreamingTtsSession({
                         model: "flux-hannah-en",
                         sampleRate: 24000,
@@ -248,6 +256,7 @@ wss.on("connection", (client) => {
                         },
                     });
                     session.prewarmedTtsSession.start();
+                    }
                 } catch (err) {
                     console.warn("[ws-server] Deepgram prewarm error:", err);
                 }
@@ -375,6 +384,7 @@ wss.on("connection", (client) => {
                     }
                     session.prewarmedTtsSession = null;
                     session.currentTtsSession = ttsSession;
+                    session.persistentTtsSession = ttsSession;
 
                     const startTime = Date.now();
                     let firstTextSentTime: number | null = null;
@@ -479,12 +489,19 @@ wss.on("connection", (client) => {
                 session.currentTtsSession.abort();
             } catch {}
             session.currentTtsSession = null;
+            session.persistentTtsSession = null;
         }
         if (session.prewarmedTtsSession) {
             try {
                 session.prewarmedTtsSession.abort();
             } catch {}
             session.prewarmedTtsSession = null;
+        }
+        if (session.persistentTtsSession) {
+            try {
+                session.persistentTtsSession.abort();
+            } catch {}
+            session.persistentTtsSession = null;
         }
         if (session.sessionId) {
             const reg = activeSessionRegistry.get(session.sessionId);

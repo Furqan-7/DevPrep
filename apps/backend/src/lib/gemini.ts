@@ -11,6 +11,9 @@ const MODELS = [
     "gemini-3.8-flash",
 ];
 
+const MODEL = "gemini-3.5-flash-lite";
+
+
 export interface StreamGeminiOptions {
     prompt: string;
     systemInstruction?: string;
@@ -27,57 +30,67 @@ export interface StreamGeminiResult {
 /**
  * Stream content from Gemini with automatic fallback to secondary models if primary fails.
  */
-export async function streamGeminiContent(options: StreamGeminiOptions): Promise<StreamGeminiResult> {
+
+export async function streamGeminiContent(
+    options: StreamGeminiOptions
+): Promise<StreamGeminiResult> {
     const { prompt, systemInstruction, onChunk } = options;
-    let lastError: any = null;
 
-    for (const modelName of MODELS) {
-        try {
-            const modelConfig: any = { model: modelName };
-            if (systemInstruction) {
-                modelConfig.systemInstruction = systemInstruction;
-            }
+    const modelConfig: any = {
+        model: MODEL,
+    };
 
-            const model = genAI.getGenerativeModel(modelConfig);
-            const startTime = Date.now();
-            let firstTokenTime: number | null = null;
-            let fullText = "";
-
-            const responseStream = await model.generateContentStream(prompt);
-
-            for await (const chunk of responseStream.stream) {
-                let chunkText = "";
-                try {
-                    chunkText = chunk.text();
-                } catch {
-                    // Chunk may have no candidate parts (e.g. finish reason or safety metadata)
-                }
-                if (!chunkText) continue;
-
-                if (firstTokenTime === null) {
-                    firstTokenTime = Date.now();
-                }
-
-                fullText += chunkText;
-                onChunk(chunkText);
-            }
-
-            const totalLatencyMs = Date.now() - startTime;
-            const firstTokenLatencyMs = firstTokenTime ? firstTokenTime - startTime : totalLatencyMs;
-
-            return {
-                fullText,
-                modelUsed: modelName,
-                firstTokenLatencyMs,
-                totalLatencyMs,
-            };
-        } catch (err: any) {
-            console.warn(`[gemini.ts] Model ${modelName} failed or unavailable:`, err?.message || err);
-            lastError = err;
-        }
+    if (systemInstruction) {
+        modelConfig.systemInstruction = systemInstruction;
     }
 
-    throw new Error(`All Gemini models failed. Last error: ${lastError?.message || lastError}`);
+    const model = genAI.getGenerativeModel(modelConfig);
+
+    const startTime = Date.now();
+    let firstTokenTime: number | null = null;
+    let fullText = "";
+
+    console.log(`[Gemini] Request started | model=${MODEL}`);
+    const responseStream = await model.generateContentStream(prompt);
+
+    for await (const chunk of responseStream.stream) {
+        let chunkText = "";
+
+        try {
+            chunkText = chunk.text();
+        } catch {
+            // Chunk may contain no text
+        }
+
+        if (!chunkText) continue;
+
+        if (firstTokenTime === null) {
+            firstTokenTime = Date.now();
+            console.log(
+                `[Gemini] First token | ${Date.now() - startTime}ms`
+            );
+        }
+
+        fullText += chunkText;
+        onChunk(chunkText);
+    }
+
+    console.log(
+        `[Gemini] Completed | ${Date.now() - startTime}ms`
+    );
+
+    const totalLatencyMs = Date.now() - startTime;
+    const firstTokenLatencyMs =
+        firstTokenTime !== null
+            ? firstTokenTime - startTime
+            : totalLatencyMs;
+
+    return {
+        fullText,
+        modelUsed: MODEL,
+        firstTokenLatencyMs,
+        totalLatencyMs,
+    };
 }
 
 /**

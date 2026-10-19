@@ -1,6 +1,8 @@
 import path from "path";
 import dotenv from "dotenv";
 import WebSocket from "ws";
+import dns from "dns";
+import tls from "tls";
 
 // Load environment variables (checking local, backend, frontend, database)
 dotenv.config();
@@ -37,6 +39,7 @@ export interface TTSResult {
 const DEFAULT_MODEL = "flux-hannah-en";
 const SAMPLE_RATE = 24000;
 const ENCODING = "linear16";
+type DeepgramConnectionState = "CONNECTING" | "OPEN" | "CLOSING" | "CLOSED";
 
 /**
  * Clean text for spoken TTS by removing markdown formatting
@@ -167,10 +170,11 @@ export class DeepgramStreamingTtsSession {
     private onAudioChunk: (chunk: Buffer) => void;
 
     private ws: WebSocket | null = null;
-    private isOpen: boolean = false;
+    private connectionState: DeepgramConnectionState = "CLOSED";
     private pendingText: string[] = [];
     private hasFinished: boolean = false;
-    private startTime: number = Date.now();
+    private connectionStartTime: number | null = null;
+    private streamStartTime: number = Date.now();
     private firstAudioTime: number | null = null;
     private firstTextSentTime: number | null = null;
     private totalBytes: number = 0;
@@ -179,6 +183,7 @@ export class DeepgramStreamingTtsSession {
 
     private resolvePromise: ((res: TTSResult) => void) | null = null;
     private rejectPromise: ((err: any) => void) | null = null;
+    private completionHandled = false;
 
     constructor(options: {
         model?: string;
@@ -192,24 +197,53 @@ export class DeepgramStreamingTtsSession {
     }
 
     public isAlive(): boolean {
-        return this.ws !== null && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING);
+        return this.connectionState === "OPEN" || this.connectionState === "CONNECTING";
     }
 
     public start() {
         if (!this.apiKey) {
             throw new Error("DEEPGRAM_API_KEY is not configured.");
         }
+        if (this.isAlive()) {
+            return;
+        }
 
-        this.startTime = Date.now();
+        this.connectionStartTime = Date.now();
+        this.streamStartTime = this.connectionStartTime;
+        this.connectionState = "CONNECTING";
         const isV2 = this.model.startsWith("flux-");
         const endpointVersion = isV2 ? "v2" : "v1";
         const url = `wss://api.deepgram.com/${endpointVersion}/speak?model=${encodeURIComponent(this.model)}&encoding=${ENCODING}&sample_rate=${this.sampleRate}`;
         
-        console.log(`[DeepgramSession] Initiating persistent WS connection to: ${url}`);
+        console.log(`[DeepgramSession] WS connection started: ${url}`);
         this.ws = new WebSocket(url, {
             headers: {
                 "Authorization": `Token ${this.apiKey}`
-            }
+            },
+            lookup: (hostname, options, callback) => {
+                const lookupStart = Date.now();
+                dns.lookup(hostname, options as dns.LookupOptions, (err, address, family) => {
+                    if (!err) {
+                        console.log(`[DeepgramSession] DNS resolved in ${Date.now() - lookupStart}ms`);
+                    }
+                    callback(err, address, family);
+                });
+            },
+            createConnection: (options: import("http").ClientRequestArgs) => {
+                const socket = tls.connect(options as tls.ConnectionOptions);
+                socket.once("connect", () => {
+                    console.log(`[DeepgramSession] TCP connected in ${this.connectionStartTime ? Date.now() - this.connectionStartTime : 0}ms`);
+                });
+                socket.once("secureConnect", () => {
+                    console.log(`[DeepgramSession] TLS connected in ${this.connectionStartTime ? Date.now() - this.connectionStartTime : 0}ms`);
+                });
+                return socket;
+            },
+        });
+        console.log("[DeepgramSession] Connection created");
+
+        this.ws.on("upgrade", () => {
+            console.log(`[DeepgramSession] WebSocket upgrade in ${this.connectionStartTime ? Date.now() - this.connectionStartTime : 0}ms`);
         });
 
         this.timeoutId = setTimeout(() => {
@@ -223,9 +257,9 @@ export class DeepgramStreamingTtsSession {
         }, 60000);
 
         this.ws.on("open", () => {
-            const connectDuration = Date.now() - this.startTime;
-            console.log(`[DeepgramSession] WS Connected in ${connectDuration}ms`);
-            this.isOpen = true;
+            this.connectionState = "OPEN";
+            const connectDuration = this.connectionStartTime ? Date.now() - this.connectionStartTime : 0;
+            console.log(`[DeepgramSession] WS OPEN in ${connectDuration}ms`);
 
             // Flush any text chunks that were queued while WS was connecting
             while (this.pendingText.length > 0) {
@@ -256,8 +290,8 @@ export class DeepgramStreamingTtsSession {
                     this.firstAudioTime = Date.now();
                     const ttfa = this.firstTextSentTime
                         ? this.firstAudioTime - this.firstTextSentTime
-                        : this.firstAudioTime - this.startTime;
-                    console.log(`[DeepgramSession] Time-to-first-audio (TTFA): ${ttfa}ms (${chunk.length} bytes, chunk #${this.audioChunksCount})`);
+                        : this.firstAudioTime - this.streamStartTime;
+                    console.log(`[DeepgramSession] First audio in ${ttfa}ms (TTFA, ${chunk.length} bytes, chunk #${this.audioChunksCount})`);
                 }
 
                 // Forward audio chunk to browser immediately
@@ -269,9 +303,9 @@ export class DeepgramStreamingTtsSession {
                     const isCompletion = msg.type === "SpeechMetadata" || (!isV2 && msg.type === "Flushed");
                     if (isCompletion) {
                         console.log(`[DeepgramSession] Received '${msg.type}' completion acknowledgment. All audio chunks received.`);
-                        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                            this.ws.send(JSON.stringify({ type: "Close" }));
-                            this.ws.close();
+                        if (!this.completionHandled) {
+                            this.completionHandled = true;
+                            this._resolveFinished();
                         }
                     }
                 } catch {
@@ -281,21 +315,22 @@ export class DeepgramStreamingTtsSession {
         });
 
         this.ws.on("close", (code) => {
+            this.connectionState = "CLOSED";
             if (this.timeoutId) {
                 clearTimeout(this.timeoutId);
                 this.timeoutId = null;
             }
 
-            const totalDurationMs = Date.now() - this.startTime;
+            const totalDurationMs = Date.now() - this.streamStartTime;
             const timeToFirstAudioMs = (this.firstAudioTime && this.firstTextSentTime)
                 ? this.firstAudioTime - this.firstTextSentTime
-                : (this.firstAudioTime ? this.firstAudioTime - this.startTime : totalDurationMs);
+                : (this.firstAudioTime ? this.firstAudioTime - this.streamStartTime : totalDurationMs);
             const audioDurationSec = this.totalBytes / (this.sampleRate * 2);
 
-            console.log(`[DeepgramSession] Stream completed. Total chunks: ${this.audioChunksCount}, bytes: ${this.totalBytes} (~${audioDurationSec.toFixed(2)}s audio), total duration: ${totalDurationMs}ms`);
+            console.log(`[DeepgramSession] Stream completed in ${totalDurationMs}ms. Total chunks: ${this.audioChunksCount}, bytes: ${this.totalBytes} (~${audioDurationSec.toFixed(2)}s audio)`);
 
             if (this.resolvePromise) {
-                this.resolvePromise({
+                this._resolveFinished({
                     timeToFirstAudioMs,
                     totalDurationMs,
                     totalBytes: this.totalBytes,
@@ -304,7 +339,7 @@ export class DeepgramStreamingTtsSession {
                     encoding: ENCODING,
                     model: this.model,
                     firstAudioTimestamp: this.firstAudioTime || Date.now(),
-                    firstTextSentMs: this.firstTextSentTime ? this.firstTextSentTime - this.startTime : undefined,
+                    firstTextSentMs: this.firstTextSentTime ? this.firstTextSentTime - this.streamStartTime : undefined,
                     firstTextSentTimestamp: this.firstTextSentTime || null,
                 });
             }
@@ -312,6 +347,7 @@ export class DeepgramStreamingTtsSession {
 
         this.ws.on("error", (err) => {
             console.error("[DeepgramSession] WebSocket Error:", err);
+            this.connectionState = "CLOSED";
             if (this.timeoutId) {
                 clearTimeout(this.timeoutId);
                 this.timeoutId = null;
@@ -326,8 +362,30 @@ export class DeepgramStreamingTtsSession {
         const cleaned = cleanTextForSpeech(text);
         if (!cleaned) return;
 
+        if (this.connectionState === "OPEN" && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this._sendSpeak(cleaned);
+        } else {
+            this.pendingText.push(cleaned);
+        }
+    }
+
+    public prepareForNextTurn() {
+        if (!this.isAlive()) {
+            throw new Error("Cannot prepare a closed Deepgram session for another turn.");
+        }
+        this.hasFinished = false;
+        this.completionHandled = false;
+        this.streamStartTime = Date.now();
+        this.firstAudioTime = null;
+        this.firstTextSentTime = null;
+        this.totalBytes = 0;
+        this.audioChunksCount = 0;
+    }
+
+    private _sendSpeak(text: string) {
         if (!this.firstTextSentTime) {
             this.firstTextSentTime = Date.now();
+            console.log(`[DeepgramSession] Speak sent`);
             if (this.timeoutId) clearTimeout(this.timeoutId);
             this.timeoutId = setTimeout(() => {
                 if (this.ws && this.ws.readyState !== WebSocket.CLOSED) {
@@ -338,35 +396,52 @@ export class DeepgramStreamingTtsSession {
                     this.rejectPromise(new Error("Deepgram TTS session timed out after 60s of active synthesis"));
                 }
             }, 60000);
-        }
-
-        if (this.isOpen && this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this._sendSpeak(cleaned);
         } else {
-            this.pendingText.push(cleaned);
+            console.log(`[DeepgramSession] Speak sent`);
         }
-    }
-
-    private _sendSpeak(text: string) {
-        console.log(`[DeepgramSession] Sending Speak: "${text.slice(0, 60)}${text.length > 60 ? "..." : ""}"`);
         this.ws?.send(JSON.stringify({ type: "Speak", text }));
     }
 
     private _sendFlush() {
-        console.log("[DeepgramSession] Sending Flush to finalize audio generation...");
+        console.log("[DeepgramSession] Flush sent");
         this.ws?.send(JSON.stringify({ type: "Flush" }));
     }
 
     public finish(): Promise<TTSResult> {
         this.hasFinished = true;
-        if (this.isOpen && this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this._sendFlush();
-        }
-
-        return new Promise((resolve, reject) => {
+        const result = new Promise<TTSResult>((resolve, reject) => {
             this.resolvePromise = resolve;
             this.rejectPromise = reject;
         });
+        if (this.connectionState === "OPEN" && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this._sendFlush();
+        }
+        return result;
+    }
+
+    private _resolveFinished(result?: TTSResult) {
+        if (!this.resolvePromise) return;
+        const totalDurationMs = Date.now() - this.streamStartTime;
+        const resolvedResult = result || {
+            timeToFirstAudioMs: this.firstAudioTime && this.firstTextSentTime
+                ? this.firstAudioTime - this.firstTextSentTime
+                : this.firstAudioTime
+                    ? this.firstAudioTime - this.streamStartTime
+                    : totalDurationMs,
+            totalDurationMs,
+            totalBytes: this.totalBytes,
+            audioDurationSec: this.totalBytes / (this.sampleRate * 2),
+            sampleRate: this.sampleRate,
+            encoding: ENCODING,
+            model: this.model,
+            firstAudioTimestamp: this.firstAudioTime || Date.now(),
+            firstTextSentMs: this.firstTextSentTime ? this.firstTextSentTime - this.streamStartTime : undefined,
+            firstTextSentTimestamp: this.firstTextSentTime || null,
+        };
+        console.log(`[DeepgramSession] Stream completed in ${totalDurationMs}ms. Total chunks: ${this.audioChunksCount}, bytes: ${this.totalBytes} (~${resolvedResult.audioDurationSec.toFixed(2)}s audio)`);
+        this.resolvePromise(resolvedResult);
+        this.resolvePromise = null;
+        this.rejectPromise = null;
     }
 
     public abort() {
@@ -383,7 +458,7 @@ export class DeepgramStreamingTtsSession {
             } catch {}
             this.ws = null;
         }
-        this.isOpen = false;
+        this.connectionState = "CLOSED";
         if (this.rejectPromise) {
             this.rejectPromise(new Error("Deepgram TTS session aborted"));
             this.rejectPromise = null;
