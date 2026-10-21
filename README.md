@@ -1,159 +1,78 @@
-# Turborepo starter
+[DevPrep Launch Video.html](https://github.com/user-attachments/files/33755755/DevPrep.Launch.Video.html)# DevPrep
 
-This Turborepo starter is maintained by the Turborepo core team.
+> AI-powered mock interview platform with real-time voice interviews,
+> coding challenges, and personalized feedback.
 
-## Using this example
+## Demo
 
-Run the following command:
+DevPrep Demo : 
 
-```sh
-npx create-turbo@latest
-```
+https://github.com/user-attachments/assets/e849b172-3296-481f-a1bc-5e0ba44fd50e
 
-## What's inside?
+## Architecture
 
-This Turborepo includes the following packages/apps:
+DevPrep Architecture : 
 
-### Apps and Packages
+<img width="1940" height="1162" alt="image" src="https://github.com/user-attachments/assets/7536a851-497e-43cf-8d48-f4a30ce2b51c" />
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### How It Works
 
-### Utilities
+1. The candidate speaks through the browser.
+2. Silero VAD detects the end of the speech.
+3. PCM audio is sent to the WebSocket server.
+4. Groq Whisper converts speech to text.
+5. Gemini generates the AI interviewer's response.
+6. Deepgram converts the response into speech.
+7. PCM audio is streamed back to the browser.
+8. The interview continues in real time.
 
-This Turborepo has some additional tools already setup for you:
+## Features
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+- Real-time AI voice interviews
+- Context-aware follow-up questions
+- Speech-to-text with Groq Whisper
+- AI interviewer powered by Gemini
+- Streaming TTS with Deepgram
+- Browser-side voice activity detection
+- Coding interview support
+- AI-powered interview feedback
+- Interview history and progress tracking
 
-### Build
+## Tech Stack
 
-To build all apps and packages, run the following command:
+| Category | Technologies |
+|---|---|
+| Frontend | Next.js, React, TypeScript, Tailwind CSS |
+| Backend | Node.js, Express, Prisma |
+| Database | PostgreSQL |
+| Real-time | WebSocket, Web Audio API, PCM |
+| AI | Groq Whisper, Gemini, Deepgram |
+| VAD | Silero VAD, ONNX Runtime |
+| Tooling | pnpm, Vercel, Railway |
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## Project Structure
 
-```sh
-cd my-turborepo
-turbo build
-```
+```text
+apps/
+├── web/          # Next.js frontend
+├── ws-server/    # Real-time WebSocket server
+└── http-server/  # REST API
 
-Without global `turbo`, use your package manager:
+packages/         # Shared packages
+prisma/           # Database schema & migrations
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
-```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+git clone https://github.com/Furqan-7/devprep.git
+cd devprep
+pnpm install
+cp .env.example .env
+pnpm dev
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+DATABASE_URL=
+GROQ_API_KEY=
+GEMINI_API_KEY=
+DEEPGRAM_API_KEY=
 
-```sh
-turbo build --filter=docs
-```
 
-Without global `turbo`:
-
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+This keeps the README focused on **what DevPrep is, how it works, its architecture, features, and stack**, without turning it into technical documentation.
