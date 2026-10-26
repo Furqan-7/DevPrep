@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   Mic, MicOff, Clock3, PhoneOff, AlertOctagon,
-  UserRound, CheckCircle2, ChevronDown, Video, ArrowLeft,
+  UserRound, CheckCircle2, ChevronDown, ArrowLeft,
 } from "lucide-react";
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
@@ -340,7 +340,11 @@ export default function InterviewSessionPage() {
           } else if (status.state === "denied") {
             showPermissionError(kind, new DOMException("Permission denied", "NotAllowedError"));
           } else {
-            kind === "camera" ? setCameraPermission("todo") : setMicrophonePermission("todo");
+            if (kind === "camera") {
+              setCameraPermission("todo");
+            } else {
+              setMicrophonePermission("todo");
+            }
           }
         };
         if (status.state === "granted") {
@@ -357,11 +361,12 @@ export default function InterviewSessionPage() {
       permissionKinds.forEach((kind) => void checkPermission(kind));
     }
 
+    const statuses = permissionStatusRefs.current;
     return () => {
       active = false;
       permissionKinds.forEach((kind) => {
-        if (permissionStatusRefs.current[kind]) {
-          permissionStatusRefs.current[kind]!.onchange = null;
+        if (statuses[kind]) {
+          statuses[kind]!.onchange = null;
         }
       });
       stopPreviewStream(cameraStreamRef);
@@ -369,6 +374,7 @@ export default function InterviewSessionPage() {
       if (audioContextRef.current) void audioContextRef.current.close();
       if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleCam = () => {

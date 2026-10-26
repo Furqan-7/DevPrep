@@ -5,13 +5,15 @@ import type {
   FeedbackSessionsResponse,
   FeedbackFrequencyResponse,
   RecurringGap,
+  RoleFeedback,
 } from "@/types/feedback";
+export { roleFeedbackHref } from "./routes";
 
 export type FeedbackApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: FeedbackApiError };
 
-export type FeedbackApiErrorCode = "unauthorized" | "network" | "validation" | "server";
+export type FeedbackApiErrorCode = "unauthorized" | "not_found" | "network" | "validation" | "server";
 
 export interface FeedbackApiError {
   code: FeedbackApiErrorCode;
@@ -20,7 +22,7 @@ export interface FeedbackApiError {
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-const useMock = process.env.NEXT_PUBLIC_FEEDBACK_MOCK === "true";
+const useMock = process.env.NEXT_PUBLIC_FEEDBACK_MOCK !== "false";
 
 async function request<T>(path: string, init?: RequestInit): Promise<FeedbackApiResult<T>> {
   try {
@@ -31,6 +33,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<FeedbackApi
     });
     if (response.status === 401) {
       return { ok: false, error: { code: "unauthorized", message: "Your session has expired.", status: 401 } };
+    }
+    if (response.status === 404) {
+      return { ok: false, error: { code: "not_found", message: "Feedback could not be found.", status: 404 } };
     }
     if (!response.ok) {
       return { ok: false, error: { code: "server", message: "Feedback could not be loaded.", status: response.status } };
@@ -48,7 +53,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<FeedbackApi
 async function mockRequest<T>(loader: () => Promise<T>): Promise<FeedbackApiResult<T>> {
   try {
     return { ok: true, data: await loader() };
-  } catch {
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "not_found") {
+      const message =
+        "message" in err && typeof (err as { message: unknown }).message === "string"
+          ? (err as { message: string }).message
+          : "Feedback could not be found.";
+      return { ok: false, error: { code: "not_found", message, status: 404 } };
+    }
     return { ok: false, error: { code: "server", message: "Feedback could not be loaded.", status: null } };
   }
 }
@@ -107,5 +119,17 @@ export async function putGoal(goal: FeedbackGoal): Promise<FeedbackApiResult<Fee
     return mockRequest(() => mock.putGoal(goal));
   }
   return request<FeedbackGoalResponse>("/api/feedback/goal", { method: "PUT", body: JSON.stringify(goal) });
+}
+
+export async function getRoleFeedback(roleId: string): Promise<FeedbackApiResult<RoleFeedback>> {
+  if (useMock) {
+    const mock = await import("./mock");
+    return mockRequest(() => mock.getRoleFeedback(roleId));
+  }
+  const result = await request<RoleFeedback>(`/api/feedback/roles/${encodeURIComponent(roleId)}`);
+  if (!result.ok && result.error.code === "not_found") {
+    return { ok: false, error: { code: "not_found", message: "Role feedback could not be found.", status: 404 } };
+  }
+  return result;
 }
 

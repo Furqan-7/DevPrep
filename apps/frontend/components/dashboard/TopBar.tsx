@@ -10,7 +10,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ChevronDown, LogOut, Settings, User } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Settings, User, X as CloseIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 
@@ -29,7 +29,7 @@ const EASE = [0.25, 0.8, 0.25, 1] as const;
 const NAV_LINKS = [
   { label: "AI INTERVIEW", href: "/dashboard/ai-interview" },
   { label: "HOW IT WORKS", href: "/dashboard/ai-interview/how-it-works" },
-  { label: "YOUR FEEDBACK", href: "/dashboard/ai-interview/feedback" },
+  { label: "ALL FEEDBACK", href: "/dashboard/ai-interview/feedback" },
 ] as const;
 
 interface TopBarProps {
@@ -48,6 +48,7 @@ export default function TopBar({ username = "" }: TopBarProps) {
 
   const [scrolled, setScrolled] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   /* ── Scroll shadow trigger ── */
   useEffect(() => {
@@ -67,10 +68,16 @@ export default function TopBar({ username = "" }: TopBarProps) {
     return () => document.removeEventListener("mousedown", onOutside);
   }, []);
 
-  /* ── Active state ── */
   const isActive = (href: string) => {
     if (href === "/dashboard/ai-interview") {
       return pathname === "/dashboard/ai-interview";
+    }
+    if (href === "/dashboard/ai-interview/feedback") {
+      return (
+        pathname === href ||
+        pathname.startsWith(`${href}/`) ||
+        pathname.startsWith("/feedback")
+      );
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   };
@@ -142,84 +149,131 @@ export default function TopBar({ username = "" }: TopBarProps) {
           })}
         </div>
 
-        {/* ── Profile pill (right action) ─────── */}
-        <div id="dp-profile-menu" className="relative shrink-0">
-          <button
-            id="dp-profile-toggle"
-            onClick={() => setProfileOpen((o) => !o)}
-            aria-expanded={profileOpen}
-            aria-haspopup="true"
-            aria-label="Open profile menu"
-            className="flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white px-3 py-1.5 cursor-pointer transition-all hover:border-[#1a1a1a]"
-          >
-            {/* Avatar */}
-            <div className="w-6 h-6 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0">
-              <span style={monoStyle} className="text-[10px] font-bold tracking-[0.04em] text-white">
-                {initials}
+        {/* ── Actions: Profile pill & Mobile menu button ─────── */}
+        <div className="flex items-center gap-2">
+          <div id="dp-profile-menu" className="relative shrink-0">
+            <button
+              id="dp-profile-toggle"
+              onClick={() => setProfileOpen((o) => !o)}
+              aria-expanded={profileOpen}
+              aria-haspopup="true"
+              aria-label="Open profile menu"
+              className="flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white px-3 py-1.5 cursor-pointer transition-all hover:border-[#1a1a1a]"
+            >
+              {/* Avatar */}
+              <div className="w-6 h-6 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0">
+                <span style={monoStyle} className="text-[10px] font-bold tracking-[0.04em] text-white">
+                  {initials}
+                </span>
+              </div>
+
+              <span className="text-[13px] font-medium tracking-[-0.02em] text-[#1a1a1a] max-w-[100px] truncate sm:max-w-none">
+                {username}
               </span>
-            </div>
 
-            <span className="text-[13px] font-medium tracking-[-0.02em] text-[#1a1a1a]">
-              {username}
-            </span>
-
-            <ChevronDown
-              size={12}
-              className={`text-[#666666] transition-transform duration-200 ${profileOpen ? "rotate-180" : ""
+              <ChevronDown
+                size={12}
+                className={`text-[#666666] transition-transform duration-200 ${
+                  profileOpen ? "rotate-180" : ""
                 }`}
-            />
+              />
+            </button>
+
+            {/* Profile dropdown */}
+            <AnimatePresence>
+              {profileOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  transition={{ duration: 0.18, ease: EASE }}
+                  className="absolute top-[calc(100%+8px)] right-0 w-44 bg-white border border-[#e5e5e5] rounded-xl overflow-hidden shadow-2xl z-50"
+                >
+                  {/* User info */}
+                  <div className="px-3 py-2.5 border-b border-[#e5e5e5]">
+                    <p className="text-[13px] font-semibold text-[#1a1a1a] m-0">{username}</p>
+                    <p
+                      style={monoStyle}
+                      className="text-[9px] font-medium tracking-[0.08em] uppercase text-[#666666] mt-0.5 mb-0"
+                    >
+                      Free plan
+                    </p>
+                  </div>
+
+                  {/* Menu items */}
+                  {[
+                    { icon: User, label: "Profile" },
+                    { icon: Settings, label: "Settings" },
+                  ].map(({ icon: Icon, label }) => (
+                    <button
+                      key={label}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[13px] text-[#666666] hover:bg-[#f5f5f7] hover:text-[#1a1a1a] transition-colors cursor-pointer border-0 bg-transparent"
+                    >
+                      <Icon size={13} />
+                      {label}
+                    </button>
+                  ))}
+
+                  {/* Sign out */}
+                  <div className="border-t border-[#e5e5e5]">
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[13px] text-[#eb3a14] hover:bg-[#eb3a14]/[0.06] transition-colors cursor-pointer border-0 bg-transparent"
+                    >
+                      <LogOut size={13} />
+                      Sign out
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setDrawerOpen((v) => !v)}
+            aria-expanded={drawerOpen}
+            aria-label="Toggle navigation menu"
+            className="md:hidden text-[#1a1a1a] p-2 rounded-lg hover:bg-black/5 transition-colors cursor-pointer"
+          >
+            {drawerOpen ? <CloseIcon size={20} /> : <Menu size={20} />}
           </button>
-
-          {/* Profile dropdown */}
-          <AnimatePresence>
-            {profileOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                transition={{ duration: 0.18, ease: EASE }}
-                className="absolute top-[calc(100%+8px)] right-0 w-44 bg-white border border-[#e5e5e5] rounded-xl overflow-hidden shadow-2xl z-50"
-              >
-                {/* User info */}
-                <div className="px-3 py-2.5 border-b border-[#e5e5e5]">
-                  <p className="text-[13px] font-semibold text-[#1a1a1a] m-0">{username}</p>
-                  <p
-                    style={monoStyle}
-                    className="text-[9px] font-medium tracking-[0.08em] uppercase text-[#666666] mt-0.5 mb-0"
-                  >
-                    Free plan
-                  </p>
-                </div>
-
-                {/* Menu items */}
-                {[
-                  { icon: User, label: "Profile" },
-                  { icon: Settings, label: "Settings" },
-                ].map(({ icon: Icon, label }) => (
-                  <button
-                    key={label}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-[13px] text-[#666666] hover:bg-[#f5f5f7] hover:text-[#1a1a1a] transition-colors cursor-pointer border-0 bg-transparent"
-                  >
-                    <Icon size={13} />
-                    {label}
-                  </button>
-                ))}
-
-                {/* Sign out */}
-                <div className="border-t border-[#e5e5e5]">
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-[13px] text-[#eb3a14] hover:bg-[#eb3a14]/[0.06] transition-colors cursor-pointer border-0 bg-transparent"
-                  >
-                    <LogOut size={13} />
-                    Sign out
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
+
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE }}
+            className="md:hidden absolute top-16 left-0 right-0 bg-[#f5f5f7] border-b border-[#e5e5e5] shadow-lg overflow-hidden z-40"
+          >
+            <div className="px-6 py-4 flex flex-col gap-2">
+              {NAV_LINKS.map((link) => {
+                const active = isActive(link.href);
+                return (
+                  <button
+                    key={link.href}
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      router.push(link.href);
+                    }}
+                    style={monoStyle}
+                    className={`text-left text-[13px] font-bold tracking-[0.08em] py-2 px-3 rounded-lg transition-colors cursor-pointer border-0 ${
+                      active ? "bg-[#1a1a1a] text-white" : "bg-transparent text-[#1a1a1a]/80 hover:bg-black/5"
+                    }`}
+                  >
+                    {link.label}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }

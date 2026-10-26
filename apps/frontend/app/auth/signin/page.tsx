@@ -17,10 +17,10 @@
  * Magnetic effect disabled on pointer:coarse (touch) devices.
  */
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/api";
 import { motion } from "motion/react";
 
@@ -53,8 +53,9 @@ const SIGNIN_TERMINAL_LINES: TerminalLineData[] = [
 /* ─────────────────────────────────────────────
    Page
 ───────────────────────────────────────────── */
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -91,7 +92,9 @@ export default function SignInPage() {
       if (res.status === 200 && res.data.success) {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("username", res.data.username ?? "");
-        router.push("/dashboard/ai-interview");
+        const next = searchParams.get("next") || searchParams.get("returnUrl");
+        const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard/ai-interview";
+        router.push(target);
       } else {
         setServerError(res.data.message || "Sign in failed. Please try again.");
       }
@@ -283,5 +286,13 @@ export default function SignInPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
   );
 }

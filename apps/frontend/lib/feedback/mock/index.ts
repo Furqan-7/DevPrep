@@ -1,3 +1,5 @@
+/* MOCK: delete when backend exists */
+
 import type {
   FeedbackGoal,
   FeedbackGoalResponse,
@@ -6,8 +8,10 @@ import type {
   FeedbackSessionsResponse,
   FeedbackFrequencyResponse,
   RecurringGap,
+  RoleFeedback,
 } from "@/types/feedback";
 import {
+  getMockRoleFeedback,
   getMockSummary,
   mockFrequency,
   mockGaps,
@@ -61,3 +65,6 @@ export async function putGoal(goal: FeedbackGoal): Promise<FeedbackGoalResponse>
   return { goal };
 }
 
+export async function getRoleFeedback(roleId: string): Promise<RoleFeedback> {
+  return getMockRoleFeedback(sessionsForScenario(), roleId);
+}

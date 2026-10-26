@@ -12,6 +12,7 @@ export interface FeedbackSession {
   durationMin: number;
   role: string;
   category: string;
+  roleId: string;
   score: number;
   skillScores: FeedbackSkillScore;
   topics: string[];
@@ -58,5 +59,41 @@ export interface FeedbackFrequencyResponse {
 
 export interface FeedbackGoalResponse {
   goal: FeedbackGoal | null;
+}
+
+export interface RoleFeedbackSkill {
+  key: string;
+  label: string;
+  latest: number | null;
+  average: number | null;
+  sessionCount: number;
+}
+
+export interface RoleFeedbackQuestionHighlight {
+  question: string;
+  score: number;
+  sessionId: string;
+  strongerAnswer: string | null;
+}
+
+export interface RoleFeedbackCategoryOption {
+  category: string;
+  roleId: string;
+  slug?: string;
+}
+
+export interface RoleFeedback {
+  category: string;
+  roleId: string;
+  slug?: string;
+  passThreshold: number;
+  sessions: FeedbackSession[];
+  latestSession: FeedbackSession | null;
+  perSkill: RoleFeedbackSkill[];
+  strengths: RoleFeedbackQuestionHighlight[];
+  gaps: RoleFeedbackQuestionHighlight[];
+  recurringGaps: RecurringGap[];
+  nextStep: string;
+  otherCategories: RoleFeedbackCategoryOption[];
 }
 

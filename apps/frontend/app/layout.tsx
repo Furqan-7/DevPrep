@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Outfit } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -43,8 +44,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable} antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable} antialiased`}>
       <body className="bg-[#ffffff] text-[#1d1d1f] font-sans selection:bg-[#0066cc]/15 selection:text-[#1d1d1f]">
+        <Script id="devprep-theme" strategy="beforeInteractive">
+          {`try{var t=localStorage.getItem("devprep-theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`}
+        </Script>
         {children}
       </body>
     </html>

@@ -8,28 +8,18 @@ export interface FooterLink {
   external?: boolean;
   onClick?: () => void;
 }
-
 export interface FooterLinkGroup {
   heading: string;
   links: FooterLink[];
 }
-
 export interface FooterProps {
   linkGroups: FooterLinkGroup[];
-  brand?: {
-    logoAlt?: string;
-    logoSrc?: string;
-    name?: string;
-    tagline?: string;
-    terminalBadge?: string;
-  };
+  brand?: { logoAlt?: string; logoSrc?: string; name?: string; tagline?: string; terminalBadge?: string };
   copyrightText?: string;
   attributionText?: string;
 }
 
-const monoStyle = {
-  fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)",
-};
+const monoStyle = { fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)" };
 
 function resolveExternal(href: string | undefined, explicit?: boolean): boolean {
   if (explicit !== undefined) return explicit;
@@ -47,11 +37,7 @@ function FooterNavLink({ link }: { link: FooterLink }) {
   }
   const external = resolveExternal(link.href, link.external);
   return (
-    <a
-      href={link.href ?? "#"}
-      className={cls}
-      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-    >
+    <a href={link.href ?? "#"} className={cls} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
       {link.label}
     </a>
   );
@@ -69,33 +55,23 @@ export function Footer({
   const tagline =
     brand?.tagline ??
     "AI-powered mock interviews for the roles that matter. Practice with Zara, get real feedback, walk in confident.";
-  const terminalBadge =
-    brand?.terminalBadge !== undefined ? brand.terminalBadge : "devprep --start";
+  const terminalBadge = brand?.terminalBadge !== undefined ? brand.terminalBadge : "devprep --start";
 
+  /* Colors come from the --dp-* tokens (light by default; dark only inside the landing page's .dp wrapper). */
   return (
-    <footer className="bg-white pt-16 sm:pt-20 pb-10 px-6 border-t border-[#e5e5e5]">
-      <div className="max-w-[1200px] mx-auto">
-        <div className="flex flex-col md:flex-row gap-12 pb-12">
+    <footer className="bg-dp-bg pt-14 sm:pt-16 pb-8 px-6">
+      <div className="max-w-[1040px] mx-auto">
+        <div className="flex flex-col md:flex-row gap-12 pb-10">
           <div className="md:max-w-[300px]">
-            <div
-              style={monoStyle}
-              className="flex items-center gap-2.5 text-[15px] font-bold text-[#1a1a1a] mb-4"
-            >
-              <Image
-                src={logoSrc}
-                alt={logoAlt}
-                width={26}
-                height={26}
-                unoptimized
-                className="rounded-sm shrink-0"
-              />
+            <div style={monoStyle} className="flex items-center gap-2.5 text-[14px] font-bold text-dp-ink mb-4">
+              <Image src={logoSrc} alt={logoAlt} width={24} height={24} unoptimized className="rounded-sm shrink-0" />
               <span>{brandName}</span>
             </div>
-            <p className="text-[14px] text-[#666] leading-relaxed mb-5">{tagline}</p>
+            <p className="text-[13.5px] text-dp-mu leading-relaxed mb-5">{tagline}</p>
             {terminalBadge && (
               <div
                 style={monoStyle}
-                className="inline-flex items-center gap-2 bg-[#1a1a1a] text-white text-[12px] font-medium px-4 py-2.5 rounded-md"
+                className="inline-flex items-center gap-2 bg-dp-dk text-white text-[11.5px] font-medium px-4 py-2.5 rounded-md border border-white/10"
               >
                 <span className="text-[#eb3a14]">&#x27A4;</span>
                 {terminalBadge}
@@ -106,13 +82,10 @@ export function Footer({
           <div className="flex flex-1 flex-col sm:flex-row gap-10 sm:gap-16">
             {linkGroups.map((group) => (
               <div key={group.heading}>
-                <div
-                  style={monoStyle}
-                  className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#999] mb-4"
-                >
+                <div style={monoStyle} className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-dp-mu mb-4">
                   {group.heading}
                 </div>
-                <ul className="space-y-3 text-[14px] text-[#1a1a1a]/75">
+                <ul className="space-y-3 text-[13.5px] text-dp-ink/75">
                   {group.links.map((link) => (
                     <li key={link.label}>
                       <FooterNavLink link={link} />
@@ -124,7 +97,7 @@ export function Footer({
           </div>
         </div>
 
-        <div className="pt-8 border-t border-[#e5e5e5] flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[#999]">
+        <div className="pt-6 border-t border-dp-ln flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-dp-mu">
           <span>{copyrightText}</span>
           <span style={monoStyle}>{attributionText}</span>
         </div>

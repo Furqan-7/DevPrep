@@ -19,6 +19,7 @@ interface FeedbackSession {
   durationMin: number;
   role: string;
   category: string;
+  roleId: string;
   score: number;
   skillScores: FeedbackSkillScore;
   topics: string[];
@@ -162,7 +163,170 @@ Response:
 }
 ```
 
+## `GET /api/feedback/roles/:roleId`
+
+Returns role-specific feedback and diagnostic data for a particular category track.
+
+### Authorization Note
+
+`GET /api/feedback/roles/:roleId` must be scoped to the authenticated user server-side, must never trust a user id from the client, and must return the same 404 for unknown IDs and for IDs belonging to other users.
+
+URL parameters:
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `roleId` | string | yes | Opaque stable identifier of the role category track (e.g. `frontend`, `backend`, `system-design`) |
+
+Response:
+
+```json
+{
+  "category": "Frontend",
+  "roleId": "frontend",
+  "slug": "frontend",
+  "passThreshold": 70,
+  "sessions": [
+    {
+      "id": "mock-09",
+      "createdAt": "2026-09-01T10:00:00.000Z",
+      "durationMin": 28,
+      "role": "Frontend Engineer",
+      "category": "Frontend",
+      "score": 76,
+      "skillScores": {
+        "technicalDepth": 78,
+        "communication": 74,
+        "problemSolving": 76,
+        "systemDesign": 70,
+        "confidence": 78
+      },
+      "topics": ["Frontend"],
+      "feedbackNote": "Review the strongest tradeoff in your answer and make the outcome measurable.",
+      "questions": [
+        {
+          "text": "Walk through your technical approach and the architectural tradeoffs you considered.",
+          "score": 80,
+          "strongerAnswer": "State the constraints upfront, compare the alternatives, and justify the selected approach with quantifiable outcomes."
+        },
+        {
+          "text": "How would you diagnose edge failures and system bottlenecks under load?",
+          "score": 70,
+          "strongerAnswer": "Trace request boundaries using distributed spans, evaluate p99 metrics rather than averages, and inspect downstream circuit breakers."
+        }
+      ]
+    }
+  ],
+  "latestSession": {
+    "id": "mock-09",
+    "createdAt": "2026-09-01T10:00:00.000Z",
+    "durationMin": 28,
+    "role": "Frontend Engineer",
+    "category": "Frontend",
+    "score": 76,
+    "skillScores": {
+      "technicalDepth": 78,
+      "communication": 74,
+      "problemSolving": 76,
+      "systemDesign": 70,
+      "confidence": 78
+    },
+    "topics": ["Frontend"],
+    "feedbackNote": "Review the strongest tradeoff in your answer and make the outcome measurable.",
+    "questions": [
+      {
+        "text": "Walk through your technical approach and the architectural tradeoffs you considered.",
+        "score": 80,
+        "strongerAnswer": "State the constraints upfront, compare the alternatives, and justify the selected approach with quantifiable outcomes."
+      }
+    ]
+  },
+  "perSkill": [
+    {
+      "key": "technicalDepth",
+      "label": "Technical Depth",
+      "latest": 78,
+      "average": 70,
+      "sessionCount": 3
+    },
+    {
+      "key": "communication",
+      "label": "Communication",
+      "latest": 74,
+      "average": 70,
+      "sessionCount": 3
+    },
+    {
+      "key": "problemSolving",
+      "label": "Problem Solving",
+      "latest": 76,
+      "average": 68.7,
+      "sessionCount": 3
+    },
+    {
+      "key": "systemDesign",
+      "label": "System Design",
+      "latest": 70,
+      "average": 64,
+      "sessionCount": 3
+    },
+    {
+      "key": "confidence",
+      "label": "Confidence",
+      "latest": 78,
+      "average": 71.3,
+      "sessionCount": 3
+    }
+  ],
+  "strengths": [
+    {
+      "question": "Walk through your technical approach and the architectural tradeoffs you considered.",
+      "score": 80,
+      "sessionId": "mock-09",
+      "strongerAnswer": "State the constraints upfront, compare the alternatives, and justify the selected approach with quantifiable outcomes."
+    }
+  ],
+  "gaps": [
+    {
+      "question": "How would you diagnose edge failures and system bottlenecks under load?",
+      "score": 64,
+      "sessionId": "mock-05",
+      "strongerAnswer": "Trace request boundaries using distributed spans, evaluate p99 metrics rather than averages, and inspect downstream circuit breakers."
+    }
+  ],
+  "recurringGaps": [
+    {
+      "skill": "systemDesign",
+      "occurrences": 3,
+      "latestScore": 70,
+      "note": "Cover failure recovery and operational tradeoffs."
+    }
+  ],
+  "nextStep": "Launch a 20-min targeted drill on System Design",
+  "otherCategories": [
+    { "category": "Backend", "roleId": "backend", "slug": "backend" },
+    { "category": "System Design", "roleId": "system-design", "slug": "system-design" },
+    { "category": "Behavioral", "roleId": "behavioral", "slug": "behavioral" }
+  ]
+}
+```
+
+### Fields the backend must compute:
+
+1. **Role Resolution**: Validate `roleId` against supported role tracks. Return HTTP `404` if the roleId is unknown or does not belong to the authenticated user.
+2. **Session Filtering & Ordering**: Filter the authenticated user's session history by `category` or `roleId` matching the resolved role, sorted descending by `createdAt`.
+3. **Latest Session**: Extract the most recent session (`sessions[0]`), or `null` if the candidate has zero completed interviews for this role.
+4. **Pass Threshold**: Target threshold benchmark configured for this track (e.g. 70).
+5. **Per-Skill Aggregation**: For each evaluated skill dimension:
+   - `latest`: Candidate's score from `latestSession` (or `null` if no sessions).
+   - `average`: Mean score across all sessions for this role.
+   - `sessionCount`: Total sessions where this skill was scored.
+6. **Strengths Extraction**: Top questions from this role's sessions with `score >= passThreshold`, sorted highest score first (capped at 3).
+7. **Gaps Extraction**: Lowest questions from this role's sessions with `score < passThreshold`, sorted lowest score first (capped at 3).
+8. **Recurring Gaps**: Repeated weaknesses identified across 2+ sessions in this role where scores fell below the benchmark.
+9. **Next Step**: Dynamic recommendation string targeting the candidate's lowest-scoring skill in this track.
+10. **Other Categories**: List of available role categories and their `roleId` identifiers for navigation.
+
 ## Errors
 
-The frontend treats HTTP `401` as an expired authentication session and redirects to `/auth/signin`. Other non-2xx responses should include a useful server-side log and may return a JSON error body; the frontend displays an inline retry state.
+The frontend treats HTTP `401` as an expired authentication session and redirects to `/auth/signin`. HTTP `404` indicates an unknown or unauthorized roleId and displays the role not-found state with a link back to All Feedback. Other non-2xx responses display an inline error with a Retry button.
 
