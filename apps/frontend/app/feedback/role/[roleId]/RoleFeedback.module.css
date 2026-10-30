@@ -1,7 +1,7 @@
 .page {
   min-height: calc(100vh - 64px);
-  background-color: #f5f5f7;
-  color: #1a1a1a;
+  background-color: var(--dp-bg);
+  color: var(--dp-ink);
 }
 
 .wrap {
@@ -12,7 +12,7 @@
 
 /* Breadcrumb Strip */
 .breadcrumbStrip {
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--dp-ln);
   padding: 12px 0;
   margin-bottom: 24px;
 }
@@ -26,7 +26,7 @@
   font: 500 0.6875rem/1.2 var(--font-jbmono), ui-monospace, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--dp-mu);
 }
 
 .breadcrumbLinks {
@@ -37,7 +37,7 @@
 }
 
 .breadcrumbLink {
-  color: #1a1a1a;
+  color: var(--dp-ink);
   text-decoration: none;
   font-weight: 600;
   display: inline-flex;
@@ -51,13 +51,13 @@
 }
 
 .breadcrumbSep {
-  color: #c4c7c7;
+  color: var(--dp-ln);
 }
 
 /* Hero Section */
 .hero {
-  background-color: #ffffff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-sf2);
+  border: 1px solid var(--dp-ln);
   border-radius: 12px;
   padding: 32px;
   margin-bottom: 24px;
@@ -103,7 +103,7 @@
 .pillSuccess {
   background-color: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.25);
-  color: #16833d;
+  color: var(--dp-ok);
 }
 
 .pillAccent {
@@ -113,9 +113,9 @@
 }
 
 .pillNeutral {
-  background-color: #f7f3f2;
-  border: 1px solid #e5e5e5;
-  color: #666;
+  background-color: var(--dp-pill);
+  border: 1px solid var(--dp-ln);
+  color: var(--dp-mu);
 }
 
 .dot {
@@ -130,12 +130,12 @@
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.03em;
-  color: #1a1a1a;
+  color: var(--dp-ink);
   margin: 0;
 }
 
 .heroLede {
-  color: #666;
+  color: var(--dp-mu);
   font-size: 0.9375rem;
   line-height: 1.5;
   margin: 0;
@@ -153,9 +153,9 @@
 .chip {
   padding: 6px 14px;
   border-radius: 9999px;
-  border: 1px solid #e5e5e5;
-  background-color: #f7f3f2;
-  color: #666;
+  border: 1px solid var(--dp-ln);
+  background-color: var(--dp-pill);
+  color: var(--dp-mu);
   font: 500 0.6875rem/1.2 var(--font-jbmono), ui-monospace, monospace;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -165,20 +165,20 @@
 }
 
 .chip:hover {
-  border-color: #1a1a1a;
-  color: #1a1a1a;
+  border-color: var(--dp-ink);
+  color: var(--dp-ink);
 }
 
 .chipActive {
-  background-color: #1a1a1a;
-  border-color: #1a1a1a;
-  color: #ffffff;
+  background-color: var(--dp-ink);
+  border-color: var(--dp-ink);
+  color: var(--dp-bg);
 }
 
 /* Latest Score Card */
 .scoreCard {
-  background-color: #f7f3f2;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-pill);
+  border: 1px solid var(--dp-ln);
   border-radius: 12px;
   padding: 24px;
   min-width: 300px;
@@ -194,7 +194,7 @@
   font: 500 0.6875rem/1.2 var(--font-jbmono), ui-monospace, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--dp-mu);
 }
 
 .scoreCardValue {
@@ -207,17 +207,17 @@
   font-size: 2.75rem;
   font-weight: 700;
   line-height: 1;
-  color: #1a1a1a;
+  color: var(--dp-ink);
 }
 
 .scoreBenchmarkText {
   font: 500 0.75rem/1.2 var(--font-jbmono), ui-monospace, monospace;
-  color: #747878;
+  color: var(--dp-mu);
 }
 
 .scoreNote {
   font-size: 0.8125rem;
-  color: #666;
+  color: var(--dp-mu);
   line-height: 1.4;
   margin: 0;
 }
@@ -226,7 +226,7 @@
   position: relative;
   height: 8px;
   width: 100%;
-  background-color: #e5e5e5;
+  background-color: var(--dp-ln);
   border-radius: 9999px;
   overflow: hidden;
 }
@@ -234,7 +234,7 @@
 .scoreBarFill {
   height: 100%;
   border-radius: 9999px;
-  background-color: #1a1a1a;
+  background-color: var(--dp-ink);
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -243,7 +243,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: #747878;
+  background-color: var(--dp-mu);
   z-index: 10;
 }
 
@@ -253,16 +253,16 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 1px;
   overflow: hidden;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--dp-ln);
   border-radius: 12px;
-  background: #e5e5e5;
+  background: var(--dp-ln);
   margin-bottom: 32px;
 }
 
 .statItem {
   min-width: 0;
   padding: 20px 22px;
-  background: #ffffff;
+  background: var(--dp-sf2);
 }
 
 .statLabel {
@@ -270,7 +270,7 @@
   font: 500 0.65rem/1.3 var(--font-jbmono), ui-monospace, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--dp-mu);
 }
 
 .statItem strong {
@@ -279,13 +279,13 @@
   font-size: 2rem;
   line-height: 1.1;
   letter-spacing: -0.04em;
-  color: #1a1a1a;
+  color: var(--dp-ink);
 }
 
 .statItem small {
   display: block;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--dp-mu);
 }
 
 /* Section Common */
@@ -296,7 +296,7 @@
 .sectionHeader {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--dp-ln);
   padding-bottom: 12px;
   margin-bottom: 16px;
   gap: 4px;
@@ -314,14 +314,14 @@
   font: 500 0.65rem/1.3 var(--font-jbmono), ui-monospace, monospace;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #747878;
+  color: var(--dp-mu);
 }
 
 .sectionTitle {
   font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: #1a1a1a;
+  color: var(--dp-ink);
   margin: 4px 0 0;
 }
 
@@ -330,7 +330,7 @@
   align-items: center;
   gap: 16px;
   font: 500 0.6875rem/1.2 var(--font-jbmono), ui-monospace, monospace;
-  color: #666;
+  color: var(--dp-mu);
 }
 
 .legendItem {
@@ -348,8 +348,8 @@
 
 .rubricRow {
   padding: 16px 20px;
-  background-color: #ffffff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-sf2);
+  border: 1px solid var(--dp-ln);
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   display: grid;
@@ -367,7 +367,7 @@
 
 .rubricRowNeedsRemediation {
   border-color: rgba(235, 58, 20, 0.35);
-  background-color: #ffffff;
+  background-color: var(--dp-sf2);
 }
 
 .rubricInfo {
@@ -384,18 +384,18 @@
 
 .rubricIndex {
   font: 600 0.75rem/1 var(--font-jbmono), ui-monospace, monospace;
-  color: #747878;
+  color: var(--dp-mu);
 }
 
 .rubricTitle {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--dp-ink);
 }
 
 .rubricAverage {
   font: 400 0.6875rem/1.2 var(--font-jbmono), ui-monospace, monospace;
-  color: #666;
+  color: var(--dp-mu);
 }
 
 .rubricBarCol {
@@ -410,15 +410,15 @@
   justify-content: space-between;
   align-items: center;
   font: 500 0.6875rem/1.2 var(--font-jbmono), ui-monospace, monospace;
-  color: #1a1a1a;
+  color: var(--dp-ink);
 }
 
 .rubricBar {
   position: relative;
   height: 10px;
   width: 100%;
-  background-color: #f1edec;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-pill);
+  border: 1px solid var(--dp-ln);
   border-radius: 9999px;
   overflow: hidden;
 }
@@ -426,7 +426,7 @@
 .rubricBarFill {
   height: 100%;
   border-radius: 9999px;
-  background-color: #1a1a1a;
+  background-color: var(--dp-ink);
   transition: width 0.5s ease-out;
 }
 
@@ -439,7 +439,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: #747878;
+  background-color: var(--dp-mu);
   z-index: 10;
 }
 
@@ -468,14 +468,14 @@
 
 .rubricValidated {
   background-color: rgba(34, 197, 94, 0.1);
-  color: #16833d;
+  color: var(--dp-ok);
   border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
 .rubricBaseline {
-  background-color: #f1edec;
-  color: #1a1a1a;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-pill);
+  color: var(--dp-ink);
+  border: 1px solid var(--dp-ln);
 }
 
 .rubricRemediation {
@@ -499,8 +499,8 @@
 }
 
 .panel {
-  background-color: #ffffff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-sf2);
+  border: 1px solid var(--dp-ln);
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -518,7 +518,7 @@
   align-items: center;
   justify-content: space-between;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--dp-ln);
 }
 
 .panelTitle {
@@ -527,7 +527,7 @@
   gap: 8px;
   font-size: 1rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--dp-ink);
   margin: 0;
 }
 
@@ -540,7 +540,7 @@
 
 .panelBadgeSuccess {
   background-color: rgba(34, 197, 94, 0.1);
-  color: #16833d;
+  color: var(--dp-ok);
 }
 
 .panelBadgeAccent {
@@ -551,8 +551,8 @@
 .qaItem {
   padding: 16px;
   border-radius: 8px;
-  background-color: #f7f3f2;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-pill);
+  border: 1px solid var(--dp-ln);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -568,7 +568,7 @@
 .qaQuestion {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--dp-ink);
   line-height: 1.4;
 }
 
@@ -576,14 +576,14 @@
   font: 600 0.75rem/1 var(--font-jbmono), ui-monospace, monospace;
   padding: 4px 8px;
   border-radius: 4px;
-  border: 1px solid #e5e5e5;
-  background-color: #ffffff;
-  color: #1a1a1a;
+  border: 1px solid var(--dp-ln);
+  background-color: var(--dp-sf2);
+  color: var(--dp-ink);
   flex-shrink: 0;
 }
 
 .qaScoreSuccess {
-  color: #16833d;
+  color: var(--dp-ok);
   border-color: rgba(34, 197, 94, 0.3);
 }
 
@@ -594,7 +594,7 @@
 
 .qaAnswer {
   font-size: 0.8125rem;
-  color: #666;
+  color: var(--dp-mu);
   line-height: 1.5;
   margin: 0;
 }
@@ -602,11 +602,11 @@
 .qaRemediationBox {
   margin-top: 4px;
   padding: 8px 12px;
-  background-color: #ffffff;
+  background-color: var(--dp-sf2);
   border: 1px solid rgba(235, 58, 20, 0.25);
   border-radius: 6px;
   font: 500 0.75rem/1.4 var(--font-jbmono), ui-monospace, monospace;
-  color: #1a1a1a;
+  color: var(--dp-ink);
 }
 
 /* Sticky Next-Step Bar */
@@ -618,7 +618,7 @@
   z-index: 40;
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid var(--dp-ln);
   padding: 14px 24px;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
 }
@@ -669,7 +669,7 @@
 .stickyText {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--dp-ink);
   margin: 2px 0 0;
 }
 
@@ -700,16 +700,16 @@
 .empty {
   padding: 48px 24px;
   text-align: center;
-  background-color: #ffffff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--dp-sf2);
+  border: 1px solid var(--dp-ln);
   border-radius: 12px;
-  color: #666;
+  color: var(--dp-mu);
 }
 
 .empty h2 {
   font-size: 1.35rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--dp-ink);
   margin: 12px 0 6px;
 }
 
@@ -721,7 +721,7 @@
 
 .errorBox {
   padding: 24px;
-  background-color: #ffffff;
+  background-color: var(--dp-sf2);
   border: 1px solid rgba(235, 58, 20, 0.35);
   border-radius: 12px;
   color: #eb3a14;
@@ -734,7 +734,7 @@
 
 .skeleton {
   border-radius: 12px;
-  background: linear-gradient(90deg, #e5e5e5, #ffffff, #e5e5e5);
+  background: linear-gradient(90deg, var(--dp-ln), var(--dp-sf2), var(--dp-ln));
   background-size: 200% 100%;
   animation: shimmer 1.2s linear infinite;
 }

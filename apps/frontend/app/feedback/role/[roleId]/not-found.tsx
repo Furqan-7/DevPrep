@@ -5,7 +5,7 @@ import styles from "./RoleFeedback.module.css";
 
 export default function RoleNotFound() {
   return (
-    <DashboardShell>
+    <DashboardShell themed>
       <div className={styles.page}>
         <div className={styles.wrap} style={{ paddingTop: "48px" }}>
           <div className={styles.empty} role="alert">

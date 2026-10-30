@@ -13,7 +13,10 @@
   --dp-soft: rgba(235, 58, 20, .08);
   --dp-dk: #1a1a1a;
   --dp-dk2: #262626;
-  --dp-ac: #eb3a14
+  --dp-ac: #eb3a14;
+  --dp-sf2: #fff;
+  --dp-ok: #16a34a;
+  --dp-pill: #ececef
 }
 
 :root[data-theme="dark"] .dp {
@@ -24,7 +27,18 @@
   --dp-ln: #2a2a2f;
   --dp-soft: rgba(235, 58, 20, .14);
   --dp-dk: #0a0a0b;
-  --dp-dk2: #19191b
+  --dp-dk2: #19191b;
+  --dp-sf2: #1c1c1f;
+  --dp-ok: #22c55e;
+  --dp-pill: #1c1c1f
+}
+
+.dp {
+  color-scheme: light
+}
+
+:root[data-theme="dark"] .dp {
+  color-scheme: dark
 }
 
 @theme inline {
@@ -37,6 +51,9 @@
   --color-dp-dk: var(--dp-dk);
   --color-dp-dk2: var(--dp-dk2);
   --color-dp-ac: var(--dp-ac);
+  --color-dp-sf2: var(--dp-sf2);
+  --color-dp-ok: var(--dp-ok);
+  --color-dp-pill: var(--dp-pill);
 }
 
 .dp section,
@@ -138,4 +155,73 @@
   .dp-glow::before {
     animation: none
   }
+}
+
+/* Ember glow pinned to the bottom of the viewport (interview + dashboard pages) */
+.dp-ember {
+  position: fixed;
+  z-index: 0;
+  left: 50%;
+  bottom: -40vh;
+  width: max(150vw, 900px);
+  height: 72vh;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, #fff2d2 0%, #ffcb73 12%, #ff7a2e 27%, #ee3a14 41%, rgba(22, 9, 6, .94) 60%, rgba(12, 12, 12, 0) 76%);
+  filter: blur(26px);
+  animation: dp-ember 8s ease-in-out infinite
+}
+
+.dp-ember--soft {
+  opacity: .9;
+  bottom: -50vh
+}
+
+@keyframes dp-ember {
+  50% {
+    transform: translateX(-50%) scale(1.04, 1.08);
+    opacity: .9
+  }
+}
+
+@media (max-width: 640px) {
+  .dp-ember {
+    bottom: -26vh;
+    height: 46vh;
+    width: 190vw
+  }
+}
+
+/* Fade scrolling chat text into the glow instead of hard-cutting it */
+.dp-fade-y {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 48px), transparent)
+}
+
+.dp-mono {
+  font-family: var(--font-jbmono, 'JetBrains Mono'), ui-monospace, monospace
+}
+
+/* Primary ember pill button (END INTERVIEW style) */
+.dp-btn-ember {
+  background: linear-gradient(180deg, #ff4f1f 0%, #eb3a14 100%);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 120, 80, .45), 0 10px 30px -8px rgba(235, 58, 20, .6)
+}
+
+.dp-btn-ember:hover {
+  background: linear-gradient(180deg, #ff5d30 0%, #f0431c 100%)
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .dp-ember {
+    animation: none
+  }
+}
+
+/* Stronger rising glow for dark CTA cards */
+.dp-glow--rise::before {
+  bottom: -170px;
+  height: 400px
 }
