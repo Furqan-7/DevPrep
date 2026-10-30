@@ -19,6 +19,10 @@ model User {
   email    String    @unique
   password String?
   accounts Account[]
+
+  interviewReports InterviewReport[]
+  roleFeedback     RoleFeedback[]
+  feedbackGoal     FeedbackGoal?
 }
 
 model Account {
@@ -37,44 +41,111 @@ model Account {
 }
 
 model InterviewSession {
-  id           Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   userId       Int
   role         String
   difficulty   String
-  introduction String?  @db.Text
-  status       String   @default("active") // "active" | "completed"
-  currentQues  Int      @default(0) // 0 = intro stage, 1-10 = questions
-  createdAt    DateTime @default(now())
+  introduction String?   @db.Text
+  status       String    @default("active") // "active" | "completed"
+  currentQues  Int       @default(0) // 0 = intro stage, 1-10 = questions
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
 
   questions InterviewQuestion[]
   report    InterviewReport?
+
+  @@index([userId, createdAt])
 }
 
 model InterviewQuestion {
-  id        Int              @id @default(autoincrement())
-  sessionId Int
-  session   InterviewSession @relation(fields: [sessionId], references: [id])
-  question  String           @db.Text
-  answer    String?          @db.Text
-  score     Int?
-  feedback  String?          @db.Text
-  order     Int // 0 = intro, 1-10 = actual questions
-  createdAt DateTime         @default(now())
+  id             Int              @id @default(autoincrement())
+  sessionId      Int
+  session        InterviewSession @relation(fields: [sessionId], references: [id])
+  question       String           @db.Text
+  answer         String?          @db.Text
+  score          Int?
+  feedback       String?          @db.Text // Zara's spoken reaction during the interview
+  strongerAnswer String?          @db.Text // Gemini post-interview suggestion
+  order          Int // 0 = intro, 1-10 = actual questions
+  createdAt      DateTime         @default(now())
 
   @@unique([sessionId, order])
 }
 
+// ── Feedback ────────────────────────────────────────────────────────────────
+// Scores in this section are 0-100. Per-question scores on InterviewQuestion stay 0-10
+// (they are produced live during the interview) and are scaled when served.
+
+enum ReportStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+// One Gemini-generated report per completed interview session ("All feedback" page).
 model InterviewReport {
-  id            Int              @id @default(autoincrement())
-  sessionId     Int              @unique
-  session       InterviewSession @relation(fields: [sessionId], references: [id])
-  overallScore  Int
-  communication Int
-  technical     Int // fixed typo: "tecnical" → "technical"
-  confidence    Int
-  summary       String           @db.Text
-  improvements  String           @db.Text
-  createdAt     DateTime         @default(now())
+  id        Int              @id @default(autoincrement())
+  sessionId Int              @unique
+  session   InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleSlug  String // interview role slug, e.g. "frontend-engineer" (= roleId in the feedback API)
+
+  status       ReportStatus @default(PENDING)
+  overallScore Int          @default(0)
+
+  // Skill breakdown (0-100)
+  technical      Int @default(0) // technicalDepth
+  communication  Int @default(0)
+  problemSolving Int @default(0)
+  systemDesign   Int @default(0)
+  confidence     Int @default(0)
+
+  summary      String   @default("") @db.Text // feedbackNote
+  improvements String   @default("") @db.Text
+  topics       String[]
+  gaps         Json? // [{ skill, note }] weaknesses spotted in this session
+  durationMin  Int      @default(0)
+
+  model     String? // Gemini model that produced the report
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, roleSlug, createdAt])
+}
+
+// Materialized per-user, per-role aggregate ("Role feedback" page).
+// Recomputed whenever a report for that role becomes READY.
+model RoleFeedback {
+  id       Int    @id @default(autoincrement())
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleSlug String
+
+  sessionCount  Int       @default(0)
+  averageScore  Float?
+  latestScore   Int?
+  bestScore     Int?
+  skillAverages Json // { [skillKey]: { average, latest, sessionCount } }
+  recurringGaps Json // [{ skill, occurrences, latestScore, note }]
+  nextStep      String    @default("")
+  lastSessionAt DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, roleSlug])
+}
+
+// A user's practice goal (one per user).
+model FeedbackGoal {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetScore Int
+  targetDate  DateTime? @db.Date
+  label       String
+  updatedAt   DateTime  @updatedAt
 }
 
 // Jobs Schema 

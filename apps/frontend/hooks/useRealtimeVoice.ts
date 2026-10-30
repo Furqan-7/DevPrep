@@ -491,7 +491,17 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
               sampleRate: data.sampleRate || 24000,
               model: data.model || "flux-hannah-en",
               groqLatencyMs: data.groqLatencyMs,
+              firstTokenLatencyMs: data.firstTokenLatencyMs,
+              firstTextToDeepgramLatencyMs: data.firstTextToDeepgramLatencyMs,
+              userStopToFirstAudioMs: data.userStopToFirstAudioMs,
+              totalTurnDurationMs: data.totalTurnDurationMs,
             });
+            if (typeof data.userStopToFirstAudioMs === "number") {
+              console.log(
+                `[useRealtimeVoice] Turn latency: stop→voice ${data.userStopToFirstAudioMs}ms ` +
+                  `(stt ${data.groqLatencyMs}ms, first sentence ${data.firstTokenLatencyMs}ms, tts ${data.firstTextToDeepgramLatencyMs}ms)`,
+              );
+            }
 
             // Calculate remaining audio playback time before resuming VAD listening
             const remainingSec = pcmPlayerRef.current?.getRemainingPlayTime() ?? 0;
@@ -877,6 +887,20 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     speechThreshold,
   ]);
 
+  /**
+   * Open the WebSocket and ask the server to pre-connect TTS while the candidate is
+   * still on the setup screen, so the greeting starts sooner after "Start interview".
+   */
+  const prewarm = useCallback(() => {
+    connectWebSocket()
+      .then((ws) => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "prewarm" }));
+      })
+      .catch(() => {
+        /* startInterview reports connection errors */
+      });
+  }, [connectWebSocket]);
+
   const endInterview = useCallback(() => {
     console.log("[useRealtimeVoice] User ended interview.");
     cleanupMicrophone();
@@ -928,6 +952,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     error,
     startInterview,
     endInterview,
+    prewarm,
     clearTranscript,
     clearAll,
     isMuted,

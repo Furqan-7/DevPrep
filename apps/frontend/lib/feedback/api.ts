@@ -21,15 +21,27 @@ export interface FeedbackApiError {
   status: number | null;
 }
 
-const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-const useMock = process.env.NEXT_PUBLIC_FEEDBACK_MOCK !== "false";
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// The backend serves real feedback now; mocks are opt-in for UI work.
+const useMock = process.env.NEXT_PUBLIC_FEEDBACK_MOCK === "true";
+
+function authHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const token = localStorage.getItem("token");
+    return token ? { token } : {};
+  } catch {
+    return {};
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<FeedbackApiResult<T>> {
   try {
     const response = await fetch(`${baseUrl}${path}`, {
       ...init,
+      // JWT logins send the token header; Google OAuth logins rely on the httpOnly cookie
       credentials: "include",
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers ?? {}) },
     });
     if (response.status === 401) {
       return { ok: false, error: { code: "unauthorized", message: "Your session has expired.", status: 401 } };

@@ -1,5 +1,6 @@
 import { prisma } from "@repo/database";
 import { streamGeminiContent } from "../lib/gemini";
+import { queueSessionReport } from "./feedback-report.service";
 
 export const TOTAL_QUESTIONS = 10;
 
@@ -51,6 +52,34 @@ function pruneSessionCache() {
     for (const [id, entry] of sessionCache) {
         if (entry.touchedAt < cutoff) sessionCache.delete(id);
     }
+}
+
+/** Seed the cache with a freshly created session so its first turn needs no DB reads. */
+export function primeSessionCache(
+    session: {
+        id: number; userId: number; role: string; difficulty: string; introduction: string | null;
+        status: string; currentQues: number;
+        questions: { id: number; order: number; question: string; answer: string | null }[];
+    },
+    candidateName: string | null,
+) {
+    pruneSessionCache();
+    sessionCache.set(session.id, {
+        id: session.id,
+        userId: session.userId,
+        role: session.role,
+        difficulty: session.difficulty,
+        introduction: session.introduction ?? null,
+        status: session.status,
+        currentQues: session.currentQues,
+        questions: session.questions.map((q) => ({ id: q.id, order: q.order, question: q.question, answer: q.answer ?? null })),
+        candidateName,
+        touchedAt: Date.now(),
+    });
+}
+
+export function forgetSession(sessionId: number) {
+    sessionCache.delete(sessionId);
 }
 
 async function loadSession(sessionId: number): Promise<CachedSession | null> {
@@ -333,10 +362,12 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
             ...answerUpdate,
             prisma.interviewSession.update({
                 where: { id: session.id },
-                data: { status: "completed" },
+                data: { status: "completed", completedAt: new Date() },
             }),
         ]);
         sessionCache.delete(session.id);
+        // Grade the whole interview with Gemini in the background (never blocks the reply)
+        queueSessionReport(session.id);
 
         return {
             isComplete: true,

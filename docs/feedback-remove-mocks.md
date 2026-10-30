@@ -14,19 +14,19 @@ To switch to the live backend:
    NEXT_PUBLIC_API_URL=https://api.yourdomain.com # or http://localhost:8080 in dev
    ```
 
-When `NEXT_PUBLIC_FEEDBACK_MOCK` is set to "false", `apps/frontend/lib/feedback/api.ts` routes all requests to the live backend over HTTP with `credentials: "include"`. When unset or set to "true", the frontend uses the local mock data layer.
+The live backend is now the default: `apps/frontend/lib/feedback/api.ts` calls `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`) with the `token` header from `localStorage` plus `credentials: "include"` for cookie logins. Set `NEXT_PUBLIC_FEEDBACK_MOCK=true` to use the local mock data layer instead.
 
 ## 2. Backend Implementation Checklist
 
 Ensure your backend implements all endpoints documented in `docs/feedback-api.md`:
 
-- [ ] `GET /api/feedback/summary`
-- [ ] `GET /api/feedback/sessions` (supports `category`, `q`, `sort`, `cursor`, `limit`)
-- [ ] `GET /api/feedback/gaps`
-- [ ] `GET /api/feedback/frequency`
-- [ ] `GET /api/feedback/goal`
-- [ ] `PUT /api/feedback/goal`
-- [ ] `GET /api/feedback/roles/:roleId` (supports role category tracks, returns `RoleFeedback` shape with per-skill aggregates, strengths, gaps, and next step)
+- [x] `GET /api/feedback/summary`
+- [x] `GET /api/feedback/sessions` (supports `category`, `q`, `sort`, `cursor`, `limit`)
+- [x] `GET /api/feedback/gaps`
+- [x] `GET /api/feedback/frequency`
+- [x] `GET /api/feedback/goal`
+- [x] `PUT /api/feedback/goal`
+- [x] `GET /api/feedback/roles/:roleId` (supports role category tracks, returns `RoleFeedback` shape with per-skill aggregates, strengths, gaps, and next step)
 
 ## 3. Deleting Mock Files
 

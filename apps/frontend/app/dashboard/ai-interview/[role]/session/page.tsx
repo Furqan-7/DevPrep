@@ -9,6 +9,7 @@ import {
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
 import DevPrepMark from "@/components/shared/DevPrepMark";
+import api from "@/lib/api";
 
 type SessionData = RoleData & {
   sessionId?: number;
@@ -117,6 +118,7 @@ export default function InterviewSessionPage() {
     error: realtimeError,
     startInterview: startRealtimeInterview,
     endInterview: endRealtimeInterview,
+    prewarm: prewarmRealtime,
     isMuted,
     toggleMute,
   } = useRealtimeVoice({
@@ -129,6 +131,12 @@ export default function InterviewSessionPage() {
   useEffect(() => {
     endRealtimeInterviewRef.current = endRealtimeInterview;
   }, [endRealtimeInterview]);
+
+  // Connect the voice pipeline while the candidate checks their mic and camera
+  const sessionIdForPrewarm = data?.sessionId;
+  useEffect(() => {
+    if (phase === "setup" && sessionIdForPrewarm) prewarmRealtime();
+  }, [phase, sessionIdForPrewarm, prewarmRealtime]);
 
   // aiSpeaking drives the avatar pulsing animation
   const aiSpeaking = isAiResponding || isTtsSpeaking;
@@ -395,13 +403,33 @@ export default function InterviewSessionPage() {
   };
 
   // End interview and clean up resources
+  // Tell the backend the interview is over so it can grade it with Gemini (runs in the background)
+  const reportedEndRef = useRef(false);
+  const notifyInterviewEnded = useCallback(() => {
+    if (reportedEndRef.current || !data?.sessionId) return;
+    reportedEndRef.current = true;
+    api.post("/api/interview/end", { sessionId: data.sessionId }).catch((err: unknown) => {
+      console.warn("[InterviewSession] Could not mark interview as ended:", err);
+    });
+  }, [data?.sessionId]);
+
+  useEffect(() => {
+    if (phase === "done") notifyInterviewEnded();
+  }, [phase, notifyInterviewEnded]);
+
   const endInterview = () => {
     endRealtimeInterview();
     if (videoRef.current?.srcObject instanceof MediaStream) {
       videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
       videoRef.current.srcObject = null;
     }
-    router.push(`/dashboard/ai-interview/${slug}`);
+    notifyInterviewEnded();
+    // Show the summary (and feedback link) once at least one question was answered
+    if (answered.size > 1) {
+      setPhase("done");
+    } else {
+      router.push(`/dashboard/ai-interview/${slug}`);
+    }
   };
 
   if (!data) {
@@ -467,6 +495,9 @@ export default function InterviewSessionPage() {
           <p className="text-sm text-dp-mu">
             {answered.size} of {data.questions.length} questions answered in{" "}
             <span className="text-dp-ink font-semibold">{formatTime(elapsed)}</span>.
+          </p>
+          <p className="mt-2 text-[13px] text-dp-mu">
+            Zara is writing your feedback report — it appears in All feedback in about a minute.
           </p>
 
           <div className="mt-8 w-full bg-dp-sf2 border border-dp-ln rounded-2xl p-5 text-left">

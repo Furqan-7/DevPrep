@@ -38,6 +38,10 @@ interface ClientSession {
     currentTtsSession?: DeepgramStreamingTtsSession | null;
     prewarmedTtsSession?: DeepgramStreamingTtsSession | null;
     persistentTtsSession?: DeepgramStreamingTtsSession | null;
+    // Per-turn latency marks (ms timestamps), measured from the end of the candidate's speech
+    turnStartedAt?: number | null;
+    firstTextAt?: number | null;
+    firstAudioAt?: number | null;
 }
 
 interface ActiveSessionRegistration {
@@ -93,6 +97,14 @@ wss.on("connection", (client) => {
         persistentTtsSession: null,
     };
 
+    // Every TTS session forwards audio through here so we can time the first audio of a turn
+    const sendAudio = (audioChunk: Buffer) => {
+        if (session.turnStartedAt && !session.firstAudioAt) session.firstAudioAt = Date.now();
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(audioChunk, { binary: true });
+        }
+    };
+
     client.on("message", async (data: RawData, isBinary: boolean) => {
         if (isBinary) {
             const chunk = Buffer.isBuffer(data)
@@ -111,6 +123,24 @@ wss.on("connection", (client) => {
         try {
             const parsedMessage = JSON.parse(data.toString());
             console.log("[ws-server] Received JSON message:", parsedMessage.type);
+
+            // 0. Pre-connect Deepgram while the candidate is on the setup screen
+            if (parsedMessage.type === "prewarm") {
+                if (!session.prewarmedTtsSession || !session.prewarmedTtsSession.isAlive()) {
+                    try {
+                        session.prewarmedTtsSession = new DeepgramStreamingTtsSession({
+                            model: "flux-hannah-en",
+                            sampleRate: 24000,
+                            onAudioChunk: sendAudio,
+                        });
+                        session.prewarmedTtsSession.start();
+                    } catch (err) {
+                        console.warn("[ws-server] Deepgram prewarm (setup) error:", err);
+                        session.prewarmedTtsSession = null;
+                    }
+                }
+                return;
+            }
 
             // 1. Session Initialization & Question 1 Delivery
             if (parsedMessage.type === "init_session") {
@@ -172,15 +202,17 @@ wss.on("connection", (client) => {
                         }));
                     }
 
-                    const ttsSession = new DeepgramStreamingTtsSession({
-                        model: "flux-hannah-en",
-                        sampleRate: 24000,
-                        onAudioChunk: (audioChunk) => {
-                            if (client.readyState === WebSocket.OPEN) {
-                                client.send(audioChunk, { binary: true });
-                            }
-                        },
-                    });
+                    // Reuse the connection opened during the setup screen when it is still alive
+                    const prewarmed = session.prewarmedTtsSession;
+                    session.prewarmedTtsSession = null;
+                    const ttsSession = prewarmed && prewarmed.isAlive()
+                        ? prewarmed
+                        : new DeepgramStreamingTtsSession({
+                            model: "flux-hannah-en",
+                            sampleRate: 24000,
+                            onAudioChunk: sendAudio,
+                        });
+                    if (prewarmed && ttsSession !== prewarmed) prewarmed.abort();
                     session.currentTtsSession = ttsSession;
                     ttsSession.start();
                     ttsSession.sendTextChunk(greeting);
@@ -249,11 +281,7 @@ wss.on("connection", (client) => {
                     session.prewarmedTtsSession = new DeepgramStreamingTtsSession({
                         model: "flux-hannah-en",
                         sampleRate: 24000,
-                        onAudioChunk: (audioChunk) => {
-                            if (client.readyState === WebSocket.OPEN) {
-                                client.send(audioChunk, { binary: true });
-                            }
-                        },
+                        onAudioChunk: sendAudio,
                     });
                     session.prewarmedTtsSession.start();
                     }
@@ -276,6 +304,9 @@ wss.on("connection", (client) => {
 
             if (parsedMessage.type === "speech_ended" || parsedMessage.type === "stop_recording") {
                 console.log(`[ws-server] ${parsedMessage.type} received with ${session.audioChunks.length} audio chunks.`);
+                session.turnStartedAt = Date.now();
+                session.firstTextAt = null;
+                session.firstAudioAt = null;
                 session.isRecording = false;
                 session.isTranscribing = true;
 
@@ -380,11 +411,7 @@ wss.on("connection", (client) => {
                         : new DeepgramStreamingTtsSession({
                             model: "flux-hannah-en",
                             sampleRate: 24000,
-                            onAudioChunk: (audioChunk) => {
-                                if (client.readyState === WebSocket.OPEN) {
-                                    client.send(audioChunk, { binary: true });
-                                }
-                            },
+                            onAudioChunk: sendAudio,
                         });
                     if (ttsSession !== session.prewarmedTtsSession) {
                         ttsSession.start();
@@ -400,6 +427,7 @@ wss.on("connection", (client) => {
                     const chunker = new TextChunker((sentenceChunk) => {
                         if (!firstTextSentTime) {
                             firstTextSentTime = Date.now();
+                            session.firstTextAt = firstTextSentTime;
                             console.log(`[TextChunker] 1st sentence ready in ${firstTextSentTime - startTime}ms: "${sentenceChunk}"`);
                         }
 
@@ -455,6 +483,24 @@ wss.on("connection", (client) => {
                         if (reg) reg.currentQuestion = turnResult.nextQuestion;
                     }
 
+                    const turnStart = session.turnStartedAt ?? startTime;
+                    const latency = {
+                        groqLatencyMs,
+                        // speech end → first spoken sentence ready (STT + Gemini first sentence)
+                        firstTokenLatencyMs: session.firstTextAt ? session.firstTextAt - turnStart : undefined,
+                        // first sentence sent to Deepgram → first audio back
+                        firstTextToDeepgramLatencyMs: session.firstTextAt && session.firstAudioAt ? session.firstAudioAt - session.firstTextAt : undefined,
+                        // what the candidate feels: they stop talking → Zara's voice starts
+                        userStopToFirstAudioMs: session.firstAudioAt ? session.firstAudioAt - turnStart : undefined,
+                        totalTurnDurationMs: Date.now() - turnStart,
+                    };
+                    console.log(
+                        `[Latency] session #${session.sessionId} stt=${latency.groqLatencyMs}ms ` +
+                        `firstSentence=${latency.firstTokenLatencyMs ?? "-"}ms tts=${latency.firstTextToDeepgramLatencyMs ?? "-"}ms ` +
+                        `stopToVoice=${latency.userStopToFirstAudioMs ?? "-"}ms total=${latency.totalTurnDurationMs}ms`,
+                    );
+                    session.turnStartedAt = null;
+
                     if (client.readyState === WebSocket.OPEN) {
                         client.send(JSON.stringify({
                             type: "tts_end",
@@ -464,7 +510,7 @@ wss.on("connection", (client) => {
                             audioDurationSec: ttsResult.audioDurationSec,
                             sampleRate: ttsResult.sampleRate,
                             model: ttsResult.model,
-                            groqLatencyMs,
+                            ...latency,
                         }));
 
                         // Send turn_complete with authoritative next question and score

@@ -12,6 +12,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import authRouter from "./routes/auth.route";
 import interviewRouter from "./routes/interview.route";
+import feedbackRouter from "./routes/feedback.route";
 
 const app = express();
 app.use(express.json());
@@ -36,6 +37,7 @@ app.get("/health", (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/interview', interviewRouter);
+app.use('/api/feedback', feedbackRouter);
 
 
 

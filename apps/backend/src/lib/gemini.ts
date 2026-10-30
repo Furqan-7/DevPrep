@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, type GenerationConfig, type GenerativeModel } from "@google/generative-ai";
+import { GoogleGenerativeAI, type GenerationConfig, type GenerativeModel, type ResponseSchema } from "@google/generative-ai";
 
 const geminiApiKey = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(geminiApiKey);
@@ -122,17 +122,34 @@ export async function streamGeminiContent(
     };
 }
 
+export interface GenerateJSONOptions {
+    /** Models to try in order; defaults to the fast flash-lite list. */
+    models?: string[];
+    /** Gemini response schema for structured output. */
+    responseSchema?: ResponseSchema;
+    temperature?: number;
+}
+
+export interface GenerateJSONResult<T> {
+    data: T;
+    modelUsed: string;
+}
+
 /**
  * Generate JSON using Gemini with model fallback.
  */
-export async function generateJSON<T>(prompt: string): Promise<T> {
+export async function generateJSONWithModel<T>(prompt: string, options: GenerateJSONOptions = {}): Promise<GenerateJSONResult<T>> {
     let lastError: any = null;
 
-    for (const modelName of MODELS) {
+    for (const modelName of options.models ?? MODELS) {
         try {
             const model = genAI.getGenerativeModel({
                 model: modelName,
-                generationConfig: { responseMimeType: "application/json" },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    ...(options.responseSchema ? { responseSchema: options.responseSchema } : {}),
+                    ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+                },
             });
 
             const result = await model.generateContent({
@@ -140,7 +157,7 @@ export async function generateJSON<T>(prompt: string): Promise<T> {
             });
 
             const text = result.response.text();
-            return JSON.parse(text) as T;
+            return { data: JSON.parse(text) as T, modelUsed: modelName };
         } catch (err: any) {
             console.warn(`[gemini.ts] generateJSON model ${modelName} failed:`, err?.message || err);
             lastError = err;
@@ -148,4 +165,8 @@ export async function generateJSON<T>(prompt: string): Promise<T> {
     }
 
     throw new Error(`All Gemini models failed for generateJSON. Last error: ${lastError?.message || lastError}`);
+}
+
+export async function generateJSON<T>(prompt: string, options: GenerateJSONOptions = {}): Promise<T> {
+    return (await generateJSONWithModel<T>(prompt, options)).data;
 }

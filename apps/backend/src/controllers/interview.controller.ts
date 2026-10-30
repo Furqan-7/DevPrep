@@ -1,7 +1,9 @@
 import { prisma } from "@repo/database";
 import { InterviewQuestions, InterviewSessionSchema } from "../types";
-import { processInterviewTurn, TOTAL_QUESTIONS } from "../services/interview-engine.service";
+import { processInterviewTurn, primeSessionCache, forgetSession, TOTAL_QUESTIONS } from "../services/interview-engine.service";
+import { generateSessionReport, queueSessionReport } from "../services/feedback-report.service";
 import type { Request, Response } from "express";
+import { z } from "zod";
 import dotenv from "dotenv";
 import path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
@@ -93,39 +95,45 @@ export const startInterview = async (req: Request, res: Response) => {
         const pool = ROLE_FIRST_QUESTIONS[role] ?? [defaultFallback];
         const question: string = pool[Math.floor(Math.random() * pool.length)] ?? defaultFallback;
 
-        // Fetch candidate username for AI context
-        const candidateUser = await prisma.user.findUnique({
-            where: { id: parseInt(userId, 10) },
-            select: { username: true },
-        });
+        // Fetch the candidate's name while the session row is being created
+        const userIdNum = parseInt(userId, 10);
+        const [candidateUser, session] = await Promise.all([
+            prisma.user.findUnique({
+                where: { id: userIdNum },
+                select: { username: true },
+            }),
+            // Atomically create session with intro (order 0) and first technical question (order 1).
+            // currentQues starts at 0 so the intro is the authoritative first spoken question.
+            prisma.interviewSession.create({
+                data: {
+                    userId: userIdNum,
+                    role,
+                    difficulty,
+                    introduction,
+                    status: "active",
+                    currentQues: 0,
+                    questions: {
+                        create: [
+                            {
+                                order: 0,
+                                question: "Tell me about yourself.",
+                                // Pre-populate with written intro if provided; will be overwritten by spoken answer
+                                answer: introduction ?? null,
+                            },
+                            {
+                                order: 1,
+                                question: question,
+                            },
+                        ],
+                    },
+                },
+                include: { questions: { orderBy: { order: "asc" } } },
+            }),
+        ]);
         const candidateName = candidateUser?.username ?? null;
 
-        // Atomically create session with intro (order 0) and first technical question (order 1).
-        // currentQues starts at 0 so the intro is the authoritative first spoken question.
-        const session = await prisma.interviewSession.create({
-            data: {
-                userId: parseInt(userId, 10),
-                role,
-                difficulty,
-                introduction,
-                status: "active",
-                currentQues: 0,
-                questions: {
-                    create: [
-                        {
-                            order: 0,
-                            question: "Tell me about yourself.",
-                            // Pre-populate with written intro if provided; will be overwritten by spoken answer
-                            answer: introduction ?? null,
-                        },
-                        {
-                            order: 1,
-                            question: question,
-                        },
-                    ],
-                },
-            },
-        });
+        // Warm the live-interview cache so the first turn skips its database reads
+        primeSessionCache(session, candidateName);
 
         // Return the intro question as the authoritative firstQuestion so the
         // ws-server speaks "Tell me about yourself." — not the technical question.
@@ -242,6 +250,63 @@ export const submitAnswer = async (req: Request, res: Response) => {
     }
 };
 
+const SessionIdBody = z.object({ sessionId: z.coerce.number().int().positive() });
+
+async function findOwnedSession(sessionId: number, userId: number) {
+    const session = await prisma.interviewSession.findUnique({ where: { id: sessionId } });
+    return session && session.userId === userId ? session : null;
+}
+
+/**
+ * The candidate ended the interview (early or at the end). Marks the session
+ * completed and queues Gemini feedback in the background.
+ */
+export const endInterview = async (req: Request, res: Response) => {
+    const parsed = SessionIdBody.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ success: false, message: "sessionId is required" });
+    try {
+        const session = await findOwnedSession(parsed.data.sessionId, res.locals.userId);
+        if (!session) return res.status(404).json({ success: false, message: "Session not found" });
+
+        if (session.status !== "completed") {
+            await prisma.interviewSession.update({
+                where: { id: session.id },
+                data: { status: "completed", completedAt: new Date() },
+            });
+            forgetSession(session.id);
+            queueSessionReport(session.id);
+        } else {
+            // The engine already queued a report when the last question was answered;
+            // only retry if that attempt never produced one or failed.
+            const report = await prisma.interviewReport.findUnique({ where: { sessionId: session.id }, select: { status: true } });
+            if (!report || report.status === "FAILED") queueSessionReport(session.id);
+        }
+        return res.json({ success: true, sessionId: session.id, feedback: "pending" });
+    } catch (error: any) {
+        console.error("[/api/interview/end] Error:", error?.message ?? error);
+        return res.status(500).json({ success: false, message: "Could not end the interview" });
+    }
+};
+
+/**
+ * Generate (or regenerate) the Gemini feedback report for a completed session and return it.
+ */
 export const interviewFeedback = async (req: Request, res: Response) => {
-    res.status(200).json({ message: "Interview feedback endpoint" });
+    const parsed = SessionIdBody.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ success: false, message: "sessionId is required" });
+    try {
+        const session = await findOwnedSession(parsed.data.sessionId, res.locals.userId);
+        if (!session) return res.status(404).json({ success: false, message: "Session not found" });
+        if (session.status !== "completed") {
+            return res.status(409).json({ success: false, message: "Finish the interview before requesting feedback" });
+        }
+
+        await generateSessionReport(session.id);
+        const report = await prisma.interviewReport.findUnique({ where: { sessionId: session.id } });
+        if (!report) return res.status(422).json({ success: false, message: "No answers were recorded in this interview" });
+        return res.json({ success: report.status === "READY", report });
+    } catch (error: any) {
+        console.error("[/api/interview/feedback] Error:", error?.message ?? error);
+        return res.status(502).json({ success: false, message: "Feedback generation failed. Please try again." });
+    }
 };
