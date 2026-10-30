@@ -439,13 +439,13 @@ export default function InterviewSessionPage() {
     const count = data.totalQuestions ?? totalQuestions;
     const ready = microphonePermission === "done" && cameraPermission === "done";
     const completed = [microphonePermission, cameraPermission].filter((s) => s === "done").length;
-    const hint = ready ? "All set \u00b7 you can start" : cameraPermission === "blocked" ? "Fix camera access to continue" : "Allow microphone and camera to continue";
+    const hint = ready ? "All set · you can start" : cameraPermission === "blocked" ? "Fix camera access to continue" : "Allow microphone and camera to continue";
     const row = (kind: PermissionKind, step: string, label: string) => {
       const state = kind === "camera" ? cameraPermission : microphonePermission;
       const message = permissionMessage[kind];
-      return <div className="border-b border-dp-ln last:border-b-0"><div className="flex items-center gap-3 px-5 py-5"><div aria-label={`${label}: ${state}`} className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] border-2 font-bold ${state === "done" ? "border-[#22C55E] bg-[#22C55E] text-white" : state === "blocked" ? "border-[#EB3A14] bg-[#EB3A14] text-white" : "border-dp-ink bg-dp-sf text-transparent"}`}>{state === "done" ? "\u2713" : state === "blocked" ? "!" : "\u00b7"}</div><div className="min-w-0 flex-1"><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Step {step} \u00b7 Required</p><p className="mt-1 text-[15px] font-semibold">{label}</p>{state === "done" && <p className="mt-1 text-[13px] text-dp-ok">Allowed</p>}{state === "blocked" && <p className="mt-1 text-[13px] text-[#B32A0A]">Blocked</p>}</div>{state !== "done" && <button type="button" onClick={() => void requestPermission(kind)} className={`min-h-11 shrink-0 rounded-full px-4 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB3A14] ${state === "blocked" ? "border border-[#EB3A14] text-[#EB3A14] hover:bg-[#EB3A14] hover:text-white" : "bg-[#EB3A14] text-white hover:opacity-90"}`}>{state === "blocked" ? "Try again" : `Allow ${kind === "camera" ? "camera" : "microphone"}`}</button>}</div>{state === "blocked" && message && <div className="mx-5 mb-5 rounded-[4px] bg-dp-bg px-4 py-3 text-[13px] text-[#B32A0A]">{message}</div>}</div>;
+      return <div className="border-b border-dp-ln last:border-b-0"><div className="flex items-center gap-3 px-5 py-5"><div aria-label={`${label}: ${state}`} className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] border-2 font-bold ${state === "done" ? "border-[#22C55E] bg-[#22C55E] text-white" : state === "blocked" ? "border-[#EB3A14] bg-[#EB3A14] text-white" : "border-dp-ink bg-dp-sf text-transparent"}`}>{state === "done" ? "\u2713" : state === "blocked" ? "!" : "·"}</div><div className="min-w-0 flex-1"><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Step {step} · Required</p><p className="mt-1 text-[15px] font-semibold">{label}</p>{state === "done" && <p className="mt-1 text-[13px] text-dp-ok">Allowed</p>}{state === "blocked" && <p className="mt-1 text-[13px] text-[#B32A0A]">Blocked</p>}</div>{state !== "done" && <button type="button" onClick={() => void requestPermission(kind)} className={`min-h-11 shrink-0 rounded-full px-4 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EB3A14] ${state === "blocked" ? "border border-[#EB3A14] text-[#EB3A14] hover:bg-[#EB3A14] hover:text-white" : "bg-[#EB3A14] text-white hover:opacity-90"}`}>{state === "blocked" ? "Try again" : `Allow ${kind === "camera" ? "camera" : "microphone"}`}</button>}</div>{state === "blocked" && message && <div className="mx-5 mb-5 rounded-[4px] bg-dp-bg px-4 py-3 text-[13px] text-[#B32A0A]">{message}</div>}</div>;
     };
-    return <div className="relative min-h-screen overflow-hidden dp bg-dp-bg text-dp-ink antialiased font-sans"><div className="dp-ember dp-ember--soft" aria-hidden="true" /><header className="relative z-10 mx-auto flex max-w-[1120px] items-center justify-between px-6 py-6 lg:px-8"><div className="flex items-center gap-2"><DevPrepMark size={24} /><span className="text-[15px] font-bold">DevPrep</span></div><button type="button" onClick={() => router.push(`/dashboard/ai-interview/${slug}`)} className="min-h-11 rounded-full px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu"><ArrowLeft size={14} className="mr-2 inline" aria-hidden="true" /> Go back</button></header><main className="relative z-10 mx-auto grid max-w-[1120px] grid-cols-1 gap-12 px-6 pb-14 pt-8 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pt-14"><section><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#EB3A14]">{data.title} \u00b7 {count} {count === 1 ? "question" : "questions"} \u00b7 ~{data.duration} min</p><h1 className="mt-6 max-w-[520px] text-[42px] font-bold leading-[1] tracking-[-0.04em] sm:text-[52px]">Ready for your interview?</h1><p className="mt-5 max-w-[480px] text-[16px] leading-7 text-dp-mu">Check your microphone and camera before you begin. You can focus on the conversation once everything is ready.</p><div className="mt-10 flex items-end justify-between"><div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Before you start</p><div className="mt-3 flex gap-2">{[microphonePermission, cameraPermission].map((s, i) => <span key={i} className={`h-1.5 w-24 rounded-full ${s === "done" ? "bg-[#EB3A14]" : "bg-dp-ln"}`} />)}</div></div><span className="font-mono text-[11px] tracking-[0.1em] text-dp-mu">{String(completed).padStart(2, "0")} / 02</span></div><div className="mt-5 overflow-hidden rounded-[12px] border border-dp-ln bg-dp-sf">{row("microphone", "01", "Microphone access")}{row("camera", "02", "Camera access")}</div><button type="button" disabled={!ready} onClick={handleStartInterview} className="dp-mono mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-full dp-btn-ember px-5 text-[13px] font-bold uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:bg-none disabled:bg-dp-ln disabled:text-dp-mu disabled:shadow-none"><Mic size={16} aria-hidden="true" /> Start interview</button><p aria-live="polite" className={`mt-3 text-center text-[13px] ${ready ? "text-dp-ok" : "text-dp-mu"}`}>{hint}</p></section><aside className="space-y-5"><div className="relative aspect-[4/3] overflow-hidden rounded-[12px] bg-[#111113]">{cameraPermission === "done" && <video ref={videoRef} autoPlay muted playsInline className="h-full w-full scale-x-[-1] object-cover" />}{cameraPermission !== "done" && <div className="absolute inset-0 flex flex-col items-center justify-center"><p className="text-5xl font-extrabold text-white">D<span className="text-[#EB3A14]">.</span></p><p className="mt-3 font-mono text-[11px] uppercase tracking-[0.1em] text-white/70">{cameraPermission === "blocked" ? "Camera blocked" : "Camera is off"}</p></div>}<div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-dp-sf px-3 py-2 text-[12px] font-semibold text-dp-ink"><span className={`h-2 w-2 rounded-full ${cameraPermission === "done" ? "bg-[#22C55E]" : cameraPermission === "blocked" ? "bg-[#EB3A14]" : "bg-[#666666]"}`} />Camera preview</div></div><div className="rounded-[12px] border border-dp-ln bg-dp-sf p-5"><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Mic level \u00b7 {microphonePermission === "done" ? "say hello" : "off"}</p><div className="mt-5 flex h-10 items-end gap-1">{Array.from({ length: 12 }, (_, i) => <span key={i} className={`flex-1 rounded-sm ${microphonePermission === "done" && micLevel > i / 12 ? "bg-[#EB3A14]" : "bg-dp-ln"}`} style={{ height: `${35 + (i % 4) * 15}%` }} />)}</div></div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Tip \u00b7 Find a quiet space and keep your face well lit.</p></aside></main></div>;
+    return <div className="relative min-h-screen overflow-hidden dp bg-dp-bg text-dp-ink antialiased font-sans"><div className="dp-ember dp-ember--soft" aria-hidden="true" /><header className="relative z-10 mx-auto flex max-w-[1120px] items-center justify-between px-6 py-6 lg:px-8"><div className="flex items-center gap-2"><DevPrepMark size={24} /><span className="text-[15px] font-bold">DevPrep</span></div><button type="button" onClick={() => router.push(`/dashboard/ai-interview/${slug}`)} className="min-h-11 rounded-full px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu"><ArrowLeft size={14} className="mr-2 inline" aria-hidden="true" /> Go back</button></header><main className="relative z-10 mx-auto grid max-w-[1120px] grid-cols-1 gap-12 px-6 pb-14 pt-8 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pt-14"><section><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#EB3A14]">{data.title} · {count} {count === 1 ? "question" : "questions"} · ~{data.duration} min</p><h1 className="mt-6 max-w-[520px] text-[42px] font-bold leading-[1] tracking-[-0.04em] sm:text-[52px]">Ready for your interview?</h1><p className="mt-5 max-w-[480px] text-[16px] leading-7 text-dp-mu">Check your microphone and camera before you begin. You can focus on the conversation once everything is ready.</p><div className="mt-10 flex items-end justify-between"><div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Before you start</p><div className="mt-3 flex gap-2">{[microphonePermission, cameraPermission].map((s, i) => <span key={i} className={`h-1.5 w-24 rounded-full ${s === "done" ? "bg-[#EB3A14]" : "bg-dp-ln"}`} />)}</div></div><span className="font-mono text-[11px] tracking-[0.1em] text-dp-mu">{String(completed).padStart(2, "0")} / 02</span></div><div className="mt-5 overflow-hidden rounded-[12px] border border-dp-ln bg-dp-sf">{row("microphone", "01", "Microphone access")}{row("camera", "02", "Camera access")}</div><button type="button" disabled={!ready} onClick={handleStartInterview} className="dp-mono mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-full dp-btn-ember px-5 text-[13px] font-bold uppercase tracking-[0.1em] disabled:cursor-not-allowed disabled:bg-none disabled:bg-dp-ln disabled:text-dp-mu disabled:shadow-none"><Mic size={16} aria-hidden="true" /> Start interview</button><p aria-live="polite" className={`mt-3 text-center text-[13px] ${ready ? "text-dp-ok" : "text-dp-mu"}`}>{hint}</p></section><aside className="space-y-5"><div className="relative aspect-[4/3] overflow-hidden rounded-[12px] bg-[#111113]">{cameraPermission === "done" && <video ref={videoRef} autoPlay muted playsInline className="h-full w-full scale-x-[-1] object-cover" />}{cameraPermission !== "done" && <div className="absolute inset-0 flex flex-col items-center justify-center"><p className="text-5xl font-extrabold text-white">D<span className="text-[#EB3A14]">.</span></p><p className="mt-3 font-mono text-[11px] uppercase tracking-[0.1em] text-white/70">{cameraPermission === "blocked" ? "Camera blocked" : "Camera is off"}</p></div>}<div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-dp-sf px-3 py-2 text-[12px] font-semibold text-dp-ink"><span className={`h-2 w-2 rounded-full ${cameraPermission === "done" ? "bg-[#22C55E]" : cameraPermission === "blocked" ? "bg-[#EB3A14]" : "bg-[#666666]"}`} />Camera preview</div></div><div className="rounded-[12px] border border-dp-ln bg-dp-sf p-5"><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Mic level · {microphonePermission === "done" ? "say hello" : "off"}</p><div className="mt-5 flex h-10 items-end gap-1">{Array.from({ length: 12 }, (_, i) => <span key={i} className={`flex-1 rounded-sm ${microphonePermission === "done" && micLevel > i / 12 ? "bg-[#EB3A14]" : "bg-dp-ln"}`} style={{ height: `${35 + (i % 4) * 15}%` }} />)}</div></div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-dp-mu">Tip · Find a quiet space and keep your face well lit.</p></aside></main></div>;
   }
   // ── DONE SCREEN ──────────────────────────────────────────────────────────────
   if (phase === "done") {
@@ -532,10 +532,9 @@ export default function InterviewSessionPage() {
       : userIsSpeaking
         ? "Listening to you…"
         : "Your turn — go ahead";
-  // Each topic tab fills as its share of the interview is answered
+  // Topics reached so far are highlighted; the rest stay dimmed
   const perTopic = totalQuestions / Math.max(1, topicTabs.length);
-  const topicFill = (i: number) =>
-    Math.max(i === 0 ? 0.12 : 0, Math.min(1, (answered.size - i * perTopic) / perTopic));
+  const topicActive = (i: number) => i <= Math.floor(answered.size / perTopic);
   const cameraLive = camOn && !camError && !camLoading && cameraPermission === "done";
   const energyBars = [0.45, 0.8, 0.6, 1, 0.7, 0.9];
 
@@ -544,68 +543,54 @@ export default function InterviewSessionPage() {
       <div className="dp-ember" aria-hidden="true" />
 
       {/* ── TOP BAR ── */}
-      <header className="relative z-10 flex-shrink-0 mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-10 pt-4 lg:pt-6">
+      <header className="relative z-10 flex-shrink-0 mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-12 pt-4 lg:pt-5 2xl:pt-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
             <div className="flex items-center gap-2.5 shrink-0">
-              <DevPrepMark size={26} />
-              <span className="text-[19px] font-bold tracking-[-0.01em]">DevPrep</span>
+              <DevPrepMark size={20} className="lg:w-6 lg:h-6" />
+              <span className="text-[15px] lg:text-[17px] 2xl:text-[19px] font-bold tracking-[-0.01em]">DevPrep</span>
             </div>
-            <span className="h-6 w-px bg-dp-ln shrink-0" />
+            <span className="h-5 lg:h-6 w-px bg-dp-ln shrink-0" />
             <div className="flex items-center gap-2 min-w-0">
               <span className="h-2 w-2 rounded-full bg-dp-ok shrink-0" />
-              <span className="text-[14px] text-dp-mu truncate">{data.title}</span>
+              <span className="text-[12px] lg:text-[13px] 2xl:text-[14px] text-dp-ink/80 truncate">{data.title}</span>
             </div>
           </div>
 
-          <nav aria-label="Interview topics" className="hidden lg:flex gap-10">
+          <nav aria-label="Interview topics" className="hidden lg:flex gap-8 2xl:gap-10">
             {topicTabs.map((item, i) => (
-              <div key={item} className="min-w-[140px]">
-                <p className="text-[14px] text-dp-ink/90 mb-2 truncate max-w-[170px]">{item}</p>
-                <div className="h-1 rounded-full bg-dp-ln overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full bg-dp-ac"
-                    initial={false}
-                    animate={{ width: `${topicFill(i) * 100}%` }}
-                    transition={{ duration: 0.6, ease: EASE }}
-                  />
-                </div>
+              <div key={item} className={`transition-opacity ${topicActive(i) ? "opacity-100" : "opacity-60"}`}>
+                <p className="text-[13px] 2xl:text-[14px] text-dp-ink mb-2 whitespace-nowrap">{item}</p>
+                <div className="h-1 rounded-full bg-dp-ac" />
               </div>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2 rounded-full border border-dp-ln bg-dp-pill px-4 sm:px-5 h-11 shrink-0">
-            <Clock3 size={17} className="text-dp-ink/80" />
-            <span className="dp-mono text-[15px] font-semibold tabular-nums">{formatTime(elapsed)}</span>
+          <div className="flex items-center gap-2 lg:gap-2.5 rounded-full border border-dp-ln bg-dp-pill px-3 lg:px-5 h-8 lg:h-11 2xl:h-12 shrink-0">
+            <Clock3 size={14} className="text-dp-ink lg:w-[18px] lg:h-[18px]" />
+            <span className="text-[13px] lg:text-[16px] 2xl:text-[18px] font-semibold tabular-nums tracking-[0.02em]">{formatTime(elapsed)}</span>
           </div>
         </div>
 
         {/* Mobile topic tabs */}
-        <nav aria-label="Interview topics" className="lg:hidden mt-5 grid grid-cols-3 gap-4">
+        <nav aria-label="Interview topics" className="lg:hidden mt-4 grid grid-cols-3 gap-4">
           {topicTabs.map((item, i) => (
-            <div key={item} className="min-w-0">
-              <p className="text-[13px] text-dp-ink/80 mb-2 truncate">{shortTopic(item)}</p>
-              <div className="h-1 rounded-full bg-dp-ln overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-dp-ac"
-                  initial={false}
-                  animate={{ width: `${topicFill(i) * 100}%` }}
-                  transition={{ duration: 0.6, ease: EASE }}
-                />
-              </div>
+            <div key={item} className={`min-w-0 transition-opacity ${topicActive(i) ? "opacity-100" : "opacity-60"}`}>
+              <p className="text-[12px] text-dp-ink mb-1.5 truncate">{shortTopic(item)}</p>
+              <div className="h-1 rounded-full bg-dp-ac" />
             </div>
           ))}
         </nav>
       </header>
 
       {/* ── MAIN ── */}
-      <main className="relative z-10 flex-1 min-h-0 mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-10 pt-4 lg:pt-10 grid grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-4 lg:gap-16">
+      <main className="relative z-10 flex-1 min-h-0 mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-12 pt-3 lg:pt-8 2xl:pt-10 grid grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] gap-4 lg:gap-14 2xl:gap-20">
         {/* LEFT – mic + camera */}
         <section aria-label="Your audio and video" className="flex flex-col gap-3 lg:gap-6 min-h-0">
           <div className="flex items-center gap-3 lg:justify-between">
             <div className="flex items-center gap-2.5">
-              {isMuted ? <MicOff size={18} className="text-dp-ac" /> : <Mic size={18} className="text-dp-ac" />}
-              <p className="text-[14px] font-medium whitespace-nowrap">{isMuted ? "Mic muted" : "Mic active"}</p>
+              {isMuted ? <MicOff size={16} className="text-dp-ac lg:w-[18px] lg:h-[18px]" /> : <Mic size={16} className="text-dp-ac lg:w-[18px] lg:h-[18px]" />}
+              <p className="text-[12px] lg:text-[14px] 2xl:text-[15px] font-medium whitespace-nowrap">{isMuted ? "Mic muted" : "Mic active"}</p>
             </div>
             <div className="flex items-center gap-3 lg:gap-5 ml-auto lg:ml-0">
               <button
@@ -638,11 +623,11 @@ export default function InterviewSessionPage() {
                 type="button"
                 onClick={toggleCam}
                 aria-label={camOn ? "Turn camera off" : "Turn camera on"}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-dp-ink/80 hover:bg-dp-ink/5 cursor-pointer"
+                className="flex h-8 w-8 lg:h-9 lg:w-9 items-center justify-center rounded-full text-dp-ink/80 hover:bg-dp-ink/5 cursor-pointer"
               >
-                {camOn ? <Camera size={18} /> : <CameraOff size={18} />}
+                {camOn ? <Camera size={17} /> : <CameraOff size={17} />}
               </button>
-              <span className="lg:hidden flex items-center gap-2 rounded-full border border-dp-ln px-3.5 h-9 text-[13px] font-medium whitespace-nowrap">
+              <span className="lg:hidden flex items-center gap-2 rounded-full border border-dp-ln px-3 h-7 text-[11px] font-medium whitespace-nowrap">
                 <span className={`h-2 w-2 rounded-full ${cameraLive ? "bg-dp-ok" : "bg-dp-mu/60"}`} />
                 <span className="hidden min-[380px]:inline">Camera preview</span>
                 <span className="min-[380px]:hidden">Camera</span>
@@ -650,12 +635,12 @@ export default function InterviewSessionPage() {
             </div>
           </div>
 
-          <span className="hidden lg:flex w-fit items-center gap-2.5 rounded-full border border-dp-ln px-4 h-10 text-[14px] font-medium">
+          <span className="hidden lg:flex w-fit items-center gap-2.5 rounded-full border border-dp-ln px-4 h-9 2xl:h-10 text-[13px] 2xl:text-[14px] font-medium">
             <span className={`h-2 w-2 rounded-full ${cameraLive ? "bg-dp-ok" : "bg-dp-mu/60"}`} />
             Camera preview
           </span>
 
-          <div className="relative h-[180px] sm:h-[220px] lg:h-auto lg:flex-1 lg:max-h-[420px] rounded-2xl border border-dp-ln lg:border-transparent overflow-hidden flex items-center justify-center">
+          <div className="relative h-[150px] sm:h-[200px] lg:h-auto lg:flex-1 lg:max-h-[440px] lg:-mt-6 rounded-2xl border border-transparent dark:border-dp-ln lg:dark:border-transparent overflow-hidden flex items-center justify-center">
             <video
               ref={videoRef}
               autoPlay
@@ -665,8 +650,8 @@ export default function InterviewSessionPage() {
             />
             {!cameraLive && (
               <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <Camera size={44} strokeWidth={1.5} className="text-dp-mu" />
-                <p className="text-[15px] lg:text-[18px] max-w-[200px] lg:max-w-none text-dp-mu">
+                <Camera size={30} strokeWidth={1.5} className="text-dp-mu dark:text-dp-ink/80 lg:w-11 lg:h-11" />
+                <p className="text-[12px] lg:text-[16px] 2xl:text-[18px] max-w-[130px] lg:max-w-none text-dp-mu dark:text-dp-ink/85">
                   {camLoading ? "Starting camera…" : camError ? "Camera unavailable — audio interview mode" : "Camera preview will appear here"}
                 </p>
               </div>
@@ -680,22 +665,22 @@ export default function InterviewSessionPage() {
             <motion.div
               animate={aiSpeaking ? { boxShadow: ["0 0 0 0 rgba(235,58,20,0)", "0 0 0 6px rgba(235,58,20,0.18)", "0 0 0 0 rgba(235,58,20,0)"] } : { boxShadow: "0 0 0 0 rgba(235,58,20,0)" }}
               transition={{ repeat: aiSpeaking ? Infinity : 0, duration: 1.6 }}
-              className="w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-dp-pill border border-dp-ln flex items-center justify-center shrink-0"
+              className="w-10 h-10 lg:w-12 lg:h-12 2xl:w-14 2xl:h-14 rounded-full bg-dp-pill border border-dp-ln flex items-center justify-center shrink-0"
             >
-              <span className="text-[20px] font-extrabold">
+              <span className="text-[16px] lg:text-[20px] font-extrabold">
                 D<span className="text-dp-ac">.</span>
               </span>
             </motion.div>
             <div>
-              <p className="text-[15px] font-semibold">DevPrep Interviewer</p>
-              <p aria-live="polite" className={`text-[14px] ${isThinking ? "text-dp-mu" : "text-dp-ok"}`}>{statusText}</p>
+              <p className="text-[13px] lg:text-[14px] 2xl:text-[15px] font-semibold">DevPrep Interviewer</p>
+              <p aria-live="polite" className={`text-[12px] lg:text-[13px] 2xl:text-[14px] ${isThinking ? "text-dp-mu" : "text-dp-ok"}`}>{statusText}</p>
             </div>
           </div>
 
           <div
             ref={chatScrollRef}
             onScroll={handleChatScroll}
-            className="dp-fade-y flex-1 min-h-0 overflow-y-auto pt-3 pb-10 space-y-5 lg:pl-[72px] pr-1"
+            className="dp-fade-y flex-1 min-h-0 overflow-y-auto pt-2 pb-16 space-y-3 lg:space-y-5 pl-12 lg:pl-8 pr-1"
             style={{ scrollbarWidth: "none" }}
           >
             {chatMessages.length === 0 && (
@@ -742,7 +727,7 @@ export default function InterviewSessionPage() {
           </div>
 
           {(error || realtimeError) && (
-            <div role="alert" className="flex-shrink-0 mt-2 rounded-xl border border-dp-ac/30 bg-dp-ac/10 px-4 py-3 text-[13px] text-dp-ac">
+            <div role="alert" className="flex-shrink-0 mt-2 rounded-xl border border-dp-ln border-l-[3px] border-l-dp-ac bg-dp-bg/85 backdrop-blur-md px-4 py-3 text-[12px] lg:text-[13px] text-dp-ink">
               {error || realtimeError}
             </div>
           )}
@@ -750,16 +735,13 @@ export default function InterviewSessionPage() {
       </main>
 
       {/* ── CONTROLS ── */}
-      <footer className="relative z-20 flex-shrink-0 mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-10 pt-3 pb-6 lg:pb-9">
-        <div className="flex items-center justify-center lg:justify-between gap-3">
-          <p className="dp-mono hidden lg:block text-[12px] uppercase tracking-[0.1em] text-dp-mu">
-            Question {Math.min(currentQ + 1, totalQuestions)} of {totalQuestions}
-          </p>
-          <div className="relative flex items-center gap-3 sm:gap-5">
+      <footer className="relative z-20 flex-shrink-0 w-full px-4 sm:px-6 lg:px-14 pt-2 pb-7 lg:pb-[72px]">
+        <div className="flex items-center justify-center lg:justify-end gap-3">
+          <div className="relative flex items-center gap-2.5 sm:gap-6">
             <button
               type="button"
               onClick={endInterview}
-              className="dp-mono dp-btn-ember h-12 sm:h-14 px-6 sm:px-9 rounded-full text-[13px] sm:text-[15px] font-bold uppercase tracking-[0.06em] cursor-pointer transition-transform active:scale-95"
+              className="dp-mono dp-btn-ember h-10 lg:h-12 2xl:h-14 px-6 lg:px-7 2xl:px-9 rounded-full text-[11px] lg:text-[13px] 2xl:text-[16px] font-bold uppercase tracking-[0.04em] cursor-pointer transition-transform active:scale-95"
             >
               End interview
             </button>
@@ -767,7 +749,7 @@ export default function InterviewSessionPage() {
               type="button"
               onClick={() => setHelpOpen((open) => !open)}
               aria-expanded={helpOpen}
-              className="dp-mono h-12 sm:h-14 px-6 sm:px-9 rounded-full border border-dp-ln bg-dp-sf/70 backdrop-blur-md text-[13px] sm:text-[15px] font-bold uppercase tracking-[0.06em] cursor-pointer transition-colors hover:border-dp-ink active:scale-95"
+              className="dp-mono h-10 lg:h-12 2xl:h-14 px-6 lg:px-7 2xl:px-9 rounded-full border border-dp-ln bg-dp-sf/70 backdrop-blur-md text-[11px] lg:text-[13px] 2xl:text-[16px] font-bold uppercase tracking-[0.04em] cursor-pointer transition-colors hover:border-dp-ink active:scale-95"
             >
               Having problem
             </button>
@@ -811,11 +793,11 @@ export default function InterviewSessionPage() {
 function AiMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
     <div className="flex justify-start">
-      <div className="max-w-[88%] lg:max-w-[560px]">
-        <div className="rounded-[18px] bg-dp-sf2 border border-dp-ln px-5 py-4 lg:bg-transparent lg:border-0 lg:p-0 text-[15px] lg:text-[16px] leading-[1.55]">
+      <div className="max-w-[86%] lg:max-w-[540px]">
+        <div className="rounded-[14px] bg-dp-sf2 border border-dp-ln px-3.5 py-2.5 lg:bg-transparent lg:border-0 lg:p-0 text-[12.5px] lg:text-[15px] 2xl:text-[17px] leading-[1.5]">
           {text}
         </div>
-        <p className="mt-2 px-1 lg:px-0 text-[13px] text-dp-mu">{timestamp}</p>
+        <p className="mt-1.5 lg:mt-2 px-1 lg:px-0 text-[11px] lg:text-[13px] 2xl:text-[14px] text-dp-mu">{timestamp}</p>
       </div>
     </div>
   );
@@ -824,9 +806,9 @@ function AiMessage({ text, timestamp }: { text: string; timestamp: string }) {
 function UserMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-[18px] bg-gradient-to-b from-[#ff4f1f] to-[#eb3a14] px-5 py-3.5 text-white shadow-[0_8px_24px_-12px_rgba(235,58,20,0.7)]">
-        <p className="text-[15px] leading-[1.5]">{text}</p>
-        <p className="mt-1.5 text-[13px] text-white/75">{timestamp}</p>
+      <div className="max-w-[80%] lg:max-w-[85%] rounded-[12px] lg:rounded-[16px] bg-gradient-to-b from-[#ff4a1c] to-[#f2380f] px-3.5 py-2.5 lg:px-5 lg:py-3.5 text-white">
+        <p className="text-[12.5px] lg:text-[15px] 2xl:text-[16px] leading-[1.5]">{text}</p>
+        <p className="mt-1 lg:mt-1.5 text-[11px] lg:text-[13px] text-white/75">{timestamp}</p>
       </div>
     </div>
   );

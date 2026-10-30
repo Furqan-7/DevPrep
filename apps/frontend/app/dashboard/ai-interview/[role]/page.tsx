@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronDown, Mic, ArrowLeft, Clock, AlertCircle, Sparkles } from "lucide-react";
+import { ChevronDown, Mic, ArrowLeft, Clock, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import type { RoleData } from "../data";
@@ -234,37 +234,26 @@ function QuestionItem({ index, question }: { index: number; question: string }) 
   const [open, setOpen] = useState(false);
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.35, ease: EASE, delay: (index % 5) * 0.05 }}
-      className="w-full"
+      transition={{ duration: 0.35, ease: EASE, delay: (index % 5) * 0.04 }}
     >
-      <div
+      <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full text-left border border-dp-ln rounded-2xl p-5 bg-dp-sf2 hover:border-dp-ac/50 transition-colors duration-200 cursor-pointer group relative overflow-hidden"
+        aria-expanded={open}
+        className="w-full text-left rounded-2xl border border-dp-ln bg-dp-sf2 px-4 sm:px-5 py-4 transition-colors hover:border-dp-ac/50 cursor-pointer group"
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <span
-              style={monoStyle}
-              className="text-[13px] font-bold text-dp-ac shrink-0 tabular-nums bg-dp-soft px-2 py-0.5 rounded-md"
-            >
-              {String(index).padStart(2, "0")}
-            </span>
-            <span className="text-[15px] font-semibold text-dp-ink leading-snug tracking-[-0.01em]">
-              {question}
-            </span>
-          </div>
-          <motion.div
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.2, ease: EASE }}
-            className="shrink-0 text-dp-mu group-hover:text-dp-ink transition-colors"
-          >
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span style={monoStyle} className="shrink-0 rounded-md bg-dp-soft px-2 py-0.5 text-[12px] font-bold tabular-nums text-dp-ac">
+            {String(index).padStart(2, "0")}
+          </span>
+          <span className="flex-1 text-[14px] sm:text-[15px] font-medium leading-snug text-dp-ink">{question}</span>
+          <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2, ease: EASE }} className="shrink-0 text-dp-mu group-hover:text-dp-ink">
             <ChevronDown size={16} />
-          </motion.div>
+          </motion.span>
         </div>
-
         <AnimatePresence>
           {open && (
             <motion.div
@@ -274,16 +263,13 @@ function QuestionItem({ index, question }: { index: number; question: string }) 
               transition={{ duration: 0.25, ease: EASE }}
               className="overflow-hidden"
             >
-              <div className="mt-4 pt-3.5 border-t border-dp-ln text-[13px] text-dp-mu leading-relaxed flex items-start gap-2">
-                <Sparkles size={14} className="text-dp-ac shrink-0 mt-0.5" />
-                <span>
-                  Expand this question in a live AI interview session to practice your voice or code response with Zara and receive instant personalized feedback.
-                </span>
-              </div>
+              <p className="mt-3 pt-3 border-t border-dp-ln pl-[44px] sm:pl-[52px] text-[13px] leading-relaxed text-dp-mu">
+                Zara may ask this or a follow-up on it. Answer out loud in the practice interview to get a score and feedback.
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </button>
     </motion.div>
   );
 }
@@ -377,201 +363,137 @@ export default function RoleInterviewPage() {
     }
   }
 
+  const errorBadge = startError && (
+    <div role="alert" className="mx-auto flex max-w-md items-start gap-2 rounded-xl border border-dp-ln border-l-[3px] border-l-dp-ac bg-dp-sf2 px-4 py-3 text-left text-[13px] text-dp-ink">
+      <AlertCircle size={14} className="mt-0.5 shrink-0 text-dp-ac" />
+      <span>{startError}</span>
+    </div>
+  );
+
   return (
     <DashboardShell themed>
       <div className="min-h-[calc(100vh-64px)] antialiased">
+        {/* ── Hero ── */}
         <section className="dp-glow">
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pt-8 pb-44 sm:pb-52">
-
-          {/* ── Back link ── */}
-          <motion.button
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, ease: EASE }}
-            onClick={() => router.push("/dashboard/ai-interview")}
-            style={monoStyle}
-            className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-dp-ink/70 hover:text-dp-ink transition-colors mb-8 cursor-pointer border-0 bg-transparent p-0"
-          >
-            <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" />
-            ALL INTERVIEW ROLES
-          </motion.button>
-
-          {/* ── Hero Section ── */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: 0.08, delayChildren: 0.04 },
-              },
-            }}
-          >
-            {/* Duration pill */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 15 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
-              }}
+          <div className="mx-auto max-w-[1100px] px-5 sm:px-8 pt-6 sm:pt-8 pb-40 sm:pb-48">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/ai-interview")}
+              style={monoStyle}
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-dp-mu hover:text-dp-ink transition-colors cursor-pointer"
             >
-              <div
+              <ArrowLeft size={13} />
+              All interview roles
+            </button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: EASE }}
+              className="mt-8 sm:mt-12 flex flex-col items-center text-center"
+            >
+              <span
                 style={monoStyle}
-                className="inline-flex items-center gap-2 rounded-full border border-dp-ln bg-dp-pill px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-dp-ink/80 mb-6"
+                className="inline-flex items-center gap-2 rounded-full border border-dp-ln bg-dp-pill px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-dp-ink/80"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-dp-ok" /><Clock size={11} className="text-dp-ac" />
-                {meta.duration} MINS PRACTICE INTERVIEW
+                <span className="h-1.5 w-1.5 rounded-full bg-dp-ok" />
+                <Clock size={11} />
+                {meta.duration} min practice interview
+              </span>
+
+              <h1 className="mt-6 max-w-[760px] text-[34px] sm:text-[46px] lg:text-[56px] font-bold leading-[1.04] tracking-[-0.035em] text-dp-ink">
+                {meta.title}
+                <span className="block text-dp-mu">interview practice.</span>
+              </h1>
+
+              <p className="mt-5 max-w-[520px] text-[15px] sm:text-[16px] leading-relaxed text-dp-mu">
+                Review the most common <span className="text-dp-ink font-medium">{meta.title}</span> questions, then answer them out loud with Zara and get scored on every answer.
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-2">
+                {meta.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    style={monoStyle}
+                    className="rounded-full border border-dp-ln bg-dp-pill px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-dp-ink/75"
+                  >
+                    {skill}
+                  </span>
+                ))}
               </div>
-            </motion.div>
 
-            {/* Headline (dominant focal point, matching landing hero style) */}
-            <motion.h1
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
-              }}
-              className="font-extrabold text-dp-ink text-[36px] sm:text-[52px] lg:text-[64px] leading-[1.05] tracking-[-0.03em] max-w-[850px] mb-6"
-            >
-              {meta.title}{" "}
-              <span className="font-bold text-dp-mu">interview questions & AI practice.</span>
-            </motion.h1>
+              {startError && <div className="mt-6 w-full">{errorBadge}</div>}
 
-            {/* Skill pills */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 15 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
-              }}
-              className="flex flex-wrap gap-2 mb-6"
-            >
-              {meta.skills.map((skill) => (
-                <span
-                  key={skill}
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleStartInterview}
+                  disabled={starting}
                   style={monoStyle}
-                  className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase border border-dp-ln bg-dp-pill text-dp-ink/80"
+                  className="dp-btn-ember inline-flex items-center gap-2 h-12 px-7 rounded-full text-[13px] font-bold uppercase tracking-[0.05em] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {skill}
-                </span>
-              ))}
-            </motion.div>
-
-            {/* Subtext description */}
-            <motion.p
-              variants={{
-                hidden: { opacity: 0, y: 15 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
-              }}
-              className="text-dp-mu text-[16px] sm:text-[18px] leading-relaxed max-w-[620px] mb-8"
-            >
-              Check out 10 of the most common{" "}
-              <span className="text-dp-ink font-semibold">{meta.title}</span> interview questions and
-              take an AI‑powered practice interview.
-            </motion.p>
-
-            {/* Error badge if any */}
-            {startError && (
-              <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs mb-6 max-w-md">
-                <AlertCircle size={13} className="shrink-0 mt-0.5" />
-                <span>{startError}</span>
+                  <Mic size={15} />
+                  {starting ? "Starting…" : "Start AI interview"}
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("questions")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  style={monoStyle}
+                  className="inline-flex items-center h-12 px-7 rounded-full border border-dp-ln bg-dp-sf/70 backdrop-blur-md text-[13px] font-bold uppercase tracking-[0.05em] text-dp-ink cursor-pointer hover:border-dp-ink transition-colors"
+                >
+                  See questions
+                </button>
               </div>
-            )}
-
-            {/* Primary Hero CTA Button */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 15 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
-              }}
-            >
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={handleStartInterview}
-                disabled={starting}
-                style={monoStyle}
-                className="dp-btn-ember inline-flex items-center gap-2.5 h-14 px-8 rounded-full text-[14px] font-bold tracking-[0.06em] uppercase cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <Mic size={15} />
-                {starting ? "Starting…" : "Take practice AI interview"}
-              </motion.button>
             </motion.div>
-          </motion.div>
-
-        </div>
+          </div>
         </section>
 
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pb-20">
-
-          {/* ── Two-column layout ── */}
-          <div className="flex flex-col lg:flex-row gap-10">
-
-            {/* Left: sticky label */}
-            <div className="lg:w-64 shrink-0">
-              <div className="lg:sticky lg:top-24">
-                <p
-                  style={monoStyle}
-                  className="text-[11px] text-dp-ac uppercase tracking-[0.1em] font-medium mb-3"
-                >
-                  TOP QUESTIONS
-                </p>
-                <p className="text-xl md:text-2xl font-extrabold text-dp-ink leading-tight tracking-[-0.02em]">
-                  10 of the most common{" "}
-                  <span className="text-dp-mu font-bold">{meta.title} questions</span>
-                </p>
-              </div>
+        {/* ── Questions ── */}
+        <section id="questions" className="mx-auto max-w-[820px] px-5 sm:px-8 pt-4 pb-20 scroll-mt-20">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p style={monoStyle} className="text-[11px] font-medium uppercase tracking-[0.1em] text-dp-ac">
+                Top questions
+              </p>
+              <h2 className="mt-2 text-[22px] sm:text-[26px] font-bold tracking-[-0.02em] text-dp-ink">
+                What Zara is likely to ask
+              </h2>
             </div>
-
-            {/* Right: accordion questions */}
-            <div className="flex-1 space-y-3">
-              {questions.map((q, i) => (
-                <QuestionItem key={i} index={i + 1} question={q} />
-              ))}
-            </div>
+            <span style={monoStyle} className="hidden sm:block text-[11px] uppercase tracking-[0.1em] text-dp-mu">
+              {String(questions.length).padStart(2, "0")} questions
+            </span>
+          </div>
+          <div className="space-y-2.5">
+            {questions.map((q, i) => (
+              <QuestionItem key={i} index={i + 1} question={q} />
+            ))}
           </div>
 
-          {/* ── Bottom CTA banner (Restyled + Scroll Entrance) ── */}
+          {/* ── Bottom CTA ── */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="dp-glow dp-glow--cta dp-glow--rise mt-20 relative rounded-3xl overflow-hidden bg-[#0e0e10] text-white px-8 pt-12 pb-32 md:px-14 md:pt-16 md:pb-40 text-center border border-dp-ln"
+            className="dp-glow dp-glow--cta dp-glow--rise mt-14 relative overflow-hidden rounded-[28px] border border-dp-ln bg-dp-dk text-white text-center px-6 pt-12 pb-32 sm:pt-14 sm:pb-36"
           >
-            <div className="max-w-2xl mx-auto flex flex-col items-center">
-              <div
-                style={monoStyle}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#ff7a4d] mb-6 border border-white/15"
-              >
-                <Mic size={11} className="text-[#ff7a4d]" />
-                AI-POWERED · INSTANT FEEDBACK
-              </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-[-0.02em] text-white mb-4">
-                Take practice AI interview
-              </h2>
-              <p className="text-white/70 text-[15px] sm:text-[16px] leading-relaxed max-w-lg mb-8">
-                Put your skills to the test and receive instant feedback on your performance — tailored specifically for the <span className="text-white font-semibold">{meta.title}</span> role.
-              </p>
-              {startError && (
-                <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-6 max-w-sm">
-                  <AlertCircle size={13} className="shrink-0 mt-0.5" />
-                  <span>{startError}</span>
-                </div>
-              )}
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={handleStartInterview}
-                disabled={starting}
-                style={monoStyle}
-                className="dp-btn-ember inline-flex items-center gap-2.5 h-14 px-9 rounded-full text-[14px] font-bold tracking-[0.06em] uppercase cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <Mic size={15} />
-                {starting ? "Starting…" : "Start now"}
-              </motion.button>
-            </div>
+            <h2 className="text-[24px] sm:text-[32px] font-bold tracking-[-0.02em]">Ready when you are.</h2>
+            <p className="mx-auto mt-3 max-w-[420px] text-[14px] sm:text-[15px] leading-relaxed text-white/65">
+              A {meta.duration}-minute voice interview with Zara, tailored to the {meta.title} role.
+            </p>
+            {startError && <div className="mt-5">{errorBadge}</div>}
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={handleStartInterview}
+              disabled={starting}
+              style={monoStyle}
+              className="dp-btn-ember mt-7 inline-flex items-center gap-2 h-12 px-8 rounded-full text-[13px] font-bold uppercase tracking-[0.05em] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Mic size={15} />
+              {starting ? "Starting…" : "Start now"}
+            </motion.button>
           </motion.div>
-
-        </div>
+        </section>
       </div>
     </DashboardShell>
   );

@@ -162,34 +162,39 @@
   position: fixed;
   z-index: 0;
   left: 50%;
-  bottom: -40vh;
-  width: max(150vw, 900px);
-  height: 72vh;
+  bottom: -55vh;
+  width: max(170vw, 1100px);
+  height: 105vh;
   transform: translateX(-50%);
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(ellipse 50% 50% at 50% 50%, #fff2d2 0%, #ffcb73 12%, #ff7a2e 27%, #ee3a14 41%, rgba(22, 9, 6, .94) 60%, rgba(12, 12, 12, 0) 76%);
-  filter: blur(26px);
-  animation: dp-ember 8s ease-in-out infinite
+  /* dark theme: white-hot core, orange body, grey haze band above it */
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, #fff6dc 0%, #ffd27a 9%, #ff8a2e 21%, #ff4a14 34%, #e8350f 46%, rgba(120, 52, 40, .75) 55%, rgba(150, 150, 150, .32) 63%, rgba(90, 90, 90, .12) 73%, rgba(0, 0, 0, 0) 82%);
+  filter: blur(22px);
+  animation: dp-ember 9s ease-in-out infinite
+}
+
+:root:not([data-theme="dark"]) .dp-ember {
+  /* light theme: same ember with a dark smoky band, as in the reference */
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, #fff6dc 0%, #ffd27a 9%, #ff8a2e 21%, #ff4a14 34%, #d8340f 47%, rgba(20, 12, 10, .9) 57%, rgba(30, 30, 30, .45) 65%, rgba(60, 60, 60, .1) 75%, rgba(0, 0, 0, 0) 84%)
 }
 
 .dp-ember--soft {
   opacity: .9;
-  bottom: -50vh
+  bottom: -68vh
 }
 
 @keyframes dp-ember {
   50% {
-    transform: translateX(-50%) scale(1.04, 1.08);
-    opacity: .9
+    transform: translateX(-50%) scale(1.03, 1.05)
   }
 }
 
 @media (max-width: 640px) {
   .dp-ember {
-    bottom: -26vh;
-    height: 46vh;
-    width: 190vw
+    bottom: -34vh;
+    height: 62vh;
+    width: 230vw
   }
 }
 
