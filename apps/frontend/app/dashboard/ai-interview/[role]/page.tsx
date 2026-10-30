@@ -535,7 +535,7 @@ export default function RoleInterviewPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="dp-glow dp-glow--cta dp-glow--rise mt-20 relative rounded-3xl overflow-hidden bg-[#0e0e10] text-white px-8 pt-12 pb-32 md:px-14 md:pt-16 md:pb-40 text-center border border-dp-ln"
+            className="dp-glow dp-glow--cta dp-glow--rise mt-20 relative rounded-3xl overflow-hidden bg-dp-dk text-white px-8 pt-12 pb-32 md:px-14 md:pt-16 md:pb-40 text-center border border-dp-ln"
           >
             <div className="max-w-2xl mx-auto flex flex-col items-center">
               <div

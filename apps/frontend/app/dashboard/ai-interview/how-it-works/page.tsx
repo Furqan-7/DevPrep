@@ -213,7 +213,7 @@ export default function HowItWorksPage() {
 
         {/* ── CTA ── */}
         <section className="max-w-[1120px] mx-auto px-6 mt-24">
-          <div className="dp-glow dp-glow--cta dp-glow--rise relative overflow-hidden rounded-[28px] border border-dp-ln bg-[#0e0e10] text-white text-center px-8 pt-14 pb-36 sm:pt-16 sm:pb-44">
+          <div className="dp-glow dp-glow--cta dp-glow--rise relative overflow-hidden rounded-[28px] border border-dp-ln bg-dp-dk text-white text-center px-8 pt-14 pb-36 sm:pt-16 sm:pb-44">
             <h2 className="text-[28px] sm:text-[40px] font-bold tracking-[-0.03em] leading-[1.1]">
               Ready when you are.
             </h2>
