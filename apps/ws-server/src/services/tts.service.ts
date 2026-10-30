@@ -373,6 +373,11 @@ export class DeepgramStreamingTtsSession {
         if (!this.isAlive()) {
             throw new Error("Cannot prepare a closed Deepgram session for another turn.");
         }
+        // Drop the previous turn's synthesis timer so it cannot close this socket mid-turn
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
+        }
         this.hasFinished = false;
         this.completionHandled = false;
         this.streamStartTime = Date.now();

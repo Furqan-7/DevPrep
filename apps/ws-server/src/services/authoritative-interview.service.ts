@@ -13,6 +13,8 @@ export interface AuthoritativeTurnInput {
     currentQuestion?: string;
     token?: string;
     onChunk: (spokenChunk: string) => void;
+    /** Called once the spoken text is complete (before metrics/DB work finishes). */
+    onSpokenEnd?: () => void;
 }
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
@@ -25,7 +27,7 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
 export async function streamAuthoritativeInterviewTurn(
     input: AuthoritativeTurnInput
 ): Promise<TurnResult> {
-    const { sessionId, candidateAnswer, currentQuestion, token, onChunk } = input;
+    const { sessionId, candidateAnswer, currentQuestion, token, onChunk, onSpokenEnd } = input;
 
     const endpoint = `${BACKEND_URL}/api/interview/turn-stream`;
     console.log(`[AuthoritativeService] Requesting turn stream from: ${endpoint} for session #${sessionId}`);
@@ -82,6 +84,8 @@ export async function streamAuthoritativeInterviewTurn(
                     const data = JSON.parse(jsonStr);
                     if (data.type === "spoken_chunk" && typeof data.text === "string") {
                         onChunk(data.text);
+                    } else if (data.type === "spoken_end") {
+                        onSpokenEnd?.();
                     } else if (data.type === "turn_result") {
                         turnResult = {
                             isComplete: Boolean(data.isComplete),

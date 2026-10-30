@@ -17,6 +17,83 @@ export interface ProcessTurnInput {
     candidateAnswer: string;
     currentQuestionText?: string;
     onSpokenChunk: (chunk: string) => void;
+    /** Fired as soon as the spoken block is complete, before metrics parsing and DB writes. */
+    onSpokenEnd?: () => void;
+}
+
+interface CachedQuestion {
+    id: number;
+    order: number;
+    question: string;
+    answer: string | null;
+}
+
+interface CachedSession {
+    id: number;
+    userId: number;
+    role: string;
+    difficulty: string;
+    introduction: string | null;
+    status: string;
+    currentQues: number;
+    questions: CachedQuestion[];
+    candidateName: string | null;
+    touchedAt: number;
+}
+
+// Live interviews hit the engine once per turn. Keeping the session state in memory
+// removes two database round trips from the critical path before Gemini can start.
+const SESSION_CACHE_TTL_MS = 60 * 60 * 1000;
+const sessionCache = new Map<number, CachedSession>();
+
+function pruneSessionCache() {
+    const cutoff = Date.now() - SESSION_CACHE_TTL_MS;
+    for (const [id, entry] of sessionCache) {
+        if (entry.touchedAt < cutoff) sessionCache.delete(id);
+    }
+}
+
+async function loadSession(sessionId: number): Promise<CachedSession | null> {
+    const cached = sessionCache.get(sessionId);
+    if (cached) {
+        cached.touchedAt = Date.now();
+        return cached;
+    }
+
+    const session = await prisma.interviewSession.findUnique({
+        where: { id: sessionId },
+        include: {
+            questions: { orderBy: { order: "asc" } },
+        },
+    });
+    if (!session) return null;
+
+    // Candidate identity context (no relation on InterviewSession schema)
+    const candidateUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { username: true },
+    });
+
+    const entry: CachedSession = {
+        id: session.id,
+        userId: session.userId,
+        role: session.role,
+        difficulty: session.difficulty,
+        introduction: session.introduction ?? null,
+        status: session.status,
+        currentQues: session.currentQues,
+        questions: session.questions.map((q: any) => ({
+            id: q.id,
+            order: q.order,
+            question: q.question,
+            answer: q.answer ?? null,
+        })),
+        candidateName: candidateUser?.username ?? null,
+        touchedAt: Date.now(),
+    };
+    pruneSessionCache();
+    sessionCache.set(sessionId, entry);
+    return entry;
 }
 
 /**
@@ -30,13 +107,10 @@ export interface ProcessTurnInput {
 export async function processInterviewTurn(input: ProcessTurnInput): Promise<TurnResult> {
     const { sessionId, candidateAnswer, currentQuestionText, onSpokenChunk } = input;
 
-    // 1. Fetch authoritative session + question history
-    const session = await prisma.interviewSession.findUnique({
-        where: { id: sessionId },
-        include: {
-            questions: { orderBy: { order: "asc" } },
-        },
-    });
+    const { onSpokenEnd } = input;
+
+    // 1. Fetch authoritative session + question history (memory first, DB on miss)
+    const session = await loadSession(sessionId);
 
     if (!session) {
         throw new Error(`Interview session #${sessionId} not found`);
@@ -45,6 +119,7 @@ export async function processInterviewTurn(input: ProcessTurnInput): Promise<Tur
     if (session.status === "completed") {
         const completionMsg = "This interview session has already concluded. Your performance report is ready.";
         onSpokenChunk(completionMsg);
+        onSpokenEnd?.();
         return {
             isComplete: true,
             score: 0,
@@ -56,22 +131,17 @@ export async function processInterviewTurn(input: ProcessTurnInput): Promise<Tur
     }
 
     // 2. Identify current question being answered
-    const currentQues = session.questions.find((q: any) => q.order === session.currentQues);
+    const currentQues = session.questions.find((q) => q.order === session.currentQues);
     const questionText = currentQues?.question || currentQuestionText || "Can you explain your experience in this domain?";
     // isLastQuestion fires at question 10 (the 10th technical question, order 10)
     const isLastQuestion = session.currentQues >= TOTAL_QUESTIONS;
 
-    // Candidate identity context ─ fetch username via separate query (no relation on InterviewSession schema)
-    const candidateUser = await prisma.user.findUnique({
-        where: { id: session.userId },
-        select: { username: true },
-    });
-    const candidateName: string | null = candidateUser?.username ?? null;
+    const candidateName = session.candidateName;
 
     // 3. Build structured conversation history (intro + all answered technical turns)
     const history = session.questions
-        .filter((q: any) => q.order >= 0 && q.answer)   // include order:0 intro in history
-        .map((q: any) => {
+        .filter((q) => q.order >= 0 && q.answer)   // include order:0 intro in history
+        .map((q) => {
             const label = q.order === 0 ? "Introduction" : `Q${q.order}`;
             return `${label}: ${q.question}\nA${q.order === 0 ? "(Intro)" : q.order}: ${q.answer}`;
         })
@@ -145,6 +215,12 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
     let spokenEnded = false;
     let fullResponse = "";
     let accumulatedSpoken = "";
+    let spokenEndSignalled = false;
+    const signalSpokenEnd = () => {
+        if (spokenEndSignalled) return;
+        spokenEndSignalled = true;
+        onSpokenEnd?.();
+    };
 
     await streamGeminiContent({
         prompt,
@@ -179,6 +255,9 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
                     }
                     spokenEnded = true;
                     spokenBuffer = "";
+                    // Let TTS flush the final sentence now instead of waiting for
+                    // the metrics block and database writes to finish.
+                    signalSpokenEnd();
                 } else {
                     // Safe streaming chunk threshold (leave room for incomplete tags)
                     if (spokenBuffer.length > 15) {
@@ -205,6 +284,7 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
             accumulatedSpoken += " " + cleanRemaining;
         }
     }
+    signalSpokenEnd();
 
     const spokenText = accumulatedSpoken.trim() || "Thank you for your answer. Let's move on to the next topic.";
 
@@ -235,23 +315,28 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
         }
     }
 
-    // 7. Atomic Database Persistence
-    if (currentQues) {
-        await prisma.interviewQuestion.update({
+    // 7. Atomic Database Persistence (single transaction, one round trip batch)
+    const answerUpdate = currentQues
+        ? [prisma.interviewQuestion.update({
             where: { id: currentQues.id },
             data: {
                 answer: candidateAnswer,
                 score,
                 feedback: spokenText,
             },
-        });
-    }
+        })]
+        : [];
+    if (currentQues) currentQues.answer = candidateAnswer;
 
     if (isCompletedTurn) {
-        await prisma.interviewSession.update({
-            where: { id: session.id },
-            data: { status: "completed" },
-        });
+        await prisma.$transaction([
+            ...answerUpdate,
+            prisma.interviewSession.update({
+                where: { id: session.id },
+                data: { status: "completed" },
+            }),
+        ]);
+        sessionCache.delete(session.id);
 
         return {
             isComplete: true,
@@ -266,28 +351,41 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
     const nextOrder = session.currentQues + 1;
     const finalNextQuestion = nextQuestion!;
 
-    // Upsert avoids race conditions on duplicate turns
-    await prisma.interviewQuestion.upsert({
-        where: {
-            sessionId_order: {
-                sessionId: session.id,
-                order: nextOrder,
-            },
-        },
-        create: {
-            sessionId: session.id,
-            order: nextOrder,
-            question: finalNextQuestion,
-        },
-        update: {
-            question: finalNextQuestion,
-        },
-    });
+    try {
+        // Upsert avoids race conditions on duplicate turns
+        const results = await prisma.$transaction([
+            ...answerUpdate,
+            prisma.interviewQuestion.upsert({
+                where: {
+                    sessionId_order: {
+                        sessionId: session.id,
+                        order: nextOrder,
+                    },
+                },
+                create: {
+                    sessionId: session.id,
+                    order: nextOrder,
+                    question: finalNextQuestion,
+                },
+                update: {
+                    question: finalNextQuestion,
+                },
+            }),
+            prisma.interviewSession.update({
+                where: { id: session.id },
+                data: { currentQues: nextOrder },
+            }),
+        ]);
 
-    await prisma.interviewSession.update({
-        where: { id: session.id },
-        data: { currentQues: nextOrder },
-    });
+        const upserted = results[answerUpdate.length] as { id: number };
+        session.questions = session.questions.filter((q) => q.order !== nextOrder);
+        session.questions.push({ id: upserted.id, order: nextOrder, question: finalNextQuestion, answer: null });
+        session.currentQues = nextOrder;
+    } catch (err) {
+        // Never let the cache drift from the database
+        sessionCache.delete(session.id);
+        throw err;
+    }
 
     return {
         isComplete: false,

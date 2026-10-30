@@ -267,6 +267,13 @@ wss.on("connection", (client) => {
                 return;
             }
 
+            if (parsedMessage.type === "speech_cancelled") {
+                // Client VAD decided the utterance was too short; drop buffered audio but keep the TTS prewarm.
+                session.audioChunks = [];
+                session.isRecording = false;
+                return;
+            }
+
             if (parsedMessage.type === "speech_ended" || parsedMessage.type === "stop_recording") {
                 console.log(`[ws-server] ${parsedMessage.type} received with ${session.audioChunks.length} audio chunks.`);
                 session.isRecording = false;
@@ -406,6 +413,23 @@ wss.on("connection", (client) => {
                         ttsSession.sendTextChunk(sentenceChunk);
                     }, { minWords: 2, maxChars: 100 });
 
+                    // Flush the final sentence to Deepgram the moment the spoken block ends,
+                    // instead of waiting for the metrics block + DB persistence to finish.
+                    let ttsFinished: Promise<Awaited<ReturnType<DeepgramStreamingTtsSession["finish"]>>> | null = null;
+                    const endSpokenText = () => {
+                        if (ttsFinished) return;
+                        chunker.flush();
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: "ai_text_end",
+                                model: "authoritative-gemini",
+                            }));
+                        }
+                        ttsFinished = ttsSession.finish();
+                        // Avoid an unhandled rejection if the turn fails before we await it
+                        ttsFinished.catch(() => {});
+                    };
+
                     // Connect strictly to Authoritative Backend Engine
                     console.log(`[ws-server] Routing to Authoritative Backend Engine for session #${session.sessionId}`);
                     const turnResult = await streamAuthoritativeInterviewTurn({
@@ -416,18 +440,12 @@ wss.on("connection", (client) => {
                         onChunk: (spokenToken) => {
                             chunker.feed(spokenToken);
                         },
+                        onSpokenEnd: endSpokenText,
                     });
 
-                    chunker.flush();
+                    endSpokenText();
 
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({
-                            type: "ai_text_end",
-                            model: "authoritative-gemini",
-                        }));
-                    }
-
-                    const ttsResult = await ttsSession.finish();
+                    const ttsResult = await ttsFinished!;
                     session.currentTtsSession = null;
 
                     // Update authoritative question for the next turn
