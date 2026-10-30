@@ -163,14 +163,14 @@ function SearchBar({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 w-full rounded-full px-5 transition-all duration-200 bg-white border ${
-        filterOpen ? "border-[#eb3a14] ring-2 ring-[#eb3a14]/15" : "border-[#e5e5e5] hover:border-[#1a1a1a]/30 focus-within:border-[#1a1a1a]"
+      className={`flex items-center gap-3 w-full rounded-full px-5 transition-all duration-200 bg-dp-sf2 border ${
+        filterOpen ? "border-[#eb3a14] ring-2 ring-[#eb3a14]/15" : "border-dp-ln hover:border-dp-ink/30 focus-within:border-dp-ink"
       }`}
       style={{
         minHeight: 52,
       }}
     >
-      <Search size={16} className="text-[#666666] shrink-0" aria-hidden />
+      <Search size={16} className="text-dp-mu shrink-0" aria-hidden />
 
       <input
         type="text"
@@ -178,7 +178,7 @@ function SearchBar({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search by role or skill…"
         aria-label="Search roles"
-        className="flex-1 bg-transparent border-none outline-none min-w-0 text-[14px] tracking-[-0.02em] text-[#1a1a1a] placeholder:text-[#666666]/60 font-sans"
+        className="flex-1 bg-transparent border-none outline-none min-w-0 text-[14px] tracking-[-0.02em] text-dp-ink placeholder:text-dp-mu/60 font-sans"
       />
 
       {/* filter toggle */}
@@ -190,7 +190,7 @@ function SearchBar({
         className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
           filterOpen
             ? "bg-[#eb3a14] border-[#eb3a14] text-white"
-            : "bg-transparent border-[#e5e5e5] text-[#666666] hover:border-[#1a1a1a] hover:text-[#1a1a1a]"
+            : "bg-transparent border-dp-ln text-dp-mu hover:border-dp-ink hover:text-dp-ink"
         }`}
       >
         <SlidersHorizontal size={13} />
@@ -225,8 +225,8 @@ function FilterPill({
       style={monoStyle}
       className={`rounded-full px-4 py-1.5 text-[11px] font-bold tracking-[0.08em] uppercase shrink-0 whitespace-nowrap cursor-pointer transition-all ${
         active
-          ? "bg-[#1a1a1a] text-white border border-[#1a1a1a]"
-          : "bg-white text-[#1a1a1a]/70 border border-[#e5e5e5] hover:text-[#1a1a1a] hover:border-[#1a1a1a]"
+          ? "bg-dp-ink text-dp-bg border border-dp-ink"
+          : "bg-dp-pill text-dp-ink/70 border border-dp-ln hover:text-dp-ink hover:border-dp-ink"
       }`}
     >
       {label}
@@ -249,13 +249,13 @@ function SkillTag({ label }: { label: string }) {
         alignItems: "center",
         padding: "3px 8px",
         borderRadius: 4,
-        border: "1px solid #E5E5E5",
-        backgroundColor: "#F5F5F7",
+        border: "1px solid var(--dp-ln)",
+        backgroundColor: "var(--dp-pill)",
         fontSize: "0.6rem",
         fontWeight: 500,
         letterSpacing: "0.07em",
         textTransform: "uppercase",
-        color: "#666666",
+        color: "var(--dp-mu)",
       }}
     >
       {label}
@@ -305,8 +305,8 @@ function RoleCard({
       style={{
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#FFFFFF",
-        border: "1px solid #E5E5E5",
+        backgroundColor: "var(--dp-sf2)",
+        border: "1px solid var(--dp-ln)",
         borderRadius: 12,
         padding: "20px",
         cursor: "pointer",
@@ -344,7 +344,7 @@ function RoleCard({
           fontWeight: 500,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "#666666",
+          color: "var(--dp-mu)",
           marginBottom: 10,
         }}
       >
@@ -360,7 +360,7 @@ function RoleCard({
           fontWeight: 600,
           letterSpacing: "-0.02em",
           lineHeight: 1.25,
-          color: "#1A1A1A",
+          color: "var(--dp-ink)",
           marginBottom: 10,
         }}
       >
@@ -385,7 +385,7 @@ function RoleCard({
           marginTop: "auto",
           minHeight: 40,
           borderRadius: 999,
-          border: "1px solid #E5E5E5",
+          border: "1px solid var(--dp-ln)",
           backgroundColor: "transparent",
           cursor: "pointer",
           display: "flex",
@@ -405,7 +405,7 @@ function RoleCard({
             fontWeight: 500,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
-            color: "#666666",
+            color: "var(--dp-mu)",
             transition: "color 0.2s",
           }}
           className="role-cta-label"
@@ -414,7 +414,7 @@ function RoleCard({
         </span>
         <ArrowRight
           size={11}
-          style={{ color: "#666666", transition: "color 0.2s, transform 0.2s" }}
+          style={{ color: "var(--dp-mu)", transition: "color 0.2s, transform 0.2s" }}
           className="role-cta-arrow"
         />
       </button>
@@ -440,13 +440,13 @@ function EmptyState({ query }: { query: string }) {
           fontWeight: 500,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "#666666",
+          color: "var(--dp-mu)",
           marginBottom: 8,
         }}
       >
         No results
       </p>
-      <p style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "#1A1A1A" }}>
+      <p style={{ fontFamily: "Inter, sans-serif", fontSize: 14, color: "var(--dp-ink)" }}>
         No roles match{" "}
         <span style={{ fontWeight: 600 }}>&quot;{query}&quot;</span> — try a
         different keyword.
@@ -535,20 +535,12 @@ export default function AIInterviewPage() {
   }, [query, activeFilter]);
 
   return (
-    <DashboardShell>
+    <DashboardShell themed>
       {/*
-       * Light-mode page override.
-       * DashboardShell enforces dark (#0d0e10); this div resets to
-       * the design-system bg (#F5F5F7) for the AI Interview page only.
+       * Themed page: colors come from the --dp-* tokens so the page
+       * follows the global light/dark theme.
        */}
-      <div
-        style={{
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#F5F5F7",
-          WebkitFontSmoothing: "antialiased",
-          MozOsxFontSmoothing: "grayscale",
-        }}
-      >
+      <div className="min-h-[calc(100vh-64px)] antialiased">
         {/* ── Inline hover styles for card CTAs ── */}
         <style>{`
           .role-cta:hover {
@@ -567,13 +559,14 @@ export default function AIInterviewPage() {
 
         {/* ── Hero ──────────────────────────────── */}
         <section
+          className="dp-glow"
           style={{
             position: "relative",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             textAlign: "center",
-            padding: "64px 24px 48px",
+            padding: "64px 24px 150px",
           }}
         >
           <motion.div
@@ -585,20 +578,20 @@ export default function AIInterviewPage() {
             {/* Eyebrow badge (matching landing page) */}
             <div
               style={monoStyle}
-              className="inline-flex items-center gap-2 rounded-full bg-[#eb3a14]/[0.08] px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] mb-6"
+              className="inline-flex items-center gap-2 rounded-full border border-dp-ln bg-dp-pill px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-dp-ink/80 mb-6"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#eb3a14]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-dp-ok" />
               AI-Powered Mock Interviews
             </div>
 
             {/* Headline (bold two-tone matching landing page) */}
-            <h1 className="font-extrabold text-[#1a1a1a] text-[36px] sm:text-[52px] lg:text-[64px] leading-[1.05] tracking-[-0.03em] max-w-[800px] mb-6">
+            <h1 className="font-extrabold text-dp-ink text-[36px] sm:text-[52px] lg:text-[64px] leading-[1.05] tracking-[-0.03em] max-w-[800px] mb-6">
               Prepare for your{" "}
-              <span className="font-bold text-[#666]">next interview.</span>
+              <span className="font-bold text-dp-mu">next interview.</span>
             </h1>
 
             {/* Subtext (matching landing page hero subtext) */}
-            <p className="text-[#666] text-[16px] sm:text-[18px] leading-relaxed max-w-[560px] mb-8">
+            <p className="text-dp-mu text-[16px] sm:text-[18px] leading-relaxed max-w-[560px] mb-8">
               Pick the position you&apos;re interviewing for, take an
               AI-powered session with Zara, and get instant feedback.
             </p>
@@ -662,7 +655,7 @@ export default function AIInterviewPage() {
                 fontWeight: 500,
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: "#666666",
+                color: "var(--dp-mu)",
                 marginBottom: 20,
               }}
             >

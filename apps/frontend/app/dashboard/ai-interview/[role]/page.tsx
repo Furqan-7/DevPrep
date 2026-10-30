@@ -242,24 +242,24 @@ function QuestionItem({ index, question }: { index: number; question: string }) 
     >
       <div
         onClick={() => setOpen((o) => !o)}
-        className="w-full text-left border border-[#e5e5e5] rounded-xl p-5 bg-white hover:border-[#1a1a1a]/40 hover:shadow-md transition-all duration-200 cursor-pointer group relative overflow-hidden"
+        className="w-full text-left border border-dp-ln rounded-2xl p-5 bg-dp-sf2 hover:border-dp-ac/50 transition-colors duration-200 cursor-pointer group relative overflow-hidden"
       >
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <span
               style={monoStyle}
-              className="text-[13px] font-bold text-[#eb3a14] shrink-0 tabular-nums bg-[#eb3a14]/[0.08] px-2 py-0.5 rounded"
+              className="text-[13px] font-bold text-dp-ac shrink-0 tabular-nums bg-dp-soft px-2 py-0.5 rounded-md"
             >
               {String(index).padStart(2, "0")}
             </span>
-            <span className="text-[15px] font-semibold text-[#1a1a1a] leading-snug tracking-[-0.01em]">
+            <span className="text-[15px] font-semibold text-dp-ink leading-snug tracking-[-0.01em]">
               {question}
             </span>
           </div>
           <motion.div
             animate={{ rotate: open ? 180 : 0 }}
             transition={{ duration: 0.2, ease: EASE }}
-            className="shrink-0 text-[#666666] group-hover:text-[#1a1a1a] transition-colors"
+            className="shrink-0 text-dp-mu group-hover:text-dp-ink transition-colors"
           >
             <ChevronDown size={16} />
           </motion.div>
@@ -274,8 +274,8 @@ function QuestionItem({ index, question }: { index: number; question: string }) 
               transition={{ duration: 0.25, ease: EASE }}
               className="overflow-hidden"
             >
-              <div className="mt-4 pt-3.5 border-t border-[#e5e5e5] text-[13px] text-[#666666] leading-relaxed flex items-start gap-2">
-                <Sparkles size={14} className="text-[#eb3a14] shrink-0 mt-0.5" />
+              <div className="mt-4 pt-3.5 border-t border-dp-ln text-[13px] text-dp-mu leading-relaxed flex items-start gap-2">
+                <Sparkles size={14} className="text-dp-ac shrink-0 mt-0.5" />
                 <span>
                   Expand this question in a live AI interview session to practice your voice or code response with Zara and receive instant personalized feedback.
                 </span>
@@ -308,12 +308,12 @@ export default function RoleInterviewPage() {
 
   if (!meta) {
     return (
-      <DashboardShell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-[#666666] text-sm bg-[#f5f5f7]">
+      <DashboardShell themed>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-dp-mu text-sm">
           Role not found.{" "}
           <button
             onClick={() => router.push("/dashboard/ai-interview")}
-            className="mt-4 text-[#1a1a1a] font-bold underline underline-offset-4"
+            className="mt-4 text-dp-ink font-bold underline underline-offset-4"
           >
             Back to interviews
           </button>
@@ -378,16 +378,10 @@ export default function RoleInterviewPage() {
   }
 
   return (
-    <DashboardShell>
-      <div
-        style={{
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#F5F5F7",
-          WebkitFontSmoothing: "antialiased",
-          MozOsxFontSmoothing: "grayscale",
-        }}
-      >
-        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pt-8 pb-20">
+    <DashboardShell themed>
+      <div className="min-h-[calc(100vh-64px)] antialiased">
+        <section className="dp-glow">
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pt-8 pb-44 sm:pb-52">
 
           {/* ── Back link ── */}
           <motion.button
@@ -396,7 +390,7 @@ export default function RoleInterviewPage() {
             transition={{ duration: 0.3, ease: EASE }}
             onClick={() => router.push("/dashboard/ai-interview")}
             style={monoStyle}
-            className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#1a1a1a]/70 hover:text-[#1a1a1a] transition-colors mb-8 cursor-pointer border-0 bg-transparent p-0"
+            className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-dp-ink/70 hover:text-dp-ink transition-colors mb-8 cursor-pointer border-0 bg-transparent p-0"
           >
             <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" />
             ALL INTERVIEW ROLES
@@ -413,7 +407,6 @@ export default function RoleInterviewPage() {
                 transition: { staggerChildren: 0.08, delayChildren: 0.04 },
               },
             }}
-            className="mb-14"
           >
             {/* Duration pill */}
             <motion.div
@@ -424,9 +417,9 @@ export default function RoleInterviewPage() {
             >
               <div
                 style={monoStyle}
-                className="inline-flex items-center gap-2 rounded-full bg-[#eb3a14]/[0.08] px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] mb-6"
+                className="inline-flex items-center gap-2 rounded-full border border-dp-ln bg-dp-pill px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-dp-ink/80 mb-6"
               >
-                <Clock size={11} className="text-[#eb3a14]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-dp-ok" /><Clock size={11} className="text-dp-ac" />
                 {meta.duration} MINS PRACTICE INTERVIEW
               </div>
             </motion.div>
@@ -437,10 +430,10 @@ export default function RoleInterviewPage() {
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
               }}
-              className="font-extrabold text-[#1a1a1a] text-[36px] sm:text-[52px] lg:text-[64px] leading-[1.05] tracking-[-0.03em] max-w-[850px] mb-6"
+              className="font-extrabold text-dp-ink text-[36px] sm:text-[52px] lg:text-[64px] leading-[1.05] tracking-[-0.03em] max-w-[850px] mb-6"
             >
               {meta.title}{" "}
-              <span className="font-bold text-[#666]">interview questions & AI practice.</span>
+              <span className="font-bold text-dp-mu">interview questions & AI practice.</span>
             </motion.h1>
 
             {/* Skill pills */}
@@ -455,7 +448,7 @@ export default function RoleInterviewPage() {
                 <span
                   key={skill}
                   style={monoStyle}
-                  className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase border border-[#e5e5e5] bg-white text-[#666666]"
+                  className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase border border-dp-ln bg-dp-pill text-dp-ink/80"
                 >
                   {skill}
                 </span>
@@ -468,10 +461,10 @@ export default function RoleInterviewPage() {
                 hidden: { opacity: 0, y: 15 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } },
               }}
-              className="text-[#666] text-[16px] sm:text-[18px] leading-relaxed max-w-[620px] mb-8"
+              className="text-dp-mu text-[16px] sm:text-[18px] leading-relaxed max-w-[620px] mb-8"
             >
               Check out 10 of the most common{" "}
-              <span className="text-[#1a1a1a] font-semibold">{meta.title}</span> interview questions and
+              <span className="text-dp-ink font-semibold">{meta.title}</span> interview questions and
               take an AI‑powered practice interview.
             </motion.p>
 
@@ -496,7 +489,7 @@ export default function RoleInterviewPage() {
                 onClick={handleStartInterview}
                 disabled={starting}
                 style={monoStyle}
-                className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[#1a1a1a] hover:bg-black text-white text-[13px] font-bold tracking-[0.08em] uppercase cursor-pointer transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                className="dp-btn-ember inline-flex items-center gap-2.5 h-14 px-8 rounded-full text-[14px] font-bold tracking-[0.06em] uppercase cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Mic size={15} />
                 {starting ? "Starting…" : "Take practice AI interview"}
@@ -504,8 +497,10 @@ export default function RoleInterviewPage() {
             </motion.div>
           </motion.div>
 
-          {/* ── Divider ── */}
-          <div className="border-t border-[#e5e5e5] mb-12" />
+        </div>
+        </section>
+
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pb-20">
 
           {/* ── Two-column layout ── */}
           <div className="flex flex-col lg:flex-row gap-10">
@@ -515,13 +510,13 @@ export default function RoleInterviewPage() {
               <div className="lg:sticky lg:top-24">
                 <p
                   style={monoStyle}
-                  className="text-[11px] text-[#eb3a14] uppercase tracking-[0.1em] font-medium mb-3"
+                  className="text-[11px] text-dp-ac uppercase tracking-[0.1em] font-medium mb-3"
                 >
                   TOP QUESTIONS
                 </p>
-                <p className="text-xl md:text-2xl font-extrabold text-[#1a1a1a] leading-tight tracking-[-0.02em]">
+                <p className="text-xl md:text-2xl font-extrabold text-dp-ink leading-tight tracking-[-0.02em]">
                   10 of the most common{" "}
-                  <span className="text-[#666] font-bold">{meta.title} questions</span>
+                  <span className="text-dp-mu font-bold">{meta.title} questions</span>
                 </p>
               </div>
             </div>
@@ -540,14 +535,14 @@ export default function RoleInterviewPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="mt-20 relative rounded-3xl overflow-hidden bg-[#1a1a1a] text-white p-10 md:p-14 text-center border border-[#1a1a1a] shadow-xl"
+            className="dp-glow dp-glow--cta dp-glow--rise mt-20 relative rounded-3xl overflow-hidden bg-[#0e0e10] text-white px-8 pt-12 pb-32 md:px-14 md:pt-16 md:pb-40 text-center border border-dp-ln"
           >
             <div className="max-w-2xl mx-auto flex flex-col items-center">
               <div
                 style={monoStyle}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#eb3a14] mb-6 border border-white/15"
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-[#ff7a4d] mb-6 border border-white/15"
               >
-                <Mic size={11} className="text-[#eb3a14]" />
+                <Mic size={11} className="text-[#ff7a4d]" />
                 AI-POWERED · INSTANT FEEDBACK
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-[-0.02em] text-white mb-4">
@@ -568,7 +563,7 @@ export default function RoleInterviewPage() {
                 onClick={handleStartInterview}
                 disabled={starting}
                 style={monoStyle}
-                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-[#eb3a14] hover:bg-[#d63410] text-white text-[13px] font-bold tracking-[0.08em] uppercase cursor-pointer transition-colors shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                className="dp-btn-ember inline-flex items-center gap-2.5 h-14 px-9 rounded-full text-[14px] font-bold tracking-[0.06em] uppercase cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Mic size={15} />
                 {starting ? "Starting…" : "Start now"}

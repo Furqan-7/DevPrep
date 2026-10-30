@@ -96,7 +96,7 @@ export default function FeedbackDashboard() {
   if (loading && !data) return <main className={styles.page}><div className={styles.wrap}><Skeletons /></div></main>;
   if (error) return <main className={styles.page}><div className={styles.wrap}><ErrorMessage error={error} onRetry={() => void load()} /></div></main>;
   if (!data || sessions.length === 0) {
-    return <main className={styles.page}><div className={styles.wrap}><header className={styles.header}><div className={styles.eyebrow}>Session history</div><h1 className={styles.title}>All feedback</h1><p className={styles.lede}>Review your interview performance, find recurring gaps, and choose what to sharpen next.</p></header><div className={styles.empty}><Target size={30} color="#eb3a14" /><h2>No feedback yet</h2><p>No feedback yet. Complete your first mock interview with Zara and your scores, skill breakdown and feedback will appear here.</p><Link className={`${styles.button} ${styles.primary}`} href="/dashboard/ai-interview">Start your first interview <ChevronRight size={14} /></Link></div></div></main>;
+    return <main className={styles.page}><header className={`${styles.header} dp-glow`}><div className={styles.wrap}><div className={styles.eyebrow}>Session history</div><h1 className={styles.title}>All feedback</h1><p className={styles.lede}>Review your interview performance, find recurring gaps, and choose what to sharpen next.</p></div></header><div className={styles.wrap}><div className={`${styles.empty} ${styles.lifted}`}><Target size={30} color="#eb3a14" /><h2>No feedback yet</h2><p>No feedback yet. Complete your first mock interview with Zara and your scores, skill breakdown and feedback will appear here.</p><Link className={`${styles.button} ${styles.primary}`} href="/dashboard/ai-interview">Start your first interview <ChevronRight size={14} /></Link></div></div></main>;
   }
 
   const summary = data.summary;
@@ -106,9 +106,9 @@ export default function FeedbackDashboard() {
 
   return (
     <main className={styles.page}>
+      <header className={`${styles.header} dp-glow`}><div className={styles.wrap}><div className={styles.eyebrow}>Session history</div><h1 className={styles.title}>All feedback</h1><p className={styles.lede}>A clear record of what is improving, what is holding you back, and what to practice next.</p></div></header>
       <div className={styles.wrap}>
-        <header className={styles.header}><div className={styles.eyebrow}>Session history</div><h1 className={styles.title}>All feedback</h1><p className={styles.lede}>A clear record of what is improving, what is holding you back, and what to practice next.</p></header>
-        <section className={styles.stats} aria-label="Feedback summary">
+        <section className={`${styles.stats} ${styles.lifted}`} aria-label="Feedback summary">
           <div className={styles.stat}><span className={styles.label}>Sessions</span><strong>{summary.totalSessions}</strong><small>completed interviews</small></div>
           <div className={styles.stat}><span className={styles.label}>Average</span><strong>{average === null ? "—" : Math.round(average)}</strong><small>overall score</small></div>
           <div className={styles.stat}><span className={styles.label}>Pass rate</span><strong>{passRate === null ? "—" : `${Math.round(passRate * 100)}%`}</strong><small>threshold {summary.passThreshold}</small></div>

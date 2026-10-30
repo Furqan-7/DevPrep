@@ -21,7 +21,7 @@ export type VadState =
   | "idle"              // Not started yet
   | "listening"         // Continuous mic monitoring, waiting for candidate speech
   | "speaking"          // Candidate is speaking (VAD active, streaming audio)
-  | "silence_detecting" // Candidate paused, countdown toward ~800ms silence
+  | "silence_detecting" // Candidate paused, countdown toward ~900ms silence
   | "processing"        // Groq STT and Authoritative Gemini processing
   | "ai_speaking";      // Deepgram Aura-2 TTS playing
 
@@ -210,7 +210,7 @@ function float32ToInt16Pcm(float32: Float32Array): ArrayBuffer {
 export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   const {
     wsUrl = WS_URL,
-    silenceThresholdMs = 1200,
+    silenceThresholdMs = 900,
     minSpeechDurationMs = 300,
     preRollMs = 300,
     speechThreshold = 0.5,
@@ -258,7 +258,10 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   const turnRef = useRef({
     preRoll: [] as Float32Array[],
     preRollMs: 0,
-    seg: [] as Float32Array[],
+    // Trailing silence frames held back while we wait to see if the candidate resumes
+    tail: [] as Float32Array[],
+    sentFrames: 0,
+    sentBytes: 0,
     speechMs: 0,
     silenceMs: 0,
     turnMs: 0,
@@ -302,7 +305,9 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     candidateSpeakingRef.current = false;
     turnRef.current.preRoll = [];
     turnRef.current.preRollMs = 0;
-    turnRef.current.seg = [];
+    turnRef.current.tail = [];
+    turnRef.current.sentFrames = 0;
+    turnRef.current.sentBytes = 0;
     turnRef.current.speechMs = 0;
     turnRef.current.silenceMs = 0;
     turnRef.current.turnMs = 0;
@@ -679,7 +684,9 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
         const turn = turnRef.current;
         turn.preRoll = [];
         turn.preRollMs = 0;
-        turn.seg = [];
+        turn.tail = [];
+        turn.sentFrames = 0;
+        turn.sentBytes = 0;
         turn.speechMs = 0;
         turn.silenceMs = 0;
         turn.turnMs = 0;
@@ -688,21 +695,11 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
       };
       resetTurn();
 
-      const finishTurn = (frameMs: number) => {
-        const turn = turnRef.current;
-        const enoughSpeech = turn.speechMs >= minSpeechDurationMs;
-        const dropFrames = Math.max(0, Math.floor((turn.silenceMs - TAIL_KEEP_MS) / frameMs));
-        const frames = turn.seg.slice(0, Math.max(0, turn.seg.length - dropFrames));
-        resetTurn();
-        setSilenceProgress(0);
-
+      // Audio is streamed to the server while the candidate is still talking, so the
+      // upload is already done when the turn ends and the server can pre-warm TTS early.
+      const sendFrames = (frames: Float32Array[]) => {
         const socket = wsRef.current;
-        if (!enoughSpeech || !socket || socket.readyState !== WebSocket.OPEN) {
-          vadStateRef.current = "listening";
-          setVadState("listening");
-          return;
-        }
-
+        if (!frames.length || !socket || socket.readyState !== WebSocket.OPEN) return;
         const total = frames.reduce((length, currentFrame) => length + currentFrame.length, 0);
         const audio = new Float32Array(total);
         let offset = 0;
@@ -710,17 +707,37 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
           audio.set(currentFrame, offset);
           offset += currentFrame.length;
         }
+        const pcm = float32ToInt16Pcm(audio);
+        socket.send(pcm);
+        turnRef.current.sentFrames += 1;
+        turnRef.current.sentBytes += pcm.byteLength;
+      };
+
+      const finishTurn = () => {
+        const turn = turnRef.current;
+        const enoughSpeech = turn.speechMs >= minSpeechDurationMs;
+        const sentFrames = turn.sentFrames;
+        const sentBytes = turn.sentBytes;
+        resetTurn();
+        setSilenceProgress(0);
+
+        const socket = wsRef.current;
+        if (!enoughSpeech || !socket || socket.readyState !== WebSocket.OPEN) {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "speech_cancelled" }));
+          }
+          vadStateRef.current = "listening";
+          setVadState("listening");
+          return;
+        }
 
         vadStateRef.current = "processing";
         setVadState("processing");
         setIsTranscribing(true);
         optionsRef.current.onSpeechEnded?.();
 
-        const pcm = float32ToInt16Pcm(audio);
-        socket.send(JSON.stringify({ type: "speech_started" }));
-        socket.send(pcm);
-        setChunksSent((prev) => prev + 1);
-        setBytesSent((prev) => prev + pcm.byteLength);
+        setChunksSent((prev) => prev + sentFrames);
+        setBytesSent((prev) => prev + sentBytes);
         socket.send(JSON.stringify({ type: "speech_ended" }));
       };
 
@@ -747,7 +764,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
           const state = vadStateRef.current;
           if (state === "processing" || state === "ai_speaking") {
             const turn = turnRef.current;
-            if (candidateSpeakingRef.current || turn.seg.length || turn.preRoll.length) {
+            if (candidateSpeakingRef.current || turn.tail.length || turn.preRoll.length) {
               resetTurn();
             }
             return;
@@ -770,13 +787,21 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             turn.startCount = isSpeech ? turn.startCount + 1 : 0;
             if (turn.startCount >= START_FRAMES) {
               candidateSpeakingRef.current = true;
-              turn.seg = turn.preRoll;
+              const preRoll = turn.preRoll;
               turn.preRoll = [];
               turn.preRollMs = 0;
+              turn.tail = [];
               turn.speechMs = turn.startCount * frameMs;
               turn.silenceMs = 0;
-              turn.turnMs = turn.seg.length * frameMs;
+              turn.turnMs = preRoll.length * frameMs;
               turn.startCount = 0;
+
+              // Open the server-side turn (resets its buffer and pre-warms TTS), then stream pre-roll
+              const socket = wsRef.current;
+              if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: "speech_started" }));
+              }
+              sendFrames(preRoll);
 
               vadStateRef.current = "speaking";
               setVadState("speaking");
@@ -790,10 +815,12 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             return;
           }
 
-          turn.seg.push(copy);
           turn.turnMs += frameMs;
 
           if (isSpeech) {
+            // Candidate resumed: release any held-back pause frames, then this frame
+            sendFrames(turn.tail.length ? [...turn.tail, copy] : [copy]);
+            turn.tail = [];
             turn.speechMs += frameMs;
             turn.silenceMs = 0;
             if (vadStateRef.current === "silence_detecting") {
@@ -803,6 +830,12 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             setSilenceProgress(0);
           } else {
             turn.silenceMs += frameMs;
+            // Keep a short natural tail; hold the rest back so a final pause is never transcribed
+            if (turn.silenceMs <= TAIL_KEEP_MS) {
+              sendFrames([copy]);
+            } else {
+              turn.tail.push(copy);
+            }
             if (vadStateRef.current === "speaking") {
               vadStateRef.current = "silence_detecting";
               setVadState("silence_detecting");
@@ -811,7 +844,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
           }
 
           if (turn.silenceMs >= silenceThresholdMs || turn.turnMs >= MAX_TURN_MS) {
-            finishTurn(frameMs);
+            finishTurn();
           }
         },
       });

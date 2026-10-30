@@ -23,6 +23,11 @@ if (!groqApiKey) {
 
 const groq = new Groq({ apiKey: groqApiKey });
 
+// whisper-large-v3-turbo is several times faster than whisper-large-v3 with near-identical
+// accuracy for English speech, which matters on the live interview critical path.
+const STT_MODEL = process.env.GROQ_STT_MODEL || "whisper-large-v3-turbo";
+const STT_LANGUAGE = process.env.GROQ_STT_LANGUAGE || "en";
+
 export function getFileInfoFromMimeType(mimeType: string): { filename: string; type: string } {
     const lower = (mimeType || "").toLowerCase();
     if (lower.includes("webm")) {
@@ -47,7 +52,10 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
     const file = await toFile(audioBuffer, filename, { type });
     const transcription = await groq.audio.transcriptions.create({
         file,
-        model: "whisper-large-v3",
+        model: STT_MODEL,
+        language: STT_LANGUAGE,
+        temperature: 0,
+        response_format: "json",
     });
 
     const latencyMs = Date.now() - startTime;

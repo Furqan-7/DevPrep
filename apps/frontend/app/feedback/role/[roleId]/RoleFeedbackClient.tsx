@@ -109,7 +109,7 @@ export default function RoleFeedbackClient({ roleId }: RoleFeedbackClientProps) 
   );
 
   return (
-    <DashboardShell>
+    <DashboardShell themed>
       <div className={styles.page}>
         {loading && !data && <RoleSkeletons />}
 

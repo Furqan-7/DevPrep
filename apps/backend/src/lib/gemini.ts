@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type GenerationConfig, type GenerativeModel } from "@google/generative-ai";
 
 const geminiApiKey = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(geminiApiKey);
@@ -11,7 +11,37 @@ const MODELS = [
     "gemini-3.8-flash",
 ];
 
-const MODEL = "gemini-3.5-flash-lite";
+const MODEL = process.env.GEMINI_INTERVIEW_MODEL || "gemini-3.5-flash-lite";
+
+// Interview turns are short, conversational replies. Extended "thinking" adds
+// seconds of silence before the first token, so we ask for minimal thinking and
+// cap the output. If the model rejects the thinking config we drop it once and
+// remember that for the rest of the process lifetime.
+const INTERVIEW_GENERATION_CONFIG = {
+    temperature: 0.7,
+    maxOutputTokens: 400,
+};
+const THINKING_CONFIG = { thinkingConfig: { thinkingLevel: process.env.GEMINI_THINKING_LEVEL || "minimal" } };
+let thinkingConfigSupported = process.env.GEMINI_DISABLE_THINKING_CONFIG !== "true";
+
+const modelCache = new Map<string, GenerativeModel>();
+
+function getInterviewModel(systemInstruction: string | undefined, withThinking: boolean): GenerativeModel {
+    const key = `${withThinking ? "t" : "n"}:${systemInstruction ?? ""}`;
+    let model = modelCache.get(key);
+    if (!model) {
+        model = genAI.getGenerativeModel({
+            model: MODEL,
+            ...(systemInstruction ? { systemInstruction } : {}),
+            generationConfig: {
+                ...INTERVIEW_GENERATION_CONFIG,
+                ...(withThinking ? THINKING_CONFIG : {}),
+            } as GenerationConfig,
+        });
+        modelCache.set(key, model);
+    }
+    return model;
+}
 
 
 export interface StreamGeminiOptions {
@@ -28,30 +58,29 @@ export interface StreamGeminiResult {
 }
 
 /**
- * Stream content from Gemini with automatic fallback to secondary models if primary fails.
+ * Stream content from Gemini, tuned for low time-to-first-token.
  */
-
 export async function streamGeminiContent(
     options: StreamGeminiOptions
 ): Promise<StreamGeminiResult> {
     const { prompt, systemInstruction, onChunk } = options;
 
-    const modelConfig: any = {
-        model: MODEL,
-    };
-
-    if (systemInstruction) {
-        modelConfig.systemInstruction = systemInstruction;
-    }
-
-    const model = genAI.getGenerativeModel(modelConfig);
-
     const startTime = Date.now();
     let firstTokenTime: number | null = null;
     let fullText = "";
 
-    console.log(`[Gemini] Request started | model=${MODEL}`);
-    const responseStream = await model.generateContentStream(prompt);
+    console.log(`[Gemini] Request started | model=${MODEL} thinkingConfig=${thinkingConfigSupported}`);
+
+    let responseStream;
+    try {
+        responseStream = await getInterviewModel(systemInstruction, thinkingConfigSupported).generateContentStream(prompt);
+    } catch (err: any) {
+        const message = String(err?.message || err);
+        if (!thinkingConfigSupported || !/thinking/i.test(message)) throw err;
+        console.warn(`[Gemini] Model rejected thinkingConfig, retrying without it: ${message}`);
+        thinkingConfigSupported = false;
+        responseStream = await getInterviewModel(systemInstruction, false).generateContentStream(prompt);
+    }
 
     for await (const chunk of responseStream.stream) {
         let chunkText = "";

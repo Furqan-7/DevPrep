@@ -170,6 +170,8 @@ export const streamInterviewTurn = async (req: Request, res: Response) => {
         res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
         res.setHeader("Cache-Control", "no-cache, no-transform");
         res.setHeader("Connection", "keep-alive");
+        // Disable Nagle so each small SSE frame leaves immediately
+        res.socket?.setNoDelay(true);
         if (typeof res.flushHeaders === "function") {
             res.flushHeaders();
         }
@@ -180,6 +182,9 @@ export const streamInterviewTurn = async (req: Request, res: Response) => {
             currentQuestionText: currentQuestion ? String(currentQuestion).trim() : undefined,
             onSpokenChunk: (chunk: string) => {
                 res.write(`data: ${JSON.stringify({ type: "spoken_chunk", text: chunk })}\n\n`);
+            },
+            onSpokenEnd: () => {
+                res.write(`data: ${JSON.stringify({ type: "spoken_end" })}\n\n`);
             },
         });
 
