@@ -213,34 +213,55 @@ function HeroSection() {
   const [q, setQ] = useState("");
   const roles = ROLE_GRID.filter((r) => `${r.category} ${r.name}`.toLowerCase().includes(q.toLowerCase()));
   const a = (d: number) => ({ initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, delay: d, ease } });
-  const btn = "inline-flex items-center gap-2 text-[12px] font-bold tracking-[0.08em] px-6 py-3 rounded-full cursor-pointer transition-all";
+  const btn = "inline-flex items-center justify-center gap-2.5 h-12 text-[12px] font-bold tracking-[0.08em] rounded-full cursor-pointer";
 
   return (
     <section className="bg-dp-bg">
-      <div className="dp-glow pt-[108px] sm:pt-[124px] pb-[170px] sm:pb-[190px] px-6">
+      <div className="dp-hero pt-[112px] sm:pt-[132px] pb-[200px] sm:pb-[240px] px-6">
+        <div aria-hidden className="dp-hero__fx">
+          <div className="dp-hero__grid" />
+          <div className="dp-hero__atmo" />
+          <div className="dp-hero__flare" />
+          <div className="dp-hero__planet" />
+        </div>
+
         <div className="max-w-[1040px] mx-auto flex flex-col items-center text-center">
-          <motion.div {...a(0)} style={mono} className="inline-flex items-center gap-2 rounded-full bg-dp-soft px-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-dp-ac mb-7">
-            <span className="w-1.5 h-1.5 rounded-full bg-dp-ac animate-pulse" />
+          <motion.div {...a(0)} style={mono} className="inline-flex items-center gap-2 rounded-full border border-dp-ac/25 bg-dp-soft pl-2.5 pr-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-dp-ac mb-7">
+            <span className="relative flex w-2 h-2">
+              <span className="absolute inset-0 rounded-full bg-dp-ac opacity-60 animate-ping" />
+              <span className="relative w-2 h-2 rounded-full bg-dp-ac" />
+            </span>
             AI-Powered Mock Interviews
           </motion.div>
-          <motion.h1 {...a(0.08)} className="font-extrabold text-dp-ink text-[34px] sm:text-[48px] lg:text-[62px] leading-[1.02] tracking-[-0.04em] max-w-[780px]">
-            Walk into your next interview <span className="text-dp-mu">already knowing what&rsquo;s coming.</span>
+          <motion.h1 {...a(0.08)} className="font-extrabold text-dp-ink text-[36px] sm:text-[52px] lg:text-[66px] leading-[1.02] tracking-[-0.045em] max-w-[820px]">
+            Walk into your next interview <span className="dp-text-fade">already knowing what&rsquo;s coming.</span>
           </motion.h1>
-          <motion.p {...a(0.16)} className="text-dp-mu text-[15.5px] leading-relaxed max-w-[460px] mt-5">
-            Pick a role or upload your resume, practice with Zara your AI interviewer, get instant feedback.
+          <motion.p {...a(0.16)} className="text-dp-mu text-[15.5px] sm:text-[17px] leading-relaxed max-w-[520px] mt-6">
+            Pick a role or upload your resume, practice out loud with <span className="text-dp-ink font-medium">Zara</span>, your AI interviewer, and get instant feedback.
           </motion.p>
-          <motion.div {...a(0.24)} className="flex flex-wrap items-center justify-center gap-3 mt-8">
-            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} onClick={() => router.push(ROUTES.signUp)} style={mono} className={`${btn} bg-dp-ac hover:shadow-[0_10px_30px_-8px_rgba(238,58,20,.6)] text-white`}>
-              START PRACTICING <ArrowRight size={14} />
+          <motion.div {...a(0.24)} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-9 w-full sm:w-auto">
+            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} onClick={() => router.push(ROUTES.signUp)} style={mono} className={`${btn} dp-btn-primary pl-7 pr-1.5`}>
+              START PRACTICING
+              <span className="dp-btn-chip grid place-items-center w-9 h-9 rounded-full bg-white/20 ring-1 ring-white/25">
+                <ArrowRight size={15} strokeWidth={2.5} />
+              </span>
             </motion.button>
-            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} onClick={() => scrollToId("how-it-works")} style={mono} className={`${btn} bg-white text-[#1a1a1a]`}>
+            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} onClick={() => scrollToId("how-it-works")} style={mono} className={`${btn} dp-btn-ghost px-7`}>
+              <span className="grid place-items-center w-5 h-5 rounded-full bg-dp-ink text-dp-bg">
+                <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" aria-hidden><path d="M2 1.2v7.6L8.6 5z" /></svg>
+              </span>
               SEE HOW IT WORKS
             </motion.button>
+          </motion.div>
+          <motion.div {...a(0.32)} style={mono} className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-6 text-[10.5px] font-medium uppercase tracking-[0.1em] text-dp-mu">
+            {["Free to start", "No credit card", "24+ roles"].map((t) => (
+              <span key={t} className="inline-flex items-center gap-1.5"><Check size={12} strokeWidth={3} className="text-dp-ac" />{t}</span>
+            ))}
           </motion.div>
         </div>
       </div>
 
-      <div className="px-6 pb-4 -mt-2">
+      <div className="relative z-10 px-6 pb-4 -mt-[96px] sm:-mt-[120px]">
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, ease }} className="dp-card max-w-[960px] mx-auto rounded-[18px] border border-dp-ln bg-dp-sf overflow-hidden shadow-[0_30px_80px_-34px_rgba(0,0,0,.4)]">
           <div className="flex items-center justify-between gap-4 border-b border-dp-ln px-5 py-3.5">
             <span className="text-[14px] font-medium text-dp-ink">Choose Your Interview Role</span>
