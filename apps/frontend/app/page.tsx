@@ -6,9 +6,9 @@
  * (Tailwind classes: bg-dp-bg, text-dp-ink, text-dp-mu, border-dp-ln, bg-dp-ac, ...).
  */
 
-import { motion, AnimatePresence, MotionConfig, useInView } from "motion/react";
+import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { ArrowRight, Check, ChevronDown, Search } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/shared/Footer";
 import { LandingHero } from "@/components/landing/LandingHero";
@@ -16,6 +16,7 @@ import { ProblemSection } from "@/components/landing/ProblemSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
+import { WhatsInsideSection } from "@/components/landing/WhatsInsideSection";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -76,40 +77,6 @@ function Head({ eyebrow, title, sub, dark = false }: { eyebrow: string; title: R
   );
 }
 
-/* ───────── count-up stat ───────── */
-function AnimatedStat({ value, label }: { value: string; label: string }) {
-  const [shown, setShown] = useState(value);
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.4 });
-
-  useEffect(() => {
-    if (!inView) return;
-    const m = value.match(/^(\D*)([\d,.]+)(\D*)$/);
-    if (!m) return;
-    const prefix = m[1] ?? "";
-    const numStr = (m[2] ?? "").replace(/,/g, "");
-    const suffix = m[3] ?? "";
-    const num = parseFloat(numStr);
-    const float = numStr.includes(".");
-    let t0: number | null = null;
-    const step = (ts: number) => {
-      t0 = t0 ?? ts;
-      const p = Math.min((ts - t0) / 1200, 1);
-      const cur = num * (1 - Math.pow(1 - p, 3));
-      setShown(`${prefix}${float ? cur.toFixed(1) : Math.floor(cur)}${suffix}`);
-      if (p < 1) requestAnimationFrame(step); else setShown(value);
-    };
-    requestAnimationFrame(step);
-  }, [inView, value]);
-
-  return (
-    <div ref={ref} className="flex-1 px-8 py-9 text-center border-b sm:border-b-0 sm:border-r border-dp-ln last:border-0">
-      <div className="text-[38px] sm:text-[46px] font-extrabold text-dp-ink tracking-tight">{shown}</div>
-      <div className="text-[14px] text-dp-mu mt-2 leading-snug max-w-[260px] mx-auto">{label}</div>
-    </div>
-  );
-}
-
 /* ───────── role picker ───────── */
 const ROLE_GRID = [
   { category: "Engineering", name: "Frontend Engineer", highlight: true },
@@ -155,26 +122,6 @@ function RolePicker() {
   );
 }
 
-/* ───────── stats ───────── */
-const STATS = [
-  { value: "87%", label: "of users feel more confident going into interviews after 3+ sessions" },
-  { value: "3.2×", label: "more gaps identified through AI feedback vs practicing alone without any feedback" },
-  { value: "24+", label: "roles supported across Engineering, Data, Design, Product, and Behavioral — in one unified interview flow" },
-];
-
-function ResultsStats() {
-  return (
-    <section className="bg-dp-sf py-20 sm:py-28 px-6">
-      <div className="max-w-[1040px] mx-auto">
-        <Head eyebrow="By the Numbers" title="Practice works. Here's the proof." />
-        <Reveal className="dp-card flex flex-col sm:flex-row border border-dp-ln rounded-[18px] overflow-hidden">
-          {STATS.map((s) => <AnimatedStat key={s.value} {...s} />)}
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
 /* ───────── pricing ───────── */
 const FREE = ["3 practice sessions per month", "Core roles (Engineering, Behavioral)", "Basic AI feedback after each session"];
 const PRO = ["Unlimited practice sessions", "Resume-tailored question sets", "Detailed feedback breakdowns per answer", "All 24+ roles including Data, Design & PM"];
@@ -211,34 +158,6 @@ function PricingSection() {
           <Plan name="Free" price="$0" note="Forever free" items={FREE} cta="GET STARTED FREE" onClick={() => router.push(ROUTES.signUp)} />
           <Plan pro name="Pro" price="$19" note="per month" items={PRO} cta="START WITH PRO" onClick={() => router.push(ROUTES.signUpPro)} />
           <Plan name="Teams / Campus" price="Custom" note="Bulk seats for bootcamps & colleges" items={TEAMS} cta="CONTACT US" onClick={() => router.push(ROUTES.contact)} />
-        </Stagger>
-      </div>
-    </section>
-  );
-}
-
-/* ───────── testimonials ───────── */
-const TESTIMONIALS = [
-  { quote: "I had my Google SWE interview coming up and was terrified of the system design round. Three DevPrep sessions with Zara and I walked in actually knowing what to expect. Got the offer.", name: "Priya S.", role: "SWE — Google" },
-  { quote: "As a bootcamp grad, I knew how to code but couldn't talk about it well. DevPrep's feedback pointed out exactly what I was missing — now I can explain my thought process clearly.", name: "Marcus T.", role: "Frontend Dev — Shopify" },
-  { quote: "I switched from marketing to PM roles. The behavioral and product sense rounds were brutal until I started using DevPrep. The questions Zara asks are exactly what I faced in real interviews.", name: "Anika R.", role: "Product Manager — Stripe" },
-];
-
-function TestimonialsSection() {
-  return (
-    <section id="reviews" className="bg-dp-sf py-20 sm:py-28 px-6">
-      <div className="max-w-[1040px] mx-auto">
-        <Head eyebrow="Testimonials" title="Don't take our word for it" />
-        <Stagger className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {TESTIMONIALS.map((t) => (
-            <Item lift key={t.name} className="bg-dp-bg rounded-[16px] p-6 flex flex-col justify-between">
-              <p className="text-[13.5px] text-dp-ink/80 leading-relaxed mb-5">&ldquo;{t.quote}&rdquo;</p>
-              <div>
-                <div className="text-[13.5px] font-semibold text-dp-ink">{t.name}</div>
-                <div className="text-[12.5px] text-dp-mu">{t.role}</div>
-              </div>
-            </Item>
-          ))}
         </Stagger>
       </div>
     </section>
@@ -352,9 +271,8 @@ export default function LandingPage() {
         <FeaturesSection />
         <HowItWorksSection />
         <WhoItsForSection />
-        <ResultsStats />
+        <WhatsInsideSection />
         <PricingSection />
-        <TestimonialsSection />
         <FAQSection />
         <FinalCTA />
         <LandingFooter />
