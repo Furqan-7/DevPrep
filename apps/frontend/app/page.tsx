@@ -9,7 +9,6 @@
 import { motion, MotionConfig } from "motion/react";
 import { Search } from "lucide-react";
 import { useState } from "react";
-import { Footer } from "@/components/shared/Footer";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
@@ -19,29 +18,13 @@ import { WhatsInsideSection } from "@/components/landing/WhatsInsideSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FinalCTA } from "@/components/landing/FinalCTA";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
-/* ROUTES — VERIFY against your app (guesses are marked) */
-const ROUTES = {
-  signIn: "/auth/signin",
-  signUp: "/auth/signup",
-  signUpPro: "/auth/signup?plan=pro",
-  dashboard: "/dashboard", // GUESS
-  allRoles: "/roles", // GUESS
-  about: "/about", // GUESS
-  blog: "/blog", // GUESS
-  privacy: "/privacy", // GUESS
-  terms: "/terms", // GUESS
-  contact: "/contact", // GUESS
-  twitter: "https://x.com/B_Furqan07",
-  linkedin: "https://www.linkedin.com/in/furqan-bodarni-132378327/",
-  github: "https://github.com/Furqan-7",
-};
 
 const mono = { fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)" };
 const ease = [0.16, 1, 0.3, 1] as const;
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
 
-const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
 /* ───────── helpers ───────── */
 
@@ -87,41 +70,6 @@ function RolePicker() {
         </motion.div>
       </div>
     </section>
-  );
-}
-
-/* ───────── footer ───────── */
-function LandingFooter() {
-  return (
-    <Footer
-      copyrightText={"\u00a9 2026 DevPrep. All rights reserved."}
-      attributionText="Built by Furqan"
-      linkGroups={[
-        {
-          heading: "Product", links: [
-            { label: "Features", onClick: () => scrollToId("features") },
-            { label: "Pricing", onClick: () => scrollToId("pricing") },
-            { label: "How It Works", onClick: () => scrollToId("how-it-works") },
-            { label: "All Roles", href: ROUTES.allRoles },
-          ]
-        },
-        {
-          heading: "Company", links: [
-            { label: "About", href: ROUTES.about },
-            { label: "Blog", href: ROUTES.blog },
-            { label: "Privacy Policy", href: ROUTES.privacy },
-            { label: "Terms of Service", href: ROUTES.terms },
-          ]
-        },
-        {
-          heading: "Follow", links: [
-            { label: "Twitter / X", href: ROUTES.twitter },
-            { label: "LinkedIn", href: ROUTES.linkedin },
-            { label: "GitHub", href: ROUTES.github },
-          ]
-        },
-      ]}
-    />
   );
 }
 
