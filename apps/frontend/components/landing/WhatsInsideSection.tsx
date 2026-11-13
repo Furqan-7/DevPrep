@@ -8,10 +8,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
-import { Instrument_Serif } from "next/font/google";
+import { serif } from "@/lib/fonts";
 import { ROLES, ROLE_CATEGORIES, ROLE_DURATION_RANGE } from "@/data/roles";
 
-const serif = Instrument_Serif({ weight: "400", style: "italic", subsets: ["latin"], display: "swap" });
 const mono = { fontFamily: "var(--font-jbmono, 'JetBrains Mono'), ui-monospace, monospace" };
 const ease = [0.16, 1, 0.3, 1] as const;
 

@@ -8,9 +8,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Instrument_Serif } from "next/font/google";
+import { serif } from "@/lib/fonts";
 
-const serif = Instrument_Serif({ weight: "400", style: "italic", subsets: ["latin"], display: "swap" });
 const mono = { fontFamily: "var(--font-jbmono, 'JetBrains Mono'), ui-monospace, monospace" };
 
 const STEPS = [
