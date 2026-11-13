@@ -223,7 +223,7 @@ function HeroNav() {
 /* ───────── horizon scene (1200×800 stage, clipped and centered like the original) ───────── */
 function Horizon() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute -bottom-[170px] left-1/2 h-[800px] w-[1200px] -translate-x-1/2 overflow-hidden bg-[#0a0a0a] sm:bottom-0 xl:-bottom-[100px]">
+    <div aria-hidden="true" className="pointer-events-none absolute -bottom-[170px] left-1/2 h-[800px] w-[1200px] -translate-x-1/2 overflow-hidden bg-[#0a0a0a] sm:-bottom-[100px]">
       {/* blue-violet glow rising from the rim */}
       <div
         className="absolute inset-0"
@@ -297,7 +297,7 @@ export function LandingHero() {
   const btn = "inline-flex h-12 items-center gap-2 whitespace-nowrap rounded-lg px-5 text-[14px] font-medium tracking-[-0.04em] transition-[background-color,box-shadow] duration-200 cursor-pointer";
 
   return (
-    <section className="relative isolate flex h-[100svh] min-h-[640px] w-full flex-col items-center justify-center overflow-hidden border-b border-[#00000012] bg-[#0a0a0a] font-sans">
+    <section className="relative isolate flex h-[100svh] min-h-[680px] w-full flex-col items-center justify-center overflow-hidden sm:pb-24 border-b border-[#00000012] bg-[#0a0a0a] font-sans">
       <HeroNav />
       <Horizon />
       <Starfield className="pointer-events-none absolute inset-0 z-[1] h-full w-full [mask-image:linear-gradient(to_bottom,transparent_0,#000_96px,#000_60%,transparent_76%)]" />
