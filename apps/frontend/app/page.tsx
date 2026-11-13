@@ -7,9 +7,8 @@
  */
 
 import { motion, MotionConfig } from "motion/react";
-import { ArrowRight, Search } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
+import { useState } from "react";
 import { Footer } from "@/components/shared/Footer";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
@@ -19,6 +18,7 @@ import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { WhatsInsideSection } from "@/components/landing/WhatsInsideSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { FAQSection } from "@/components/landing/FAQSection";
+import { FinalCTA } from "@/components/landing/FinalCTA";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -39,19 +39,11 @@ const ROUTES = {
 
 const mono = { fontFamily: "var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace)" };
 const ease = [0.16, 1, 0.3, 1] as const;
-const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease } } };
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
 
 const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
 /* ───────── helpers ───────── */
-function Reveal({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={fadeUp} className={className}>
-      {children}
-    </motion.div>
-  );
-}
 
 /* ───────── role picker ───────── */
 const ROLE_GRID = [
@@ -94,25 +86,6 @@ function RolePicker() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
-  );
-}
-
-/* ───────── closing CTA ───────── */
-function FinalCTA() {
-  const router = useRouter();
-  return (
-    <section className="bg-dp-bg px-4 sm:px-6 pb-6">
-      <Reveal className="dp-glow dp-glow--cta max-w-[1100px] mx-auto rounded-[32px] bg-dp-dk text-center px-6 pt-16 sm:pt-20 pb-32 sm:pb-40">
-        <div style={mono} className="text-[11px] font-bold uppercase tracking-[0.1em] text-dp-ac mb-4">Ready?</div>
-        <h2 className="text-[28px] sm:text-[44px] font-extrabold text-white tracking-[-0.04em] leading-[1.05] max-w-[600px] mx-auto mb-4">Ready for your next interview?</h2>
-        <p className="text-[15px] text-white/60 leading-relaxed max-w-[440px] mx-auto mb-8">
-          Join thousands of candidates who stopped guessing and started practicing. Free to start, no credit card required.
-        </p>
-        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} onClick={() => router.push(ROUTES.signUp)} style={mono} className="inline-flex items-center gap-2 bg-dp-ac text-white text-[12px] font-bold tracking-[0.08em] px-7 py-3.5 rounded-full cursor-pointer hover:shadow-[0_10px_30px_-8px_rgba(238,58,20,.7)] transition-shadow">
-          START PRACTICING — IT&rsquo;S FREE <ArrowRight size={14} />
-        </motion.button>
-      </Reveal>
     </section>
   );
 }
