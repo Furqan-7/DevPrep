@@ -14,6 +14,7 @@ import { Footer } from "@/components/shared/Footer";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -148,32 +149,6 @@ function RolePicker() {
             {roles.length === 0 && <div className="col-span-full bg-[#0d0d0f] px-5 py-6 text-[13px] text-white/56">No roles match &ldquo;{q}&rdquo;.</div>}
           </motion.div>
         </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* ───────── how it works ───────── */
-const STEPS = [
-  { num: "01", title: "Pick your role", body: "Choose from 24+ roles across Engineering, Data, Design, and Product — or upload your resume for questions tailored to your background." },
-  { num: "02", title: "Review what to expect", body: "See the top 10 most common questions for your role before you start. Know what's coming so you can walk in with a plan." },
-  { num: "03", title: "Take the interview", body: "Talk naturally to Zara. Answer by voice, solve code live, and get a full breakdown of your performance right when you finish." },
-];
-
-function HowItWorks() {
-  return (
-    <section id="how-it-works" className="bg-dp-bg py-20 sm:py-28 px-6 scroll-mt-16">
-      <div className="max-w-[1040px] mx-auto">
-        <Head eyebrow="How It Works" title="From zero to interview-ready in three steps" />
-        <Stagger className="dp-card grid md:grid-cols-3 rounded-[18px] overflow-hidden border border-dp-ln bg-dp-sf">
-          {STEPS.map((s) => (
-            <Item key={s.num} className="p-7 md:border-r border-b md:border-b-0 border-dp-ln last:border-0 hover:bg-dp-soft transition-colors">
-              <div style={mono} className="text-[22px] font-bold text-dp-ac mb-4">{s.num}</div>
-              <h3 className="text-[16px] font-semibold text-dp-ink mb-1.5">{s.title}</h3>
-              <p className="text-[13.5px] text-dp-mu leading-relaxed">{s.body}</p>
-            </Item>
-          ))}
-        </Stagger>
       </div>
     </section>
   );
@@ -400,7 +375,7 @@ export default function LandingPage() {
         <RolePicker />
         <ProblemSection />
         <FeaturesSection />
-        <HowItWorks />
+        <HowItWorksSection />
         <UseCases />
         <ResultsStats />
         <PricingSection />
