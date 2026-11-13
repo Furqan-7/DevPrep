@@ -6,12 +6,12 @@
  * (Tailwind classes: bg-dp-bg, text-dp-ink, text-dp-mu, border-dp-ln, bg-dp-ac, ...).
  */
 
-import { motion, AnimatePresence, MotionConfig, useInView, useScroll, useSpring } from "motion/react";
-import { ArrowRight, Mic2, Code2, ListChecks, Zap, Check, X, ChevronDown, Menu, Search, Sun, Moon } from "lucide-react";
+import { motion, AnimatePresence, MotionConfig, useInView } from "motion/react";
+import { ArrowRight, Mic2, Code2, ListChecks, Zap, Check, X, ChevronDown, Search } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Footer } from "@/components/shared/Footer";
+import { LandingHero } from "@/components/landing/LandingHero";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -72,18 +72,6 @@ function Head({ eyebrow, title, sub, dark = false }: { eyebrow: string; title: R
   );
 }
 
-function useTheme() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  useEffect(() => setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light"), []);
-  const toggle = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("devprep-theme", next); } catch { /* ignore storage errors */ }
-    setTheme(next);
-  };
-  return { theme, toggle };
-}
-
 /* ───────── count-up stat ───────── */
 function AnimatedStat({ value, label }: { value: string; label: string }) {
   const [shown, setShown] = useState(value);
@@ -118,85 +106,7 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
   );
 }
 
-/* ───────── nav ───────── */
-const NAV_LINKS = [
-  { label: "Features", id: "features" },
-  { label: "How It Works", id: "how-it-works" },
-  { label: "Pricing", id: "pricing" },
-  { label: "FAQ", id: "faq" },
-];
-
-function GlobalNav() {
-  const router = useRouter();
-  const { theme, toggle } = useTheme();
-  const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 24 });
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (token) router.push(ROUTES.dashboard);
-  }, [router]);
-
-  const cta = "bg-dp-ink text-dp-bg hover:opacity-85 text-[12px] font-bold tracking-[0.08em] px-5 py-2.5 rounded-full cursor-pointer transition-opacity";
-
-  return (
-    <nav className={`fixed top-0 inset-x-0 z-50 h-16 flex items-center border-b ${scrolled ? "bg-dp-bg/85 backdrop-blur-md border-dp-ln" : "bg-transparent border-transparent"}`}>
-      <motion.div style={{ scaleX }} className="absolute top-0 inset-x-0 h-[3px] origin-left bg-dp-ac" />
-      <div className="max-w-[1040px] w-full mx-auto px-6 flex items-center justify-between">
-        <button onClick={() => router.push("/")} style={mono} className="flex items-center gap-2.5 text-[14px] font-bold text-dp-ink cursor-pointer">
-          <Image src="/devprep-logo.png" alt="DevPrep logo" width={24} height={24} unoptimized className="rounded-sm shrink-0" />
-          DevPrep
-        </button>
-
-        <div className="hidden md:flex items-center gap-7">
-          {NAV_LINKS.map((l) => (
-            <button key={l.id} onClick={() => scrollToId(l.id)} style={mono} className="text-[11.5px] font-bold uppercase tracking-[0.08em] text-dp-mu hover:text-dp-ink transition-colors cursor-pointer">
-              {l.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <motion.button whileHover={{ rotate: 20 }} whileTap={{ scale: 0.9 }} onClick={toggle} aria-label="Toggle light and dark theme" className="w-9 h-9 rounded-full border border-dp-ln bg-dp-sf text-dp-ink grid place-items-center cursor-pointer">
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-          </motion.button>
-          <motion.button whileTap={{ scale: 0.96 }} onClick={() => router.push(ROUTES.signUp)} style={mono} className={`hidden md:block ${cta}`}>
-            START PRACTICING
-          </motion.button>
-          <button onClick={() => setOpen((v) => !v)} className="md:hidden text-dp-ink p-2 -mr-2" aria-label="Toggle menu">
-            {open ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease }} className="md:hidden absolute top-16 inset-x-0 bg-dp-bg border-b border-dp-ln overflow-hidden">
-            <div className="px-6 py-6 flex flex-col gap-5">
-              {NAV_LINKS.map((l) => (
-                <button key={l.id} onClick={() => { setOpen(false); scrollToId(l.id); }} style={mono} className="text-left text-[12px] font-bold uppercase tracking-[0.08em] text-dp-ink">
-                  {l.label}
-                </button>
-              ))}
-              <button onClick={() => router.push(ROUTES.signUp)} style={mono} className={cta}>START PRACTICING</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
-  );
-}
-
-/* ───────── hero + role picker ───────── */
+/* ───────── role picker ───────── */
 const ROLE_GRID = [
   { category: "Engineering", name: "Frontend Engineer", highlight: true },
   { category: "Engineering", name: "Backend Engineer" },
@@ -208,60 +118,13 @@ const ROLE_GRID = [
   { category: "Behavioral", name: "Behavioral Round" },
 ];
 
-function HeroSection() {
-  const router = useRouter();
+function RolePicker() {
   const [q, setQ] = useState("");
   const roles = ROLE_GRID.filter((r) => `${r.category} ${r.name}`.toLowerCase().includes(q.toLowerCase()));
-  const a = (d: number) => ({ initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, delay: d, ease } });
-  const btn = "inline-flex items-center justify-center gap-2.5 h-12 text-[12px] font-bold tracking-[0.08em] rounded-full cursor-pointer";
 
   return (
     <section className="bg-dp-bg">
-      <div className="dp-hero pt-[112px] sm:pt-[132px] pb-[200px] sm:pb-[240px] px-6">
-        <div aria-hidden className="dp-hero__fx">
-          <div className="dp-hero__grid" />
-          <div className="dp-hero__atmo" />
-          <div className="dp-hero__flare" />
-          <div className="dp-hero__planet" />
-        </div>
-
-        <div className="max-w-[1040px] mx-auto flex flex-col items-center text-center">
-          <motion.div {...a(0)} style={mono} className="inline-flex items-center gap-2 rounded-full border border-dp-ac/25 bg-dp-soft pl-2.5 pr-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-dp-ac mb-7">
-            <span className="relative flex w-2 h-2">
-              <span className="absolute inset-0 rounded-full bg-dp-ac opacity-60 animate-ping" />
-              <span className="relative w-2 h-2 rounded-full bg-dp-ac" />
-            </span>
-            AI-Powered Mock Interviews
-          </motion.div>
-          <motion.h1 {...a(0.08)} className="font-extrabold text-dp-ink text-[36px] sm:text-[52px] lg:text-[66px] leading-[1.02] tracking-[-0.045em] max-w-[820px]">
-            Walk into your next interview <span className="dp-text-fade">already knowing what&rsquo;s coming.</span>
-          </motion.h1>
-          <motion.p {...a(0.16)} className="text-dp-mu text-[15.5px] sm:text-[17px] leading-relaxed max-w-[520px] mt-6">
-            Pick a role or upload your resume, practice out loud with <span className="text-dp-ink font-medium">Zara</span>, your AI interviewer, and get instant feedback.
-          </motion.p>
-          <motion.div {...a(0.24)} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-9 w-full sm:w-auto">
-            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} onClick={() => router.push(ROUTES.signUp)} style={mono} className={`${btn} dp-btn-primary pl-7 pr-1.5`}>
-              START PRACTICING
-              <span className="dp-btn-chip grid place-items-center w-9 h-9 rounded-full bg-white/20 ring-1 ring-white/25">
-                <ArrowRight size={15} strokeWidth={2.5} />
-              </span>
-            </motion.button>
-            <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} onClick={() => scrollToId("how-it-works")} style={mono} className={`${btn} dp-btn-ghost px-7`}>
-              <span className="grid place-items-center w-5 h-5 rounded-full bg-dp-ink text-dp-bg">
-                <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" aria-hidden><path d="M2 1.2v7.6L8.6 5z" /></svg>
-              </span>
-              SEE HOW IT WORKS
-            </motion.button>
-          </motion.div>
-          <motion.div {...a(0.32)} style={mono} className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-6 text-[10.5px] font-medium uppercase tracking-[0.1em] text-dp-mu">
-            {["Free to start", "No credit card", "24+ roles"].map((t) => (
-              <span key={t} className="inline-flex items-center gap-1.5"><Check size={12} strokeWidth={3} className="text-dp-ac" />{t}</span>
-            ))}
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="relative z-10 px-6 pb-4 -mt-[96px] sm:-mt-[120px]">
+      <div className="relative z-10 px-6 pb-4 pt-12 sm:pt-16">
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, ease }} className="dp-card max-w-[960px] mx-auto rounded-[18px] border border-dp-ln bg-dp-sf overflow-hidden shadow-[0_30px_80px_-34px_rgba(0,0,0,.4)]">
           <div className="flex items-center justify-between gap-4 border-b border-dp-ln px-5 py-3.5">
             <span className="text-[14px] font-medium text-dp-ink">Choose Your Interview Role</span>
@@ -620,8 +483,8 @@ export default function LandingPage() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="dp min-h-screen bg-dp-bg text-dp-ink overflow-x-hidden selection:bg-[#eb3a14]/20">
-        <GlobalNav />
-        <HeroSection />
+        <LandingHero />
+        <RolePicker />
         <TrustedBy />
         <ProblemSolution />
         <FeaturesSection />
