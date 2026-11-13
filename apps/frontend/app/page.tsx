@@ -15,6 +15,7 @@ import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
+import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -149,32 +150,6 @@ function RolePicker() {
             {roles.length === 0 && <div className="col-span-full bg-[#0d0d0f] px-5 py-6 text-[13px] text-white/56">No roles match &ldquo;{q}&rdquo;.</div>}
           </motion.div>
         </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* ───────── who it's for ───────── */
-const USE_CASES = [
-  { num: "001", title: "Students & Grads", body: "Preparing for your first technical role? DevPrep helps you simulate real interview pressure before the real thing — no prior experience needed." },
-  { num: "002", title: "Job Switchers", body: "Changing industries or leveling up? Practice for a new role with questions that match exactly what your target company tests." },
-  { num: "003", title: "Bootcamp Grads", body: "You know how to build. Now learn how to talk about it. DevPrep bridges the gap between your skills and your ability to demonstrate them." },
-];
-
-function UseCases() {
-  return (
-    <section className="dp-dark-glow bg-dp-dk py-20 sm:py-28 px-6">
-      <div className="max-w-[1040px] mx-auto">
-        <Head dark eyebrow="Who It's For" title="Built for anyone on the job hunt" />
-        <Stagger className="grid md:grid-cols-3 gap-4">
-          {USE_CASES.map((u) => (
-            <Item lift key={u.num} className="bg-white/5 border border-white/10 hover:border-[#eb3a14] transition-colors rounded-[16px] p-6">
-              <div style={mono} className="text-[11px] tracking-[0.1em] text-white/30 mb-5">{u.num}</div>
-              <h3 className="text-[16px] font-semibold text-white mb-1.5">{u.title}</h3>
-              <p className="text-[13.5px] text-white/60 leading-relaxed">{u.body}</p>
-            </Item>
-          ))}
-        </Stagger>
       </div>
     </section>
   );
@@ -376,7 +351,7 @@ export default function LandingPage() {
         <ProblemSection />
         <FeaturesSection />
         <HowItWorksSection />
-        <UseCases />
+        <WhoItsForSection />
         <ResultsStats />
         <PricingSection />
         <TestimonialsSection />
