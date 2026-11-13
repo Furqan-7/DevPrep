@@ -382,3 +382,6 @@
 /* ===== Landing how-it-works ===== */
 @keyframes dp-hiw-halo { 0% { opacity: .9; transform: scale(.6) } 100% { opacity: 0; transform: scale(1.6) } }
 @keyframes dp-hiw-click { 50% { transform: scale(.8) } }
+
+/* ===== Landing what's inside ===== */
+@keyframes dp-wi-marquee { to { transform: translateX(-50%) } }
