@@ -123,25 +123,28 @@ function RolePicker() {
   const roles = ROLE_GRID.filter((r) => `${r.category} ${r.name}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <section className="bg-dp-bg">
-      <div className="relative z-10 px-6 pb-4 pt-12 sm:pt-16">
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7, ease }} className="dp-card max-w-[960px] mx-auto rounded-[18px] border border-dp-ln bg-dp-sf overflow-hidden shadow-[0_30px_80px_-34px_rgba(0,0,0,.4)]">
-          <div className="flex items-center justify-between gap-4 border-b border-dp-ln px-5 py-3.5">
-            <span className="text-[14px] font-medium text-dp-ink">Choose Your Interview Role</span>
-            <label className="hidden sm:flex items-center gap-2 bg-dp-bg border border-dp-ln focus-within:border-dp-ac rounded-md px-3 py-1.5 text-dp-mu text-[13px] w-[180px] focus-within:w-[220px] transition-all">
+    <section className="relative bg-[#0a0a0a] [clip-path:inset(-200px_0_0_0)]">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[45%] h-[420px] w-[min(1100px,100vw)] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_50%_50%_at_50%_50%,rgba(92,100,220,0.18),rgba(60,62,170,0.08)_45%,rgba(10,10,10,0)_75%)]" />
+      </div>
+      <div className="relative z-10 px-6 pb-16 sm:pb-20 -mt-[96px] sm:-mt-[120px]">
+        <motion.div initial={{ opacity: 0, y: 30, filter: "blur(8px)" }} whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }} viewport={{ once: true, amount: 0.1 }} transition={{ duration: 0.7, ease }} className="max-w-[960px] mx-auto rounded-[18px] border border-white/10 bg-[#0d0d0f] overflow-hidden shadow-[0_30px_80px_-34px_rgba(0,0,0,.8)]">
+          <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-3.5">
+            <span className="text-[14px] font-medium text-[#f0f0f0]">Choose Your Interview Role</span>
+            <label className="hidden sm:flex items-center gap-2 bg-[rgba(10,10,10,0.56)] border border-white/10 focus-within:border-white/30 rounded-md px-3 py-1.5 text-white/45 text-[13px] w-[180px] focus-within:w-[220px] transition-all">
               <Search size={13} />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search roles…" aria-label="Search roles" className="bg-transparent outline-none w-full text-dp-ink placeholder:text-dp-mu" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search roles…" aria-label="Search roles" className="bg-transparent outline-none w-full text-white placeholder:text-white/45" />
             </label>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 bg-dp-ln gap-px">
+          <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} className="grid grid-cols-2 sm:grid-cols-4 bg-white/10 gap-px">
             {roles.map((r) => (
-              <div key={r.name} className="bg-dp-sf hover:bg-dp-soft hover:pl-6 transition-all px-5 py-3.5 text-left cursor-pointer">
-                <div style={mono} className={`text-[10px] font-medium uppercase tracking-[0.08em] mb-1 ${r.highlight ? "text-dp-ac" : "text-dp-mu"}`}>{r.category}</div>
-                <div className="text-[13.5px] font-semibold text-dp-ink">{r.name}</div>
-              </div>
+              <motion.div key={r.name} variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease } } }} className="bg-[#0d0d0f] hover:bg-[#16161a] hover:pl-6 transition-all px-5 py-3.5 text-left cursor-pointer">
+                <div style={mono} className={`text-[10px] font-medium uppercase tracking-[0.08em] mb-1 ${r.highlight ? "text-[#bec8ff]" : "text-white/45"}`}>{r.category}</div>
+                <div className="text-[13.5px] font-semibold text-[#f0f0f0]">{r.name}</div>
+              </motion.div>
             ))}
-            {roles.length === 0 && <div className="col-span-full bg-dp-sf px-5 py-6 text-[13px] text-dp-mu">No roles match &ldquo;{q}&rdquo;.</div>}
-          </div>
+            {roles.length === 0 && <div className="col-span-full bg-[#0d0d0f] px-5 py-6 text-[13px] text-white/56">No roles match &ldquo;{q}&rdquo;.</div>}
+          </motion.div>
         </motion.div>
       </div>
     </section>
