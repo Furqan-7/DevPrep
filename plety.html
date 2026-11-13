@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plety — The intelligence layer for clear decisions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            serif: ['"Instrument Serif"', 'ui-serif', 'Georgia', 'serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { background: #000; }
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-25%); } /* 4 identical copies -> shift exactly one copy */
+    }
+    .marquee-mask {
+      -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+      mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    }
+    .faq-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms ease; }
+    .faq-body.open { grid-template-rows: 1fr; }
+    .menu-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 350ms ease; }
+    .menu-body.open { grid-template-rows: 1fr; }
+    @keyframes wave { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      * { animation: none !important; transition-duration: 0ms !important; }
+    }
+  </style>
+</head>
+<body class="bg-black text-white font-sans antialiased">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+
+    const HERO_VIDEO = 'https://cdn.sceneai.art/Hero%20Section%20Video/50b4f304-cdca-4e12-8735-580d225834be.mp4';
+    const CHAT_VIDEO = 'https://cdn.sceneai.art/Hero%20Section%20Video/1bcc8fa3-37f6-4c53-8591-0347e4c7f8ac.mp4';
+    const TRANSCRIPT_VIDEO = 'https://cdn.sceneai.art/Hero%20Section%20Video/736fd4a0-70ac-4f44-9633-55769ead6aca.mp4';
+
+    /* ---------- Scroll reveal ---------- */
+    function FadeInUp({ children, delay = 0, className = '' }) {
+      const ref = useRef(null);
+      const [visible, setVisible] = useState(false);
+      useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const io = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) { setVisible(true); io.unobserve(el); }
+          },
+          { threshold: 0.1 }
+        );
+        io.observe(el);
+        return () => io.disconnect();
+      }, []);
+      return (
+        <div
+          ref={ref}
+          style={{ transitionDelay: `${delay}ms` }}
+          className={`transition-all duration-1000 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} ${className}`}
+        >
+          {children}
+        </div>
+      );
+    }
+
+    /* ---------- Icons ---------- */
+    const Svg = ({ size = 20, children, className = '', ...p }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"
+        strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true" {...p}>{children}</svg>
+    );
+
+    const Logo = ({ size = 28 }) => (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2"
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="26" height="26" rx="8" />
+        <path d="M12 23V10h5a4 4 0 0 1 0 8h-5" />
+        <circle cx="21.5" cy="22" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+
+    const Brand = ({ className = '' }) => (
+      <a href="#about" className={`flex items-center gap-2 text-white ${className}`}>
+        <Logo />
+        <span className="text-xl font-bold tracking-tight">Plety</span>
+      </a>
+    );
+
+    const brandLogos = [
+      { name: 'Springfield', icon: <><path d="M12 3v18" /><path d="M5 8c0-3 14-3 14 0s-14 5-14 8 14 3 14 0" /></> },
+      { name: 'Orbitc', icon: <><circle cx="12" cy="12" r="3" /><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-30 12 12)" /></> },
+      { name: 'Cloud', icon: <path d="M7 18a4 4 0 0 1-.5-7.97A6 6 0 0 1 18 9.5a4.25 4.25 0 0 1-.5 8.5H7Z" /> },
+      { name: 'Amster', icon: <><path d="M12 3 3 20h18L12 3Z" /><path d="M8 14h8" /></> },
+      { name: 'Nexus', icon: <><path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" /><path d="M8 15V9l8 6V9" /></> },
+    ];
+
+    /* ---------- Buttons ---------- */
+    const PrimaryBtn = ({ children, href = '#contact' }) => (
+      <a href={href} className="inline-flex items-center justify-center bg-white hover:bg-gray-200 text-black text-sm font-medium px-6 py-3 rounded-full transition-colors">{children}</a>
+    );
+    const SecondaryBtn = ({ children, href = '#features' }) => (
+      <a href={href} className="inline-flex items-center justify-center bg-[#1F1F22] hover:bg-[#2A2A2D] text-white text-sm font-medium px-6 py-3 rounded-full border border-white/5 transition-colors">{children}</a>
+    );
+
+    /* ---------- Navbar ---------- */
+    const navLinks = [
+      { label: 'About', id: 'about' },
+      { label: 'Features', id: 'features' },
+      { label: 'FAQ', id: 'faq' },
+      { label: 'Contact', id: 'contact' },
+    ];
+
+    function Navbar() {
+      const [scrolled, setScrolled] = useState(false);
+      const [open, setOpen] = useState(false);
+      useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 20);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+      }, []);
+
+      const go = (e, id) => {
+        e.preventDefault();
+        setOpen(false);
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
+      return (
+        <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled || open ? 'bg-black/80 backdrop-blur-md' : 'bg-transparent'}`}>
+          <nav className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <Brand />
+            <div className="hidden md:flex items-center gap-10">
+              {navLinks.map((l) => (
+                <a key={l.id} href={`#${l.id}`} onClick={(e) => go(e, l.id)}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors">{l.label}</a>
+              ))}
+            </div>
+            <a href="#contact" onClick={(e) => go(e, 'contact')}
+              className="hidden md:inline-flex bg-[#1F1F22] hover:bg-[#2A2A2D] text-white text-sm font-medium px-5 py-2.5 rounded-full border border-white/5 transition-colors">
+              Get started
+            </a>
+            <button type="button" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={open}
+              className="md:hidden relative w-10 h-10 -mr-2 flex items-center justify-center text-white">
+              <span className={`absolute h-[1.5px] w-5 bg-current transition-transform duration-300 ${open ? 'rotate-45' : '-translate-y-[6px]'}`} />
+              <span className={`absolute h-[1.5px] w-5 bg-current transition-opacity duration-300 ${open ? 'opacity-0' : 'opacity-100'}`} />
+              <span className={`absolute h-[1.5px] w-5 bg-current transition-transform duration-300 ${open ? '-rotate-45' : 'translate-y-[6px]'}`} />
+            </button>
+          </nav>
+
+          <div className={`menu-body md:hidden ${open ? 'open' : ''}`}>
+            <div className="overflow-hidden">
+              <div className={`px-6 pb-6 pt-2 flex flex-col gap-1 border-b border-white/10 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}>
+                {navLinks.map((l) => (
+                  <a key={l.id} href={`#${l.id}`} onClick={(e) => go(e, l.id)} tabIndex={open ? 0 : -1}
+                    className="py-3 text-base font-medium text-gray-300 hover:text-white transition-colors">{l.label}</a>
+                ))}
+                <a href="#contact" onClick={(e) => go(e, 'contact')} tabIndex={open ? 0 : -1}
+                  className="mt-3 text-center bg-[#1F1F22] hover:bg-[#2A2A2D] text-white text-sm font-medium px-5 py-3 rounded-full border border-white/5 transition-colors">
+                  Get started
+                </a>
+              </div>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    /* ---------- Hero ---------- */
+    function Marquee() {
+      const items = [...Array(4)].flatMap((_, copy) => brandLogos.map((b) => ({ ...b, key: `${copy}-${b.name}` })));
+      return (
+        <div className="w-full">
+          <p className="text-sm text-gray-500 font-medium mb-8 text-center mt-24">Trusted by industry leaders</p>
+          <div className="overflow-hidden marquee-mask max-w-5xl mx-auto">
+            <div className="flex w-max animate-[marquee_30s_linear_infinite]">
+              {items.map((b) => (
+                <div key={b.key} className="flex-shrink-0 px-8 flex items-center gap-2.5 text-gray-400">
+                  <Svg size={26}>{b.icon}</Svg>
+                  <span className="text-xl font-semibold tracking-tight">{b.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Hero() {
+      return (
+        <section id="about" className="min-h-screen flex flex-col items-center justify-center pt-32 pb-20 relative z-0 overflow-hidden">
+          <div className="absolute inset-0 -z-10 overflow-hidden">
+            <video src={HERO_VIDEO} autoPlay muted loop playsInline
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 object-cover min-w-full min-h-full opacity-90" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black" />
+          </div>
+
+          <div className="px-6 flex flex-col items-center w-full">
+            <FadeInUp>
+              <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-300 mb-8 backdrop-blur-sm">
+                ✨ Announcing API 2.0
+              </div>
+            </FadeInUp>
+            <FadeInUp delay={100}>
+              <h1 className="text-5xl md:text-7xl font-medium tracking-tight mb-6 text-center">
+                The intelligence layer <br className="hidden sm:block" /> for clear{' '}
+                <span className="font-serif italic font-normal">decisions.</span>
+              </h1>
+            </FadeInUp>
+            <FadeInUp delay={200}>
+              <p className="text-[16px] text-gray-400 max-w-2xl text-center mb-10">
+                Our platform integrates seamlessly into your stack to deliver real-time understanding, not just predictions.
+              </p>
+            </FadeInUp>
+            <FadeInUp delay={300}>
+              <div className="flex flex-row items-center gap-4">
+                <PrimaryBtn>Get started</PrimaryBtn>
+                <SecondaryBtn>Learn more</SecondaryBtn>
+              </div>
+            </FadeInUp>
+          </div>
+
+          <FadeInUp delay={400} className="w-full">
+            <Marquee />
+          </FadeInUp>
+        </section>
+      );
+    }
+
+    /* ---------- Feature mockups ---------- */
+    function MockupFrame({ video, children }) {
+      return (
+        <div className="rounded-3xl overflow-hidden p-8 border border-white/10 relative min-h-[420px] md:min-h-[520px] flex items-center justify-center">
+          <video src={video} autoPlay muted loop playsInline className="absolute inset-0 object-cover w-full h-full" />
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="relative w-full max-w-md">{children}</div>
+        </div>
+      );
+    }
+
+    function ChatCard() {
+      const chips = [
+        { label: 'Create image', icon: <><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="9" cy="9" r="1.5" /><path d="m21 15-4.5-4.5L6 21" /></> },
+        { label: 'Summarize text', icon: <><path d="M4 6h16M4 12h16M4 18h10" /></> },
+        { label: 'Analyze data', icon: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></> },
+        { label: 'Write code', icon: <><path d="m8 8-4 4 4 4M16 8l4 4-4 4" /></> },
+      ];
+      return (
+        <div className="bg-[#1C1C1E]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/50">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {chips.map((c) => (
+              <span key={c.label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-300">
+                <Svg size={14}>{c.icon}</Svg>{c.label}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-full pl-4 pr-2 py-2">
+            <Svg size={18} className="text-gray-500"><path d="M12 5v14M5 12h14" /></Svg>
+            <span className="flex-1 text-sm text-gray-500">Ask anything...</span>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:bg-white/5">
+              <Svg size={18}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></Svg>
+            </span>
+            <span className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center">
+              <Svg size={16} strokeWidth="2.25"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" /></Svg>
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    function TranscriptCard() {
+      const bars = [8, 14, 22, 12, 28, 18, 10, 24, 32, 16, 9, 20, 30, 14, 26, 11, 18, 34, 22, 12, 8, 16, 28, 20, 10, 24, 14, 30, 18, 9, 22, 13, 26, 16, 10, 20];
+      return (
+        <div className="bg-[#1C1C1E]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/50">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="w-10 h-10 flex-shrink-0 rounded-full bg-white text-black flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l13-7.5a1 1 0 0 0 0-1.72l-13-7.5A1 1 0 0 0 7 4.5Z" /></svg>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-white">11:06 AM – Chris</p>
+              <p className="text-xs text-gray-500">Weekly product sync · 02:14</p>
+            </div>
+            <span className="text-[11px] font-medium text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-full px-2 py-0.5">Live</span>
+          </div>
+          <div className="flex items-center gap-[3px] h-10 mb-4 overflow-hidden">
+            {bars.map((h, i) => (
+              <span key={i}
+                className={`w-[3px] flex-shrink-0 rounded-full ${i < 14 ? 'bg-white' : 'bg-white/25'}`}
+                style={{ height: `${h}px`, animation: `wave ${1 + (i % 5) * 0.18}s ease-in-out ${i * 0.05}s infinite` }} />
+            ))}
+          </div>
+          <div className="border-t border-white/10 pt-4 space-y-2">
+            <p className="text-sm text-gray-300 leading-relaxed">
+              "Let's lock the launch for the 14th. Design is wrapping the onboarding flow this week, and
+              <span className="text-white"> engineering needs two more days for the API migration.</span>"
+            </p>
+            <p className="text-sm text-gray-500 leading-relaxed">"I'll send the notes after this call so everyone has…"</p>
+          </div>
+        </div>
+      );
+    }
+
+    function FeatureText({ badge, badgeColor, title, text }) {
+      return (
+        <div>
+          <div className={`inline-flex px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium mb-6 ${badgeColor}`}>✨ {badge}</div>
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6 leading-[1.1]">{title}</h2>
+          <p className="text-[16px] text-gray-400 mb-8 max-w-lg leading-relaxed">{text}</p>
+          <SecondaryBtn href="#contact">Get started</SecondaryBtn>
+        </div>
+      );
+    }
+
+    function Features() {
+      return (
+        <>
+          <section id="features" className="grid lg:grid-cols-2 gap-16 py-24 px-6 max-w-7xl mx-auto items-center scroll-mt-10">
+            <FadeInUp>
+              <FeatureText badge="AI chat" badgeColor="text-yellow-400"
+                title="Where speed meets intelligent conversation."
+                text="A conversational AI assistant that understands your questions, provides intelligent answers, and helps you get things done fast from casual chats to complex tasks." />
+            </FadeInUp>
+            <FadeInUp delay={150}>
+              <MockupFrame video={CHAT_VIDEO}><ChatCard /></MockupFrame>
+            </FadeInUp>
+          </section>
+
+          <section className="grid lg:grid-cols-2 gap-16 py-24 px-6 max-w-7xl mx-auto items-center">
+            <FadeInUp className="order-2 lg:order-1">
+              <MockupFrame video={TRANSCRIPT_VIDEO}><TranscriptCard /></MockupFrame>
+            </FadeInUp>
+            <FadeInUp delay={150} className="order-1 lg:order-2">
+              <FeatureText badge="AI transcription" badgeColor="text-green-400"
+                title="Turn speech into text with speed and precision."
+                text="Automatically convert speech into accurate, editable text in real time. Perfect for meetings, interviews, voice notes, and more, powered by advanced speech recognition technology." />
+            </FadeInUp>
+          </section>
+        </>
+      );
+    }
+
+    /* ---------- FAQ ---------- */
+    const faqs = [
+      { q: 'Is my data safe with Plety?', a: 'Yes. All data is encrypted in transit and at rest, and we never use your content to train models. You stay in full control of retention and can delete your data at any time.' },
+      { q: 'How does Plety integrate with my existing stack?', a: 'Plety ships with a REST API, SDKs for popular languages, and native connectors for common tools. Most teams are up and running in an afternoon.' },
+      { q: 'Can I try Plety before committing to a plan?', a: 'Absolutely. Every account starts with a free tier that includes the core chat and transcription features, with no credit card required.' },
+      { q: 'Which languages does AI transcription support?', a: 'Transcription currently supports more than 40 languages, with automatic language detection and speaker labels included out of the box.' },
+      { q: 'What kind of support do you offer?', a: 'All plans include email support and full documentation. Team and enterprise plans add priority response times and a dedicated success manager.' },
+    ];
+
+    function FAQ() {
+      const [openIdx, setOpenIdx] = useState(0);
+      return (
+        <section id="faq" className="py-32 px-6 max-w-3xl mx-auto scroll-mt-10">
+          <FadeInUp>
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-12 text-center">We've got answers</h2>
+          </FadeInUp>
+          <FadeInUp delay={150}>
+            <div className="border border-white/10 rounded-xl bg-transparent">
+              {faqs.map((f, i) => {
+                const isOpen = openIdx === i;
+                return (
+                  <div key={f.q} className={i < faqs.length - 1 ? 'border-b border-white/10' : ''}>
+                    <button type="button" onClick={() => setOpenIdx(isOpen ? -1 : i)} aria-expanded={isOpen}
+                      className="w-full flex items-center justify-between gap-6 py-6 px-6 text-left">
+                      <span className="text-base text-white font-medium">{f.q}</span>
+                      <Svg size={20} className={`flex-shrink-0 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-45' : 'rotate-0'}`}>
+                        <path d="M12 5v14M5 12h14" />
+                      </Svg>
+                    </button>
+                    <div className={`faq-body ${isOpen ? 'open' : ''}`}>
+                      <div className="overflow-hidden">
+                        <p className="text-gray-400 text-sm pb-6 px-6 leading-relaxed">{f.a}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </FadeInUp>
+        </section>
+      );
+    }
+
+    /* ---------- Footer ---------- */
+    const footerCols = [
+      { title: 'Product', links: [['About', '#about'], ['Pricing', '#'], ['Changelog', '#'], ['Contact', '#contact']] },
+      { title: 'Legal', links: [['Terms of service', '#'], ['Privacy policy', '#'], ['404', '#']] },
+      { title: 'Connect', links: [['Instagram', '#'], ['YouTube', '#'], ['LinkedIn', '#'], ['Twitter / X', '#']] },
+    ];
+
+    function Footer() {
+      const Dot = () => <span className="hidden md:inline-block w-1 h-1 rounded-full bg-gray-600" aria-hidden="true" />;
+      return (
+        <footer id="contact" className="relative z-0 pt-32 pb-10 px-6 border-t border-white/5 overflow-hidden">
+          <video src={HERO_VIDEO} autoPlay muted loop playsInline className="absolute inset-0 object-cover w-full h-full opacity-40 -z-10" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black via-black/60 to-black" />
+
+          <FadeInUp>
+            <div className="flex flex-col items-center text-center mb-32">
+              <h2 className="text-4xl md:text-6xl font-medium tracking-tight mb-10">
+                Ready to automate <span className="font-serif italic font-normal">everything?</span>
+              </h2>
+              <div className="flex flex-row items-center gap-4">
+                <PrimaryBtn href="#about">Get started</PrimaryBtn>
+                <SecondaryBtn>Learn more</SecondaryBtn>
+              </div>
+            </div>
+          </FadeInUp>
+
+          <FadeInUp>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto mb-24">
+              <div>
+                <Brand className="mb-4" />
+                <p className="text-sm text-gray-400">Speed, scale, and smarts — deployed.</p>
+              </div>
+              {footerCols.map((col) => (
+                <div key={col.title}>
+                  <h3 className="text-sm font-medium text-white mb-4">{col.title}</h3>
+                  <ul className="space-y-3">
+                    {col.links.map(([label, href]) => (
+                      <li key={label}><a href={href} className="text-sm text-gray-400 hover:text-white transition-colors">{label}</a></li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </FadeInUp>
+
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center items-center gap-4 text-xs text-gray-500 border-t border-white/5 pt-8">
+            <span>© 2026 Plety. All rights reserved</span>
+            <Dot />
+            <span>by <span className="text-gray-300">Re-text</span></span>
+            <Dot />
+            <span>Made in <span className="text-gray-300">Gemini</span></span>
+          </div>
+        </footer>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="bg-black text-white min-h-screen">
+          <Navbar />
+          <main>
+            <Hero />
+            <Features />
+            <FAQ />
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
