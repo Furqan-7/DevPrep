@@ -7,11 +7,12 @@
  */
 
 import { motion, AnimatePresence, MotionConfig, useInView } from "motion/react";
-import { ArrowRight, Mic2, Code2, ListChecks, Zap, Check, X, ChevronDown, Search } from "lucide-react";
+import { ArrowRight, Mic2, Code2, ListChecks, Zap, Check, ChevronDown, Search } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/shared/Footer";
 import { LandingHero } from "@/components/landing/LandingHero";
+import { ProblemSection } from "@/components/landing/ProblemSection";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -146,69 +147,6 @@ function RolePicker() {
             {roles.length === 0 && <div className="col-span-full bg-[#0d0d0f] px-5 py-6 text-[13px] text-white/56">No roles match &ldquo;{q}&rdquo;.</div>}
           </motion.div>
         </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* ───────── trusted-by marquee (placeholder names — swap in real logos) ───────── */
-const TRUSTED = ["Google", "Meta", "Amazon", "Microsoft", "Stripe", "Shopify", "Netflix", "Adobe", "Uber", "Airbnb"];
-
-function TrustedBy() {
-  return (
-    <section className="bg-dp-sf py-9 px-6 mt-12 overflow-hidden">
-      <div style={mono} className="text-center text-[10.5px] font-bold uppercase tracking-[0.1em] text-dp-mu mb-5">Trusted by candidates preparing for</div>
-      <div className="dp-fade-x overflow-hidden">
-        <motion.div className="flex items-center gap-11 w-max" animate={{ x: ["0%", "-50%"] }} transition={{ duration: 28, repeat: Infinity, ease: "linear" }}>
-          {[...TRUSTED, ...TRUSTED].map((n, i) => (
-            <span key={`${n}-${i}`} style={mono} className="text-[13px] font-bold text-dp-ink/35 whitespace-nowrap">{n}</span>
-          ))}
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* ───────── problem → "vs" comparison ───────── */
-const OLD_WAY = [
-  "Practicing alone with no feedback loop",
-  "Generic questions that don't match your target role",
-  "Guessing what interviewers actually want",
-  "No way to practice speaking your answers out loud",
-];
-const NEW_WAY = [
-  ["Instant feedback", "A breakdown of every answer, right after the session."],
-  ["Role-specific questions", "Curated for 24+ engineering, data, and design roles."],
-  ["Know what interviewers want", "Live code execution for DSA and technical rounds."],
-  ["Speak it out loud", "Zara asks questions by voice, naturally."],
-];
-
-function ProblemSolution() {
-  return (
-    <section className="bg-dp-bg py-20 sm:py-28 px-6">
-      <div className="max-w-[1040px] mx-auto">
-        <Head eyebrow="The Problem" title={<>Stop winging it. <span className="text-dp-mu">Start preparing.</span></>} />
-        <Reveal className="relative grid md:grid-cols-2 rounded-[24px] overflow-hidden border border-dp-ln bg-dp-sf">
-          <div className="bg-dp-dk text-white p-7 sm:p-8">
-            <div style={mono} className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40 mb-4">✕ The Old Way</div>
-            {OLD_WAY.map((t) => (
-              <motion.div whileHover={{ x: 4 }} key={t} className="flex items-start gap-3.5 py-4 min-h-[68px] border-t border-white/10 first-of-type:border-0">
-                <span className="w-6 h-6 rounded-full bg-white/10 grid place-items-center shrink-0"><X size={12} className="text-white/40" /></span>
-                <p className="text-[13.5px] text-white/55 line-through decoration-white/20 mt-0.5">{t}</p>
-              </motion.div>
-            ))}
-          </div>
-          <div className="dp-vs-glow relative overflow-hidden p-7 sm:p-8">
-            <div style={mono} className="text-[10px] font-bold uppercase tracking-[0.1em] text-dp-ac mb-4">✓ The DevPrep Way</div>
-            {NEW_WAY.map(([t, d]) => (
-              <motion.div whileHover={{ x: 4 }} key={t} className="relative z-10 flex items-start gap-3.5 py-4 min-h-[68px] border-t border-dp-ln first-of-type:border-0">
-                <span className="w-6 h-6 rounded-full bg-dp-ac grid place-items-center shrink-0 text-white"><Check size={12} strokeWidth={3} /></span>
-                <div><b className="block text-[14.5px] text-dp-ink">{t}</b><p className="text-[13px] text-dp-mu">{d}</p></div>
-              </motion.div>
-            ))}
-          </div>
-          <div style={mono} className="hidden md:grid absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-dp-ac text-white place-items-center text-[11px] font-bold border-[5px] border-dp-sf">VS</div>
-        </Reveal>
       </div>
     </section>
   );
@@ -485,11 +423,10 @@ function LandingFooter() {
 export default function LandingPage() {
   return (
     <MotionConfig reducedMotion="user">
-      <div className="dp min-h-screen bg-dp-bg text-dp-ink overflow-x-hidden selection:bg-[#eb3a14]/20">
+      <div className="dp min-h-screen bg-dp-bg text-dp-ink overflow-x-clip selection:bg-[#eb3a14]/20">
         <LandingHero />
         <RolePicker />
-        <TrustedBy />
-        <ProblemSolution />
+        <ProblemSection />
         <FeaturesSection />
         <HowItWorks />
         <UseCases />
