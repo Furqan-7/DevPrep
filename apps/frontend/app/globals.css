@@ -385,3 +385,6 @@
 
 /* ===== Landing what's inside ===== */
 @keyframes dp-wi-marquee { to { transform: translateX(-50%) } }
+
+/* ===== Landing pricing ===== */
+@keyframes dp-pr-sheen { to { left: 130% } }
