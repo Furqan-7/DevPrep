@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevPrep — hero preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --ink: #f0f0f0;
+    --mu: rgba(255, 255, 255, .56);
+    --ln: rgba(255, 255, 255, .1);
+    --c1: #eb3a14; --c2: #ff9a3d; --c3: #d12e8a; --c4: #4b3bff;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+  body { background: var(--bg); color: var(--ink); font-family: "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden }
+
+  .hero {
+    position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; isolation: isolate;
+    display: flex; flex-direction: column; align-items: center; padding: 120px 16px 0;
+    border-bottom: 1px solid var(--ln);
+  }
+  .content { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 28px; width: 100%; max-width: 620px; text-align: center }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 50px;
+    background: rgba(255, 255, 255, .08); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    font-size: 14px; font-weight: 500; letter-spacing: -.03em;
+  }
+  .badge i { width: 12px; height: 12px; border-radius: 4px; background: conic-gradient(from 0deg, var(--c1), var(--c2), var(--c3), var(--c4), var(--c1)); animation: spin 7s linear infinite }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  h1 { font-size: clamp(38px, 7vw, 60px); font-weight: 500; letter-spacing: -.05em; line-height: 1.1 }
+  h1 em { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 400; letter-spacing: 0 }
+  .sub { color: var(--mu); font-size: 16px; line-height: 1.5; letter-spacing: -.04em; max-width: 440px }
+  .w { display: inline-block; opacity: 0; filter: blur(10px); transform: translateY(10px); animation: in .8s var(--ease) forwards; animation-delay: var(--d) }
+  @keyframes in { to { opacity: 1; filter: none; transform: none } }
+  .fade { opacity: 0; transform: translateY(14px); animation: in .9s var(--ease) forwards; animation-delay: var(--d, 0s) }
+
+  form { position: relative; width: 100%; max-width: 400px }
+  form input[type=email] {
+    width: 100%; border: 0; outline: 0; padding: 16px 136px 16px 16px; border-radius: 8px;
+    font: 400 14px/1.2 "Inter", sans-serif; letter-spacing: -.04em; color: #fff;
+    background: rgba(10, 10, 10, .56); box-shadow: inset 0 0 0 1px var(--ln); transition: box-shadow .25s;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  form input[type=email]::placeholder { color: rgba(255, 255, 255, .7) }
+  form input[type=email]:focus { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35) }
+  form button {
+    position: absolute; top: 5px; right: 5px; bottom: 5px; width: 120px; border: 0; border-radius: 3px; cursor: pointer;
+    font: 500 14px/1 "Inter", sans-serif; letter-spacing: -.04em; background: var(--ink); color: #0a0a0a; transition: background .2s, transform .2s;
+  }
+  form button:hover { background: #fff } form button:active { transform: scale(.97) }
+
+  /* ---------- glowing horizon with moving colour ---------- */
+  .stage { position: absolute; inset: 0; z-index: 1; pointer-events: none }
+  .glow { position: absolute; left: 50%; bottom: -8%; width: 140%; height: 62%; transform: translateX(-50%); filter: blur(60px); animation: hue 22s linear infinite }
+  .glow i { position: absolute; border-radius: 50%; mix-blend-mode: screen; will-change: transform }
+  .glow i:nth-child(1) { left: 6%; top: 30%; width: 42%; height: 90%; background: var(--c4); animation: d1 15s ease-in-out infinite alternate }
+  .glow i:nth-child(2) { left: 28%; top: 38%; width: 40%; height: 90%; background: var(--c1); animation: d2 18s ease-in-out infinite alternate }
+  .glow i:nth-child(3) { left: 46%; top: 44%; width: 30%; height: 80%; background: var(--c2); animation: d1 12s ease-in-out infinite alternate-reverse }
+  .glow i:nth-child(4) { right: 6%; top: 32%; width: 40%; height: 90%; background: var(--c3); animation: d2 20s ease-in-out infinite alternate-reverse }
+  @keyframes d1 { from { transform: translate(-8%, 6%) scale(1) } to { transform: translate(14%, -12%) scale(1.2) } }
+  @keyframes d2 { from { transform: translate(10%, -4%) scale(1.15) } to { transform: translate(-14%, 8%) scale(.92) } }
+  @keyframes hue { 50% { filter: blur(60px) hue-rotate(35deg) } }
+
+  /* dark planet edge that the light spills over */
+  .arc {
+    position: absolute; left: 50%; top: 68%; width: max(1400px, 170vw); aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%);
+    background: radial-gradient(circle at 50% 0%, #111 0%, var(--bg) 40%);
+    box-shadow: 0 -2px 0 rgba(255, 255, 255, .55), 0 -18px 60px rgba(255, 170, 110, .45), 0 -60px 160px rgba(235, 58, 20, .35), inset 0 30px 80px rgba(255, 140, 90, .12);
+    animation: pulse 6s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { box-shadow: 0 -2px 0 rgba(255, 255, 255, .8), 0 -22px 80px rgba(255, 170, 110, .6), 0 -70px 190px rgba(209, 46, 138, .4), inset 0 30px 80px rgba(255, 140, 90, .18) } }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2 }
+  .vig { position: absolute; inset: 0; z-index: 2; background: radial-gradient(ellipse 70% 55% at 50% 30%, rgba(10, 10, 10, .75), transparent 70%), linear-gradient(#0a0a0a 0%, transparent 30%) }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important }
+    .w, .fade { opacity: 1; filter: none; transform: none }
+  }
+</style>
+</head>
+<body>
+<section class="hero">
+  <div class="stage">
+    <div class="glow"><i></i><i></i><i></i><i></i></div>
+    <div class="arc"></div>
+    <canvas id="stars"></canvas>
+    <div class="vig"></div>
+  </div>
+
+  <div class="content">
+    <div class="badge fade"><span>DevPrep</span><i></i><span>AI Interview Prep</span></div>
+    <h1 id="h1">Practice out loud. <em>Interview with confidence.</em></h1>
+    <p class="sub" id="sub">Mock interviews with an AI interviewer, DSA and CS core practice, and jobs worth applying to, all in one place.</p>
+    <form class="fade" style="--d:1.1s" action="/auth/signup" method="get">
+      <input type="email" name="email" placeholder="Your Email Address" autocomplete="email" required>
+      <button type="submit">Start Practicing</button>
+    </form>
+  </div>
+</section>
+
+<script>
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // word-by-word blur-in, keeping the italic span intact
+  let n = 0;
+  function split(el, step, base) {
+    [...el.childNodes].forEach(node => {
+      if (node.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        node.textContent.split(/(\s+)/).forEach(t => {
+          if (!t.trim()) { frag.append(t); return }
+          const s = document.createElement("span");
+          s.className = "w"; s.textContent = t; s.style.setProperty("--d", (base + n++ * step) + "s");
+          frag.append(s);
+        });
+        node.replaceWith(frag);
+      } else split(node, step, base);
+    });
+  }
+  split(document.getElementById("h1"), .08, .2);
+  n = 0; split(document.getElementById("sub"), .025, .7);
+
+  // drifting particles rising from the horizon
+  const cv = document.getElementById("stars"), cx = cv.getContext("2d");
+  let W, H, ps = [];
+  function size() {
+    const r = Math.min(devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight; cv.width = W * r; cv.height = H * r; cx.setTransform(r, 0, 0, r, 0, 0);
+    ps = Array.from({ length: Math.round(W / 9) }, () => spawn(true));
+  }
+  function spawn(any) {
+    return { x: Math.random() * W, y: any ? H * (.35 + Math.random() * .65) : H * (.7 + Math.random() * .3), r: .4 + Math.random() * 1.1, v: .08 + Math.random() * .28, a: Math.random() * 6.28, s: .01 + Math.random() * .02 };
+  }
+  function draw() {
+    cx.clearRect(0, 0, W, H);
+    for (const p of ps) {
+      p.y -= p.v; p.a += p.s; p.x += Math.sin(p.a) * .15;
+      const life = Math.max(0, (p.y - H * .3) / (H * .5));
+      if (life <= 0) Object.assign(p, spawn(false));
+      cx.globalAlpha = Math.min(1, life) * (.45 + .55 * Math.sin(p.a * 2) ** 2);
+      cx.fillStyle = "#fff"; cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.28); cx.fill();
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  }
+  addEventListener("resize", size); size(); draw();
+</script>
+</body>
+</html>
