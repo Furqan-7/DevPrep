@@ -6,8 +6,8 @@
  * (Tailwind classes: bg-dp-bg, text-dp-ink, text-dp-mu, border-dp-ln, bg-dp-ac, ...).
  */
 
-import { motion, AnimatePresence, MotionConfig } from "motion/react";
-import { ArrowRight, ChevronDown, Search } from "lucide-react";
+import { motion, MotionConfig } from "motion/react";
+import { ArrowRight, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/shared/Footer";
@@ -18,6 +18,7 @@ import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { WhatsInsideSection } from "@/components/landing/WhatsInsideSection";
 import { PricingSection } from "@/components/landing/PricingSection";
+import { FAQSection } from "@/components/landing/FAQSection";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -49,32 +50,6 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
     <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={fadeUp} className={className}>
       {children}
     </motion.div>
-  );
-}
-
-function Stagger({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} className={className}>
-      {children}
-    </motion.div>
-  );
-}
-
-function Item({ children, className = "", lift = false }: { children: ReactNode; className?: string; lift?: boolean }) {
-  return (
-    <motion.div variants={fadeUp} whileHover={lift ? { y: -4 } : undefined} className={className}>
-      {children}
-    </motion.div>
-  );
-}
-
-function Head({ eyebrow, title, sub, dark = false }: { eyebrow: string; title: ReactNode; sub?: string; dark?: boolean }) {
-  return (
-    <Reveal className="text-center max-w-[700px] mx-auto mb-12">
-      <div style={mono} className="text-[11px] font-bold uppercase tracking-[0.1em] text-dp-ac mb-4">{eyebrow}</div>
-      <h2 className={`text-[28px] sm:text-[38px] font-bold tracking-[-0.03em] leading-[1.1] ${dark ? "text-white" : "text-dp-ink"}`}>{title}</h2>
-      {sub && <p className="text-[15px] text-dp-mu mt-3">{sub}</p>}
-    </Reveal>
   );
 }
 
@@ -118,48 +93,6 @@ function RolePicker() {
             {roles.length === 0 && <div className="col-span-full bg-[#0d0d0f] px-5 py-6 text-[13px] text-white/56">No roles match &ldquo;{q}&rdquo;.</div>}
           </motion.div>
         </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* ───────── FAQ ───────── */
-const FAQ_ITEMS = [
-  { q: "Can I choose my role, or does DevPrep assign one?", a: "You choose. Pick from 24 roles including Frontend Engineer, Backend, DSA, ML Engineer, Product Manager, Behavioral, and more. Resume-tailored question sets are coming with Pro." },
-  { q: "What does a session actually look like?", a: "You'll review the top questions for your role, then Zara asks you questions one by one by voice. You answer out loud, the session transcribes your responses, and Zara follows up in real time. Detailed feedback reports are coming with Pro." },
-  { q: "Does it support coding/technical rounds?", a: "You can practice DSA, System Design and engineering rounds by voice today. Live code execution, where you write and run real code during the interview, is coming with Pro." },
-  { q: "Is my data private?", a: "Your session data, transcripts, and resume are used only to personalize your practice experience. We never share or sell your personal information to third parties." },
-  { q: "Is DevPrep free?", a: "Yes, while we're in early access. You get real-time voice interviews with Zara across every role, with no session limit and no card required. Pro ($10/month) will add detailed feedback reports, resume-tailored questions and live code execution. It isn't available to buy yet, and we'll tell you well before anything changes." },
-];
-
-function FAQSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-  return (
-    <section id="faq" className="bg-dp-bg py-20 sm:py-28 px-6 scroll-mt-16">
-      <div className="max-w-[720px] mx-auto">
-        <Head eyebrow="FAQ" title="Frequently asked questions" />
-        <Stagger className="space-y-2.5">
-          {FAQ_ITEMS.map((item, i) => {
-            const isOpen = openIndex === i;
-            return (
-              <Item key={item.q} className="dp-card bg-dp-sf border border-dp-ln rounded-[14px] overflow-hidden">
-                <button onClick={() => setOpenIndex(isOpen ? null : i)} aria-expanded={isOpen} className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left cursor-pointer">
-                  <span className="text-[14px] font-semibold text-dp-ink">{item.q}</span>
-                  <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }} className={`shrink-0 w-7 h-7 rounded-full grid place-items-center transition-colors ${isOpen ? "bg-dp-ac text-white" : "bg-dp-bg text-dp-ink"}`}>
-                    <ChevronDown size={14} />
-                  </motion.span>
-                </button>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.35, ease }} className="overflow-hidden">
-                      <p className="px-5 pb-5 text-[13.5px] text-dp-mu leading-relaxed">{item.a}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Item>
-            );
-          })}
-        </Stagger>
       </div>
     </section>
   );
