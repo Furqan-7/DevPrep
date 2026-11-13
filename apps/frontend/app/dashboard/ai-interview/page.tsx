@@ -32,7 +32,7 @@ import { ROLES } from "@/data/roles";
 const EASE = [0.25, 0.8, 0.25, 1] as const;
 const DURATION = 0.5;
 
-/* Fonts are loaded via next/font/google in app/layout.tsx — no inline
+/* Fonts are self-hosted via next/font/local in lib/fonts.ts — no inline
    <link> tags needed here. */
 
 /* ─────────────────────────────────────────────

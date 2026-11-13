@@ -7,7 +7,7 @@
  */
 
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
-import { ArrowRight, Check, ChevronDown, Search } from "lucide-react";
+import { ArrowRight, ChevronDown, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/shared/Footer";
@@ -17,6 +17,7 @@ import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { WhoItsForSection } from "@/components/landing/WhoItsForSection";
 import { WhatsInsideSection } from "@/components/landing/WhatsInsideSection";
+import { PricingSection } from "@/components/landing/PricingSection";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -122,55 +123,13 @@ function RolePicker() {
   );
 }
 
-/* ───────── pricing ───────── */
-const FREE = ["3 practice sessions per month", "Core roles (Engineering, Behavioral)", "Basic AI feedback after each session"];
-const PRO = ["Unlimited practice sessions", "Resume-tailored question sets", "Detailed feedback breakdowns per answer", "All 24+ roles including Data, Design & PM"];
-const TEAMS = ["Everything in Pro for all seats", "Admin dashboard and progress tracking", "Dedicated onboarding support"];
-
-function Plan({ name, price, note, items, cta, onClick, pro = false }: { name: string; price: string; note: string; items: string[]; cta: string; onClick: () => void; pro?: boolean }) {
-  return (
-    <Item lift className={`relative flex flex-col rounded-[20px] p-7 border ${pro ? "bg-dp-dk text-white border-white/10 md:py-9 shadow-[0_30px_60px_-28px_rgba(235,58,20,.55)]" : "bg-dp-sf border-dp-ln"}`}>
-      {pro && <div style={mono} className="absolute -top-3 left-7 bg-dp-ac text-white text-[10px] font-bold uppercase tracking-[0.08em] px-3 py-1 rounded-full">Most Popular</div>}
-      <div className={`text-[14px] font-medium ${pro ? "text-white" : "text-dp-ink"}`}>{name}</div>
-      <div className={`text-[34px] font-extrabold tracking-tight mt-1 ${pro ? "text-white" : "text-dp-ink"}`}>{price}</div>
-      <div className={`text-[12.5px] mb-5 ${pro ? "text-white/50" : "text-dp-mu"}`}>{note}</div>
-      <ul className="space-y-2.5 mb-7 flex-1">
-        {items.map((f) => (
-          <li key={f} className={`flex items-start gap-2.5 text-[13px] ${pro ? "text-white/75" : "text-dp-ink/75"}`}>
-            <Check size={14} className="text-dp-ac mt-0.5 shrink-0" />{f}
-          </li>
-        ))}
-      </ul>
-      <motion.button whileTap={{ scale: 0.97 }} onClick={onClick} style={mono} className={`text-[12px] font-bold tracking-[0.06em] py-3 rounded-full transition-colors cursor-pointer ${pro ? "bg-dp-ac hover:bg-[#d63410] text-white" : "bg-dp-bg hover:bg-dp-ln text-dp-ink"}`}>
-        {cta}
-      </motion.button>
-    </Item>
-  );
-}
-
-function PricingSection() {
-  const router = useRouter();
-  return (
-    <section id="pricing" className="bg-dp-bg py-20 sm:py-28 px-6 scroll-mt-16">
-      <div className="max-w-[1040px] mx-auto">
-        <Head eyebrow="Pricing" title="Simple, transparent pricing" sub="Start for free. Upgrade when you're ready to go deeper." />
-        <Stagger className="grid md:grid-cols-3 gap-4 items-center">
-          <Plan name="Free" price="$0" note="Forever free" items={FREE} cta="GET STARTED FREE" onClick={() => router.push(ROUTES.signUp)} />
-          <Plan pro name="Pro" price="$19" note="per month" items={PRO} cta="START WITH PRO" onClick={() => router.push(ROUTES.signUpPro)} />
-          <Plan name="Teams / Campus" price="Custom" note="Bulk seats for bootcamps & colleges" items={TEAMS} cta="CONTACT US" onClick={() => router.push(ROUTES.contact)} />
-        </Stagger>
-      </div>
-    </section>
-  );
-}
-
 /* ───────── FAQ ───────── */
 const FAQ_ITEMS = [
-  { q: "Can I choose my role, or does DevPrep assign one?", a: "You choose. Pick from 24+ roles including Frontend Engineer, Backend, DSA, ML Engineer, Product Manager, Behavioral, and more — or upload your resume for a tailored question set." },
-  { q: "What does a session actually look like?", a: "You'll review the top questions for your role, then Zara asks you questions one by one by voice. You answer out loud, the session transcribes your responses, and you get detailed feedback when it's done. Technical rounds include a live code editor." },
-  { q: "Does it support coding/technical rounds?", a: "Yes. DSA, System Design, and engineering roles include a live code execution environment powered by Judge0. You write and run real code as part of the interview, just like you would in a real technical screen." },
+  { q: "Can I choose my role, or does DevPrep assign one?", a: "You choose. Pick from 24 roles including Frontend Engineer, Backend, DSA, ML Engineer, Product Manager, Behavioral, and more. Resume-tailored question sets are coming with Pro." },
+  { q: "What does a session actually look like?", a: "You'll review the top questions for your role, then Zara asks you questions one by one by voice. You answer out loud, the session transcribes your responses, and Zara follows up in real time. Detailed feedback reports are coming with Pro." },
+  { q: "Does it support coding/technical rounds?", a: "You can practice DSA, System Design and engineering rounds by voice today. Live code execution, where you write and run real code during the interview, is coming with Pro." },
   { q: "Is my data private?", a: "Your session data, transcripts, and resume are used only to personalize your practice experience. We never share or sell your personal information to third parties." },
-  { q: "What's included in the Free plan?", a: "The Free plan gives you 3 practice sessions per month with access to core Engineering and Behavioral roles, plus basic AI feedback. Upgrade to Pro for unlimited sessions, resume-tailored questions, and detailed per-answer breakdowns." },
+  { q: "Is DevPrep free?", a: "Yes, while we're in early access. You get real-time voice interviews with Zara across every role, with no session limit and no card required. Pro ($10/month) will add detailed feedback reports, resume-tailored questions and live code execution. It isn't available to buy yet, and we'll tell you well before anything changes." },
 ];
 
 function FAQSection() {

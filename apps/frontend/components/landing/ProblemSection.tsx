@@ -8,9 +8,8 @@
 
 import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
-import { Instrument_Serif } from "next/font/google";
+import { serif } from "@/lib/fonts";
 
-const serif = Instrument_Serif({ weight: "400", style: "italic", subsets: ["latin"], display: "swap" });
 
 type Part = { text: string; bad?: boolean };
 

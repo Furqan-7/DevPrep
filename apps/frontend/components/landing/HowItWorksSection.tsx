@@ -8,13 +8,12 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Instrument_Serif } from "next/font/google";
+import { serif } from "@/lib/fonts";
 
-const serif = Instrument_Serif({ weight: "400", style: "italic", subsets: ["latin"], display: "swap" });
 const mono = { fontFamily: "var(--font-jbmono, 'JetBrains Mono'), ui-monospace, monospace" };
 
 const STEPS = [
-  { num: "01", title: "Pick your role", body: "Choose from 24+ roles across Engineering, Data, Design, and Product — or upload your resume for questions tailored to your background." },
+  { num: "01", title: "Pick your role", body: "Choose from 24 roles across Engineering, Data, Design, Product and Behavioral. Resume-tailored questions are coming with Pro." },
   { num: "02", title: "Review what to expect", body: "See the top 10 most common questions for your role before you start. Know what's coming so you can walk in with a plan." },
   { num: "03", title: "Take the interview", body: "Talk naturally to Zara. Answer by voice, solve code live, and get a full breakdown of your performance right when you finish." },
 ] as const;
@@ -50,7 +49,7 @@ function PickScreen({ on }: { on: boolean }) {
           <path d="M4 1.5h5L12.5 5v9.5h-8.5z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
           <path d="M9 1.5V5h3.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
         </svg>
-        <span>Upload your <b className="font-medium text-[#f0f0f0]">resume.pdf</b> for tailored questions</span>
+        <span>Resume-tailored questions <b className="font-medium text-[#bec8ff]">· coming with Pro</b></span>
       </div>
       {/* cursor glides to Frontend Engineer and clicks */}
       <svg

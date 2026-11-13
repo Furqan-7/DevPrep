@@ -1,31 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Outfit } from "next/font/google";
+import { inter, outfit, jetbrainsMono } from "@/lib/fonts";
 import "./globals.css";
 import Script from "next/script";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-  fallback: ["system-ui", "-apple-system", "sans-serif"],
-});
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  weight: ["400", "600", "700"],
-  fallback: ["system-ui", "-apple-system", "sans-serif"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jbmono",
-  display: "swap",
-  weight: ["400", "500"],
-  fallback: ["ui-monospace", "monospace"],
-});
 
 export const metadata: Metadata = {
   title: "DevPrep — AI Mock Interviews for Placement Prep",

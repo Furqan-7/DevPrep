@@ -8,9 +8,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { Instrument_Serif } from "next/font/google";
+import { serif } from "@/lib/fonts";
 
-const serif = Instrument_Serif({ weight: "400", style: "italic", subsets: ["latin"], display: "swap" });
 
 const ROUTES = {
   signIn: "/auth/signin",
