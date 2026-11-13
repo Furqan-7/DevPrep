@@ -7,12 +7,13 @@
  */
 
 import { motion, AnimatePresence, MotionConfig, useInView } from "motion/react";
-import { ArrowRight, Mic2, Code2, ListChecks, Zap, Check, ChevronDown, Search } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Search } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Footer } from "@/components/shared/Footer";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
 
 /* ROUTES — VERIFY against your app (guesses are marked) */
 const ROUTES = {
@@ -147,35 +148,6 @@ function RolePicker() {
             {roles.length === 0 && <div className="col-span-full bg-[#0d0d0f] px-5 py-6 text-[13px] text-white/56">No roles match &ldquo;{q}&rdquo;.</div>}
           </motion.div>
         </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* ───────── features ───────── */
-const FEATURES = [
-  { icon: <Mic2 size={18} />, title: "AI Interviewer — Zara", body: "Natural voice conversations with an AI interviewer. Not a quiz — a real dialogue that mirrors how actual interviews feel." },
-  { icon: <Code2 size={18} />, title: "Live Code Execution", body: "Solve DSA and coding problems with a real compiler. Write, run, and debug your solution — just like in a real technical screen." },
-  { icon: <ListChecks size={18} />, title: "Role-Specific Questions", body: "24+ roles across Engineering, Data, Design, Product, and Behavioral. Every question set is curated for what that role actually tests." },
-  { icon: <Zap size={18} />, title: "Instant Feedback", body: "Get a breakdown of your answers right after the session — strengths, gaps, and what to sharpen before your real interview." },
-];
-
-function FeaturesSection() {
-  return (
-    <section id="features" className="bg-dp-sf py-20 sm:py-28 px-6 scroll-mt-16">
-      <div className="max-w-[1040px] mx-auto">
-        <Head eyebrow="Features" title="Everything you need to ace your next interview" />
-        <Stagger className="grid sm:grid-cols-2 gap-4">
-          {FEATURES.map((f) => (
-            <Item lift key={f.title} className="bg-dp-bg rounded-[16px] p-6 flex gap-5 hover:shadow-[0_18px_40px_-22px_rgba(0,0,0,.35)] transition-shadow">
-              <div className="w-10 h-10 rounded-[10px] bg-dp-sf border border-dp-ln grid place-items-center text-dp-ac shrink-0">{f.icon}</div>
-              <div>
-                <h3 className="text-[16px] font-semibold text-dp-ink mb-1.5">{f.title}</h3>
-                <p className="text-[13.5px] text-dp-mu leading-relaxed">{f.body}</p>
-              </div>
-            </Item>
-          ))}
-        </Stagger>
       </div>
     </section>
   );
