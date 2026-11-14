@@ -9,6 +9,8 @@
 import { motion, MotionConfig } from "motion/react";
 import { Search } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
+import { roleSlug } from "@/data/roles";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
@@ -34,7 +36,7 @@ const ROLE_GRID = [
   { category: "Engineering", name: "Backend Engineer" },
   { category: "Engineering", name: "Full Stack Developer" },
   { category: "Engineering", name: "System Design" },
-  { category: "Data", name: "ML Engineer" },
+  { category: "Data", name: "Machine Learning Engineer" },
   { category: "Data", name: "Data Engineer" },
   { category: "Product", name: "Product Manager" },
   { category: "Behavioral", name: "Behavioral Round" },
@@ -60,9 +62,11 @@ function RolePicker() {
           </div>
           <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} className="grid grid-cols-2 sm:grid-cols-4 bg-white/10 gap-px">
             {roles.map((r) => (
-              <motion.div key={r.name} variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease } } }} className="bg-[#0d0d0f] hover:bg-[#16161a] hover:pl-6 transition-all px-5 py-3.5 text-left cursor-pointer">
-                <div style={mono} className={`text-[10px] font-medium uppercase tracking-[0.08em] mb-1 ${r.highlight ? "text-[#bec8ff]" : "text-white/45"}`}>{r.category}</div>
-                <div className="text-[13.5px] font-semibold text-[#f0f0f0]">{r.name}</div>
+              <motion.div key={r.name} variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease } } }} className="bg-[#0d0d0f]">
+                <Link href={`/dashboard/ai-interview/${roleSlug(r.name)}`} className="block px-5 py-3.5 text-left transition-all hover:bg-[#16161a] hover:pl-6 focus-visible:bg-[#16161a] focus-visible:outline-none">
+                  <div style={mono} className={`text-[10px] font-medium uppercase tracking-[0.08em] mb-1 ${r.highlight ? "text-[#bec8ff]" : "text-white/45"}`}>{r.category}</div>
+                  <div className="text-[13.5px] font-semibold text-[#f0f0f0]">{r.name}</div>
+                </Link>
               </motion.div>
             ))}
             {roles.length === 0 && <div className="col-span-full bg-[#0d0d0f] px-5 py-6 text-[13px] text-white/56">No roles match &ldquo;{q}&rdquo;.</div>}

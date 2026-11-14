@@ -207,7 +207,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
       {report.improvements.length > 0 && (
         <motion.section {...reveal(reduce, 0.08)} className={`${card} mt-3.5 px-6 py-6 sm:px-7`} aria-labelledby="practise-next">
           <h2 id="practise-next" className="m-0 mb-3.5 text-[13px] font-medium text-white/45">
-            Practise next
+            Practice next
           </h2>
           <ol className="m-0 grid list-none gap-3.5 p-0 sm:grid-cols-3">
             {report.improvements.map((t, i) => (

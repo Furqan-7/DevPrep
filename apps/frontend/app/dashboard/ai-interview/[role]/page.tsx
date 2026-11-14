@@ -6,6 +6,7 @@ import { ChevronDown, Mic, ArrowLeft, Clock, AlertCircle, Sparkles } from "lucid
 import { motion, AnimatePresence } from "motion/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import type { RoleData } from "../data";
+import { ROLES, roleSlug } from "@/data/roles";
 import api from "@/lib/api";
 
 const monoStyle = {
@@ -32,7 +33,7 @@ const ROLE_META: Record<string, Omit<RoleData, "questions">> = {
     duration: 25,
     skills: ["Node.js", "React", "PostgreSQL", "Docker"],
   },
-  "dsa": {
+  "data-structures-algorithms": {
     title: "Data Structures & Algorithms",
     duration: 18,
     skills: ["Arrays & Strings", "Trees & Graphs", "Dynamic Programming", "Complexity Analysis"],
@@ -118,7 +119,7 @@ const PREVIEW_QUESTIONS: Record<string, string[]> = {
     "What are WebSockets and how would you implement real-time features in a full-stack app?",
     "How do you approach testing across both the frontend and backend layers?",
   ],
-  "dsa": [
+  "data-structures-algorithms": [
     "What is the time and space complexity of common sorting algorithms? When would you use each?",
     "Explain the difference between a stack and a queue with real-world use cases.",
     "How does dynamic programming differ from recursion with memoization?",
@@ -295,7 +296,12 @@ export default function RoleInterviewPage() {
   const router = useRouter();
   const rawRole = Array.isArray(params.role) ? params.role[0] : params.role;
   const slug = rawRole ?? "";
-  const meta = ROLE_META[slug];
+  // Every role in the catalogue has a page; title, duration and skills come from
+  // data/roles.ts so they match the role picker.
+  const catalogRole = ROLES.find((r) => roleSlug(r.title) === slug);
+  const meta: Omit<RoleData, "questions"> | undefined = catalogRole
+    ? { title: catalogRole.title, duration: catalogRole.duration, skills: [...catalogRole.skills] }
+    : ROLE_META[slug];
   const questions = PREVIEW_QUESTIONS[slug] ?? [];
 
   const [starting, setStarting] = useState(false);
@@ -463,9 +469,18 @@ export default function RoleInterviewPage() {
               }}
               className="text-dp-mu text-[16px] sm:text-[18px] leading-relaxed max-w-[620px] mb-8"
             >
-              Check out 10 of the most common{" "}
-              <span className="text-dp-ink font-semibold">{meta.title}</span> interview questions and
-              take an AI‑powered practice interview.
+              {questions.length > 0 ? (
+                <>
+                  Check out {questions.length} of the most common{" "}
+                  <span className="text-dp-ink font-semibold">{meta.title}</span> interview questions and
+                  take an AI‑powered practice interview.
+                </>
+              ) : (
+                <>
+                  Take an AI‑powered <span className="text-dp-ink font-semibold">{meta.title}</span> practice
+                  interview. Zara picks the questions as you go and follows up on your answers.
+                </>
+              )}
             </motion.p>
 
             {/* Error badge if any */}
@@ -502,7 +517,8 @@ export default function RoleInterviewPage() {
 
         <div className="max-w-[1200px] mx-auto px-6 sm:px-10 pb-20">
 
-          {/* ── Two-column layout ── */}
+          {/* ── Two-column layout (only for roles with a question list) ── */}
+          {questions.length > 0 && (
           <div className="flex flex-col lg:flex-row gap-10">
 
             {/* Left: sticky label */}
@@ -515,7 +531,7 @@ export default function RoleInterviewPage() {
                   TOP QUESTIONS
                 </p>
                 <p className="text-xl md:text-2xl font-extrabold text-dp-ink leading-tight tracking-[-0.02em]">
-                  10 of the most common{" "}
+                  {questions.length} of the most common{" "}
                   <span className="text-dp-mu font-bold">{meta.title} questions</span>
                 </p>
               </div>
@@ -528,6 +544,7 @@ export default function RoleInterviewPage() {
               ))}
             </div>
           </div>
+          )}
 
           {/* ── Bottom CTA banner (Restyled + Scroll Entrance) ── */}
           <motion.div

@@ -4,8 +4,7 @@
  */
 
 import api from "@/lib/api";
-import { ROLES } from "@/data/roles";
-import { titleToSlug } from "@/app/dashboard/ai-interview/data";
+import { ROLES, roleSlug } from "@/data/roles";
 
 export interface Rubric {
   relevance: number;
@@ -144,7 +143,7 @@ export async function transcribe(audio: Blob): Promise<string> {
 
 /* ───────── display helpers ───────── */
 
-const TITLES = new Map(ROLES.map((r) => [titleToSlug(r.title), r.title as string]));
+const TITLES = new Map(ROLES.map((r) => [roleSlug(r.title), r.title as string]));
 
 /** Sessions store the role slug ("frontend-engineer"); show the catalogue title. */
 export function roleTitle(slug: string): string {

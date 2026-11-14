@@ -40,3 +40,15 @@ export const ROLE_DURATION_RANGE = {
   min: Math.min(...ROLES.map((r) => r.duration)),
   max: Math.max(...ROLES.map((r) => r.duration)),
 };
+
+/**
+ * URL slug for a role title. Slashes and ampersands become separators, so every slug
+ * is a single path segment ("UI/UX Designer" → "ui-ux-designer").
+ */
+export function roleSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[&/]/g, " ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
