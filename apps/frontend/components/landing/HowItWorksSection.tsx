@@ -15,7 +15,7 @@ const mono = { fontFamily: "var(--font-jbmono, 'JetBrains Mono'), ui-monospace, 
 const STEPS = [
   { num: "01", title: "Pick your role", body: "Choose from 24 roles across Engineering, Data, Design, Product and Behavioral. Resume-tailored questions are coming with Pro." },
   { num: "02", title: "Review what to expect", body: "See the top 10 most common questions for your role before you start. Know what's coming so you can walk in with a plan." },
-  { num: "03", title: "Take the interview", body: "Talk naturally to Zara and answer by voice. When you finish, you get a score for every answer, what was missing, and a stronger answer you can practise." },
+  { num: "03", title: "Take the interview", body: "Talk naturally to Zara and answer by voice. When you finish, you get a score for every answer, what was missing, and a stronger answer you can practice." },
 ] as const;
 
 const box = "relative overflow-hidden rounded-[14px] bg-[#0d0d0f] p-[18px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]";

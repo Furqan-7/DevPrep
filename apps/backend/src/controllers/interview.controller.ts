@@ -26,7 +26,7 @@ export const ROLE_FIRST_QUESTIONS: Record<string, string[]> = {
         "What factors guide your decision when choosing server-side rendering (SSR) versus client-side rendering (CSR)?",
         "How do you handle database migration and schema updates with zero downtime in production?",
     ],
-    "dsa": [
+    "data-structures-algorithms": [
         "What is the difference between dynamic programming and recursion with memoization? Can you give an example?",
         "How do you analyze the time and space complexity of sorting algorithms like QuickSort and MergeSort?",
         "When would you choose a Hash Table over a Binary Search Tree, and what are the trade-offs?",

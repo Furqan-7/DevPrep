@@ -5,11 +5,5 @@ export type RoleData = {
   questions: string[];
 };
 
-export function titleToSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[&]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+/** @deprecated use roleSlug from data/roles; kept so existing imports keep working. */
+export { roleSlug as titleToSlug } from "@/data/roles";
