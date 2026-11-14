@@ -168,3 +168,10 @@ export function formatDate(iso: string): string {
   if (days < 2) return `Yesterday, ${time}`;
   return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
 }
+
+const LEVEL_LABELS: Record<string, string> = { fresher: "Fresher", "mid-level": "Mid-level", senior: "Senior" };
+
+/** Display label for a session's level ("difficulty"); older sessions stored "medium". */
+export function levelLabel(difficulty: string): string {
+  return LEVEL_LABELS[difficulty] ?? difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+}
