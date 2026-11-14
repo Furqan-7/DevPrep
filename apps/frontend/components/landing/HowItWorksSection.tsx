@@ -15,7 +15,7 @@ const mono = { fontFamily: "var(--font-jbmono, 'JetBrains Mono'), ui-monospace, 
 const STEPS = [
   { num: "01", title: "Pick your role", body: "Choose from 24 roles across Engineering, Data, Design, Product and Behavioral. Resume-tailored questions are coming with Pro." },
   { num: "02", title: "Review what to expect", body: "See the top 10 most common questions for your role before you start. Know what's coming so you can walk in with a plan." },
-  { num: "03", title: "Take the interview", body: "Talk naturally to Zara. Answer by voice, solve code live, and get a full breakdown of your performance right when you finish." },
+  { num: "03", title: "Take the interview", body: "Talk naturally to Zara and answer by voice. When you finish, you get a score for every answer, what was missing, and a stronger answer you can practise." },
 ] as const;
 
 const box = "relative overflow-hidden rounded-[14px] bg-[#0d0d0f] p-[18px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]";
@@ -115,7 +115,7 @@ function TakeScreen({ on }: { on: boolean }) {
         ))}
       </div>
       <div className={`flex items-center gap-3 rounded-xl bg-[linear-gradient(90deg,rgba(92,100,220,0.16),rgba(92,100,220,0.04))] p-3 shadow-[inset_0_0_0_1px_rgba(190,200,255,0.25)] transition-[opacity,transform] duration-[600ms] ${ease} motion-reduce:transition-none ${on ? "translate-y-0 opacity-100 delay-[900ms]" : "translate-y-3 opacity-0"}`}>
-        <b className="text-[22px] font-medium tracking-[-0.05em]">8.4</b>
+        <b className="text-[22px] font-medium tracking-[-0.05em]">72</b>
         <div className="flex-1">
           <span className="block text-[13px] font-medium">Your report is ready</span>
           <small className="block text-[11.5px] text-white/50">Strengths, gaps and what to sharpen</small>

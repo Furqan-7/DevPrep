@@ -57,11 +57,30 @@ model InterviewQuestion {
   question  String           @db.Text
   answer    String?          @db.Text
   score     Int?
-  feedback  String?          @db.Text
+  feedback  String?          @db.Text // Zara's spoken reply during the live turn
   order     Int // 0 = intro, 1-10 = actual questions
   createdAt DateTime         @default(now())
 
+  // Rubric evaluation written when the report is generated:
+  // { verdict, strengths[], gaps[], betterAnswer, rubric: { relevance, depth, clarity, evidence } }
+  evaluation Json?
+  attempts   AnswerAttempt[]
+
   @@unique([sessionId, order])
+}
+
+/// A retry of one interview question after the report, scored with the same rubric.
+model AnswerAttempt {
+  id         Int               @id @default(autoincrement())
+  questionId Int
+  question   InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answer     String            @db.Text
+  score      Int
+  // Same shape as InterviewQuestion.evaluation, plus fixedGaps[]: which earlier gaps this attempt addressed
+  evaluation Json
+  createdAt  DateTime          @default(now())
+
+  @@index([questionId])
 }
 
 model InterviewReport {
@@ -73,7 +92,8 @@ model InterviewReport {
   technical     Int // fixed typo: "tecnical" → "technical"
   confidence    Int
   summary       String           @db.Text
-  improvements  String           @db.Text
+  improvements  String           @db.Text // JSON array of strings
+  strengths     String?          @db.Text // JSON array of strings
   createdAt     DateTime         @default(now())
 }
 

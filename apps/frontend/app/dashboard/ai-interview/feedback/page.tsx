@@ -1,8 +1,13 @@
-import DashboardShell from "@/components/dashboard/DashboardShell";
-import FeedbackDashboard from "@/components/feedback/FeedbackDashboard";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { HistoryView } from "@/components/report/HistoryView";
 
-export default function FeedbackPage() {
+export const metadata: Metadata = { title: "Your interviews · DevPrep" };
+
+export default function FeedbackHistoryPage() {
   return (
-    <DashboardShell themed><FeedbackDashboard /></DashboardShell>
+    <Suspense fallback={<div className="min-h-dvh bg-[#0a0a0a]" />}>
+      <HistoryView />
+    </Suspense>
   );
 }

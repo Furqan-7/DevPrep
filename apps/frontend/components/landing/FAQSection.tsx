@@ -23,7 +23,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What does a session actually look like?",
-    a: "You'll review the top questions for your role, then Zara asks you questions one by one by voice. You answer out loud, the session transcribes your responses, and Zara follows up in real time. Detailed feedback reports are coming with Pro.",
+    a: "You'll review the top questions for your role, then Zara asks you questions one by one by voice. You answer out loud, the session transcribes your responses, and Zara follows up in real time. When you finish, you get a report: a score for every answer, what was missing, a stronger answer to learn from, and the option to retry any question out loud.",
   },
   {
     q: "Do I need a microphone?",
@@ -39,7 +39,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is DevPrep free?",
-    a: "Yes, while we're in early access. You get real-time voice interviews with Zara across every role, with no session limit and no card required. Pro ($10/month) will add detailed feedback reports, resume-tailored questions and live code execution. It isn't available to buy yet, and we'll tell you well before anything changes.",
+    a: "Yes, while we're in early access. You get real-time voice interviews with Zara across every role, a feedback report after each one, no session limit and no card required. Pro ($10/month) will add resume-tailored questions and live code execution. It isn't available to buy yet, and we'll tell you well before anything changes.",
   },
 ];
 

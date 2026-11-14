@@ -391,3 +391,6 @@
 
 /* ===== Landing final CTA ===== */
 @keyframes dp-cta-twinkle { 50% { opacity: .12 } }
+
+/* Interview report: "reviewing your answers" orb */
+@keyframes dp-rep-breathe { 50% { transform: scale(1.08); box-shadow: 0 0 90px rgba(140, 150, 255, .6) } }

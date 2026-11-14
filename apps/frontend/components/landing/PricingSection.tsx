@@ -16,6 +16,7 @@ const ease = [0.16, 1, 0.3, 1] as const;
 
 const FREE_ITEMS = [
   "Real-time voice interviews with Zara",
+  "A feedback report and voice retries after every interview",
   `All ${ROLES.length} interview roles`,
   `All ${ROLE_CATEGORIES.length} categories, ${ROLE_CATEGORIES[0]} to ${ROLE_CATEGORIES[ROLE_CATEGORIES.length - 1]}`,
   `${ROLE_DURATION_RANGE.min}–${ROLE_DURATION_RANGE.max} minute mock interviews`,
@@ -24,7 +25,6 @@ const FREE_ITEMS = [
 
 const PRO_ITEMS = [
   "Everything in Early access",
-  "Detailed feedback report after each session",
   "Questions tailored to your resume",
   "Live code execution for technical rounds",
 ];
@@ -119,7 +119,7 @@ export function PricingSection() {
           <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>in early access.</em>
         </h2>
         <p className="mx-auto mt-4 max-w-[460px] text-[15px] leading-[1.5] tracking-[-0.04em] text-white/56 sm:text-[16px]">
-          No card, no trial clock. Practice as much as you like today. Pro adds deeper feedback when it launches.
+          No card, no trial clock. Practice as much as you like today. Pro adds resume-tailored questions and live code when it launches.
         </p>
       </div>
 
