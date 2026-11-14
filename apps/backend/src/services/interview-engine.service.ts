@@ -53,6 +53,11 @@ function pruneSessionCache() {
     }
 }
 
+/** Drops a session from the cache, e.g. after it is closed outside a live turn. */
+export function forgetSession(sessionId: number) {
+    sessionCache.delete(sessionId);
+}
+
 async function loadSession(sessionId: number): Promise<CachedSession | null> {
     const cached = sessionCache.get(sessionId);
     if (cached) {

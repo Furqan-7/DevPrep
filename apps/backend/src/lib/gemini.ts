@@ -1,7 +1,10 @@
-import { GoogleGenerativeAI, type GenerationConfig, type GenerativeModel } from "@google/generative-ai";
+import { GoogleGenerativeAI, type GenerationConfig, type GenerativeModel, type ResponseSchema } from "@google/generative-ai";
 
 const geminiApiKey = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(geminiApiKey);
+
+// Optional override for the API host (a proxy, or a local stub in tests).
+const REQUEST_OPTIONS = process.env.GEMINI_BASE_URL ? { baseUrl: process.env.GEMINI_BASE_URL } : undefined;
 
 // Candidate models in order of priority (fastest flash-lite models first for low latency)
 const MODELS = [
@@ -37,7 +40,7 @@ function getInterviewModel(systemInstruction: string | undefined, withThinking: 
                 ...INTERVIEW_GENERATION_CONFIG,
                 ...(withThinking ? THINKING_CONFIG : {}),
             } as GenerationConfig,
-        });
+        }, REQUEST_OPTIONS);
         modelCache.set(key, model);
     }
     return model;
@@ -122,18 +125,34 @@ export async function streamGeminiContent(
     };
 }
 
-/**
- * Generate JSON using Gemini with model fallback.
- */
-export async function generateJSON<T>(prompt: string): Promise<T> {
-    let lastError: any = null;
+export interface GenerateJsonOptions {
+    responseSchema?: ResponseSchema;
+    temperature?: number;
+    maxOutputTokens?: number;
+}
 
-    for (const modelName of MODELS) {
+/**
+ * Generate JSON with Gemini's JSON mode. Tries the configured interview model first,
+ * then the fallback list; a model that errors or returns unparseable JSON is skipped.
+ */
+export async function generateJSON<T>(prompt: string, options: GenerateJsonOptions = {}): Promise<T> {
+    let lastError: any = null;
+    const candidates = [MODEL, ...MODELS.filter((m) => m !== MODEL)];
+
+    for (const modelName of candidates) {
         try {
-            const model = genAI.getGenerativeModel({
-                model: modelName,
-                generationConfig: { responseMimeType: "application/json" },
-            });
+            const model = genAI.getGenerativeModel(
+                {
+                    model: modelName,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        ...(options.responseSchema ? { responseSchema: options.responseSchema } : {}),
+                        ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+                        ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
+                    },
+                },
+                REQUEST_OPTIONS,
+            );
 
             const result = await model.generateContent({
                 contents: [{ role: "user", parts: [{ text: prompt }] }],
