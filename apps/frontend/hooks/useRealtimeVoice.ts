@@ -226,6 +226,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   const [speechEnergy, setSpeechEnergy] = useState<number>(0);
   const [silenceProgress, setSilenceProgress] = useState<number>(0);
   const [turnCount, setTurnCount] = useState<number>(1);
+  const turnCountRef = useRef(1);
   const [wsStatus, setWsStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAiResponding, setIsAiResponding] = useState(false);
@@ -506,20 +507,21 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
               turnRef.current.silenceMs = 0;
               setSilenceProgress(0);
 
-              setTurnCount((prev) => {
-                const nextTurn = prev + 1;
-                const turnPayload: TurnData = {
-                  turnNumber: nextTurn,
-                  nextQuestion: lastTurnDataRef.current?.nextQuestion,
-                  questionNum: lastTurnDataRef.current?.questionNum,
-                  totalQuestions: lastTurnDataRef.current?.totalQuestions,
-                  score: lastTurnDataRef.current?.score,
-                  isComplete: lastTurnDataRef.current?.isComplete,
-                };
-                optionsRef.current.onTurnComplete?.(turnPayload);
-                lastTurnDataRef.current = null;
-                return nextTurn;
-              });
+              // Count the turn and notify outside a state updater: React may run
+              // updaters twice, which would report every turn twice.
+              turnCountRef.current += 1;
+              const nextTurn = turnCountRef.current;
+              setTurnCount(nextTurn);
+              const turnPayload: TurnData = {
+                turnNumber: nextTurn,
+                nextQuestion: lastTurnDataRef.current?.nextQuestion,
+                questionNum: lastTurnDataRef.current?.questionNum,
+                totalQuestions: lastTurnDataRef.current?.totalQuestions,
+                score: lastTurnDataRef.current?.score,
+                isComplete: lastTurnDataRef.current?.isComplete,
+              };
+              lastTurnDataRef.current = null;
+              optionsRef.current.onTurnComplete?.(turnPayload);
               console.log("[useRealtimeVoice] AI finished speaking. Microphone active and listening for candidate turn.");
             }, cooldownMs);
 
@@ -615,6 +617,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     setIsAiResponding(false);
     setIsTtsSpeaking(false);
     setTurnCount(1);
+    turnCountRef.current = 1;
     setSilenceProgress(0);
     lastTurnDataRef.current = null;
 
