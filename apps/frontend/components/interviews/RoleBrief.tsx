@@ -103,6 +103,7 @@ export function RoleBrief({ slug }: { slug: string }) {
           title: role.title,
           duration: role.duration,
           skills: [...role.skills],
+          level,
         }),
       );
       router.push(`${here}/session`);
