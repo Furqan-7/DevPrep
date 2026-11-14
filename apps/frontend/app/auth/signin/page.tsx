@@ -1,297 +1,154 @@
 "use client";
 
 /**
- * DevPrep — Sign In
- *
- * Rebuilt to match sign-up's "Tidiane DevOps Portfolio System" design:
- *   bg #F5F5F7 · primary #1A1A1A · accent #EB3A14
- *   Inter + JetBrains Mono · pill buttons · 12px cards · 8px inputs
- *
- * Layout mirrors sign-up exactly (terminal panel left, form right).
- * All shared primitives imported from AuthShared — no style duplication.
- *
- * Functionality unchanged: same axios call, same localStorage keys,
- * same redirect target.
- *
- * Responsive: 375 / 390 / 428 / 768 / 834 / 1024px+.
- * Magnetic effect disabled on pointer:coarse (touch) devices.
+ * Sign in. Email + password against /api/auth/signin; stores the token and username
+ * in localStorage and returns to ?next= (same-origin paths only) or the dashboard.
  */
 
-import { Suspense, useState } from "react";
-import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import api from "@/lib/api";
 import { motion } from "motion/react";
+import api from "@/lib/api";
+import { serif } from "@/lib/fonts";
+import { AuthLogo, AuthShell, useReveal } from "@/components/auth/AuthShell";
+import { AuthField, ErrorBanner, GoogleComingSoon, PasswordField, SubmitButton, readAxiosError, safeNext } from "@/components/auth/AuthFields";
 
-import {
-  monoStyle,
-  NoiseOverlay,
-  Logo,
-  Eyebrow,
-  InputField,
-  OAuthButton,
-  GoogleIcon,
-  OrDivider,
-  MagneticButton,
-  TerminalPanel,
-  type TerminalLineData,
-} from "@/components/auth/AuthShared";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// One message for unknown email and wrong password, so the form doesn't reveal which
+// addresses have accounts.
+const BAD_CREDENTIALS = "Email or password is incorrect.";
 
-/* ─────────────────────────────────────────────
-   Terminal lines — sign-in context
-───────────────────────────────────────────── */
-const SIGNIN_TERMINAL_LINES: TerminalLineData[] = [
-  { text: "$ devprep resume --session", tone: "cmd" },
-  { text: "✓ profile found", tone: "ok" },
-  { text: "✓ 3 practice sessions logged", tone: "ok" },
-  { text: "✓ interview streak: 7 days", tone: "ok" },
-  { text: "$ devprep auth --verify", tone: "cmd" },
-  { text: "> waiting for credentials...", tone: "muted" },
-];
+function Panel() {
+  const reveal = useReveal();
+  return (
+    <>
+      <motion.h2 {...reveal(0.25)} className="m-0 text-[52px] font-medium leading-[1.04] tracking-[-0.05em]">
+        Pick up right
+        <br />
+        where you{" "}
+        <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+          left off.
+        </em>
+      </motion.h2>
+      <motion.p {...reveal(0.35)} className="mt-4 max-w-[380px] text-[15.5px] leading-[1.5] tracking-[-0.03em] text-white/56">
+        Zara and all 24 interview roles are waiting. Sign in and keep practicing.
+      </motion.p>
+    </>
+  );
+}
 
-/* ─────────────────────────────────────────────
-   Page
-───────────────────────────────────────────── */
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const reveal = useReveal();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  );
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [serverError, setServerError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  /* ── Validation ─────────────────────────── */
   const validate = () => {
-    const newErrors: typeof errors = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      newErrors.email = "Please enter a valid email address";
-    if (password.length < 8)
-      newErrors.password = "Password must be at least 8 characters";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const next: typeof errors = {};
+    if (!EMAIL_RE.test(email.trim())) next.email = "Enter a valid email address.";
+    // No length rule here: older accounts may have shorter passwords than sign-up now requires.
+    if (!password) next.password = "Enter your password.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
-  /* ── Submit ─────────────────────────────── */
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     setServerError("");
-    setIsLoading(true);
+    setLoading(true);
     try {
-      const res = await api.post("/api/auth/signin", {
-        email,
-        password,
-      });
-
-      console.log(res);
-      if (res.status === 200 && res.data.success) {
+      const res = await api.post("/api/auth/signin", { email: email.trim(), password });
+      if (res.data?.success) {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("username", res.data.username ?? "");
-        const next = searchParams.get("next") || searchParams.get("returnUrl");
-        const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard/ai-interview";
-        router.push(target);
-      } else {
-        setServerError(res.data.message || "Sign in failed. Please try again.");
+        router.push(safeNext(searchParams));
+        return;
       }
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } }; request?: unknown };
-      if (axiosErr.response) {
-        // Server responded with a non-2xx status — show its message
-        setServerError(
-          axiosErr.response.data?.message ??
-          "Sign in failed. Please check your credentials and try again."
-        );
-      } else if (axiosErr.request) {
-        // Request made but no response (server down / network issue)
-        setServerError(
-          "Unable to reach the server. Please check your connection and try again."
-        );
-      } else {
-        setServerError("Something went wrong. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
+      setServerError(BAD_CREDENTIALS);
+    } catch (err) {
+      const { status, network } = readAxiosError(err);
+      if (network) setServerError("Can't reach the server. Check your connection and try again.");
+      else if (status && status >= 500) setServerError("Something went wrong on our side. Please try again.");
+      else setServerError(BAD_CREDENTIALS);
     }
+    setLoading(false);
   };
 
   return (
-    /*
-     * Mirrors sign-up layout exactly:
-     *  - overflow-x-hidden prevents horizontal scroll at any breakpoint
-     *  - flex-col on mobile → flex-row on lg
-     */
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col lg:flex-row overflow-x-hidden selection:bg-[#eb3a14]/20">
-      <NoiseOverlay />
+    <AuthShell panel={<Panel />}>
+      <motion.div {...reveal(0)} className="mb-7 lg:hidden">
+        <AuthLogo />
+      </motion.div>
+      <motion.h1 {...reveal(0.05)} className="m-0 text-[32px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[34px]">
+        Welcome{" "}
+        <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+          back
+        </em>
+      </motion.h1>
+      <motion.p {...reveal(0.11)} className="mb-[30px] mt-2.5 text-[15px] leading-[1.5] tracking-[-0.03em] text-white/56">
+        Sign in to continue your interview prep.
+      </motion.p>
 
-      {/* Left: terminal panel (desktop only) */}
-      <TerminalPanel
-        heading="Pick up right where you left off."
-        subheading="Your sessions, your progress, your AI coach — all waiting. Sign in and keep the momentum."
-        lines={SIGNIN_TERMINAL_LINES}
-        windowTitle="zsh — devprep-session"
-      />
+      {serverError && <ErrorBanner message={serverError} />}
 
-      {/* Right: form panel */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 py-12 sm:py-16 relative">
-        {/* Ambient glow */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#eb3a14]/[0.03] rounded-full blur-[120px] pointer-events-none" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.8, 0.25, 1] as const }}
-          className="w-full max-w-[420px] relative"
-        >
-          {/* Logo — only on mobile (desktop shows it inside terminal panel) */}
-          <div className="lg:hidden mb-8 flex justify-center">
-            <Logo />
-          </div>
-
-          {/* Eyebrow badge */}
-          <div className="mb-6 flex justify-center lg:justify-start">
-            <Eyebrow>Welcome back</Eyebrow>
-          </div>
-
-          {/* Heading — fluid font size */}
-          <div className="mb-8 text-center lg:text-left">
-            <h1
-              className="font-bold text-[#1a1a1a] tracking-[-0.02em] mb-2"
-              style={{ fontSize: "clamp(22px, 5vw, 32px)" }}
-            >
-              Sign in to DevPrep
-            </h1>
-            <p className="text-[14px] text-[#666] leading-relaxed">
-              Continue your placement prep — your progress is waiting.
-            </p>
-          </div>
-
-          {/* Server-side error banner */}
-          {serverError && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-              className="mb-5 px-4 py-3 rounded-[8px] bg-rose-50 border border-rose-200 text-[13px] text-rose-600 font-medium"
-            >
-              {serverError}
-            </motion.div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            <InputField
-              label="Email"
-              id="signin-email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={setEmail}
-              error={errors.email}
-            />
-
-            <div className="space-y-1">
-              <InputField
-                label="Password"
-                id="signin-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={setPassword}
-                error={errors.password}
-              >
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#bbb] hover:text-[#666] transition-colors cursor-pointer"
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </InputField>
-
-              {/* Forgot password — right-aligned, below the field */}
-              <div className="flex justify-end pt-1">
-                <Link
-                  href="/auth/forgot-password"
-                  style={monoStyle}
-                  className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#999] hover:text-[#eb3a14] transition-colors underline-offset-4 hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
-
-            {/* Submit — magnetic on mouse, standard on touch */}
-            <MagneticButton
-              type="submit"
-              disabled={isLoading}
-              className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-[13px] tracking-[0.04em] font-bold transition-colors duration-200 mt-2 ${isLoading
-                ? "bg-[#e5e5e5] text-[#bbb] cursor-not-allowed"
-                : "bg-[#eb3a14] hover:bg-[#d63410] text-white cursor-pointer"
-                }`}
-            >
-              <span style={monoStyle} className="flex items-center gap-2">
-                {isLoading ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    SIGNING IN...
-                  </>
-                ) : (
-                  <>
-                    SIGN IN
-                    <ArrowRight size={14} />
-                  </>
-                )}
-              </span>
-            </MagneticButton>
-          </form>
-
-          {/* OAuth section */}
-          <div className="mt-6 space-y-3">
-            <OrDivider />
-            <div className="space-y-2.5 pt-1">
-              <OAuthButton
-                icon={<GoogleIcon />}
-                label="Continue with Google"
-                disabled
-                badge="Coming soon"
-              />
-            </div>
-          </div>
-
-          {/* Sign-up link */}
-          <p className="text-center lg:text-left text-[13px] text-[#666] mt-8">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/auth/signup"
-              className="text-[#1a1a1a] font-semibold hover:text-[#eb3a14] underline underline-offset-4 transition-colors"
-            >
-              Sign up →
-            </Link>
-          </p>
-
-          {/* Free-tier badge — mobile only */}
-          <p
-            style={monoStyle}
-            className="text-center lg:text-left text-[10px] text-[#bbb] font-medium mt-6 uppercase tracking-[0.1em] lg:hidden"
-          >
-            No credit card required
-          </p>
+      <form onSubmit={onSubmit} noValidate className="space-y-4">
+        <motion.div {...reveal(0.17)}>
+          <AuthField
+            id="signin-email"
+            label="Email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={setEmail}
+            error={errors.email}
+            required
+          />
         </motion.div>
-      </div>
-    </div>
+        <motion.div {...reveal(0.23)}>
+          <PasswordField
+            id="signin-password"
+            label="Password"
+            autoComplete="current-password"
+            placeholder="Your password"
+            value={password}
+            onChange={setPassword}
+            error={errors.password}
+            required
+          />
+        </motion.div>
+        <motion.div {...reveal(0.29)} className="pt-1.5">
+          <SubmitButton loading={loading} label="Sign in" loadingLabel="Signing in…" />
+        </motion.div>
+      </form>
+
+      <motion.div {...reveal(0.35)}>
+        <GoogleComingSoon />
+      </motion.div>
+
+      <motion.p {...reveal(0.41)} className="mt-[22px] text-[13.5px] tracking-[-0.02em] text-white/50">
+        New to DevPrep?{" "}
+        <Link
+          href={searchParams.get("next") ? `/auth/signup?next=${encodeURIComponent(safeNext(searchParams))}` : "/auth/signup"}
+          className="text-[#f0f0f0] underline decoration-[#bec8ff]/40 underline-offset-4 transition-colors hover:decoration-[#bec8ff]"
+        >
+          Create an account
+        </Link>
+      </motion.p>
+    </AuthShell>
   );
 }
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="min-h-dvh bg-[#0a0a0a]" />}>
       <SignInForm />
     </Suspense>
   );
