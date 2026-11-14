@@ -14,6 +14,7 @@ import {
   createReport,
   formatDate,
   getSession,
+  levelLabel,
   roleTitle,
   ReportApiError,
   type AttemptResult,
@@ -167,7 +168,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
         <ScoreRing value={report.overallScore} reduce={reduce} />
         <div>
           <div className="text-[13px] tracking-[-0.02em] text-white/45">
-            {roleTitle(session.role)} · <span className="capitalize">{session.difficulty}</span> · {formatDate(session.createdAt)} · {answered}{" "}
+            {roleTitle(session.role)} · {levelLabel(session.difficulty)} · {formatDate(session.createdAt)} · {answered}{" "}
             {answered === 1 ? "answer" : "answers"}
           </div>
           <h1 className="m-0 mb-3 mt-2 text-[32px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[40px]">

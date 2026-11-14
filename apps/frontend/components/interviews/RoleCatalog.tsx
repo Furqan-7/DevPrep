@@ -12,8 +12,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { serif } from "@/lib/fonts";
 import { ROLES, ROLE_CATEGORIES, ROLE_DURATION_RANGE, roleSlug } from "@/data/roles";
 import { formatDate, listSessions, type SessionSummary } from "@/lib/interview/report";
+import { ease, revealProps, useMotionMode } from "@/lib/motion";
 
-const ease = [0.16, 1, 0.3, 1] as const;
 const italic = { fontStyle: "italic" } as const;
 
 type Role = (typeof ROLES)[number];
@@ -28,21 +28,6 @@ const ENTRIES: Entry[] = ROLE_CATEGORIES.flatMap((c) => ROLES.filter((r) => r.ca
 
 const TABS = ["All", ...ROLE_CATEGORIES] as const;
 
-/**
- * "pending" until the reduced-motion preference is read after mount (so server and
- * client HTML match); entrances wait for it, then either play or jump to the end.
- */
-function useMotionMode(): "pending" | "full" | "reduce" {
-  const [mode, setMode] = useState<"pending" | "full" | "reduce">("pending");
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setMode(mq.matches ? "reduce" : "full");
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  return mode;
-}
 
 /** Latest reported score per role slug, plus the most recent reported interview. */
 function useHistory() {
@@ -91,11 +76,7 @@ export function RoleCatalog() {
   );
   const grouped = tab === "All" && !q;
 
-  const reveal = (delay: number) => ({
-    initial: { opacity: 0, y: 14, filter: "blur(8px)" },
-    animate: mode === "pending" ? undefined : { opacity: 1, y: 0, filter: "blur(0px)" },
-    transition: reduce ? { duration: 0 } : { duration: 0.8, delay, ease },
-  });
+  const reveal = (delay: number) => revealProps(mode, delay);
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 pb-24 pt-12 sm:px-6 sm:pt-16">

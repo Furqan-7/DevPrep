@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { serif } from "@/lib/fonts";
-import { formatDate, listSessions, roleTitle, ReportApiError, type SessionSummary } from "@/lib/interview/report";
+import { formatDate, levelLabel, listSessions, roleTitle, ReportApiError, type SessionSummary } from "@/lib/interview/report";
 import { PageShell, ScoreChip, StateMessage, TopBar, card, ease, primaryBtn, reveal, useReducedMotionFlag } from "./ui";
 
 const italic = { fontStyle: "italic" } as const;
@@ -123,7 +123,7 @@ function Row({ s }: { s: SessionSummary }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14.5px] tracking-[-0.02em]">{roleTitle(s.role)}</div>
         <div className="mt-[3px] text-[12.5px] text-white/42">
-          {formatDate(s.createdAt)} · <span className="capitalize">{s.difficulty}</span> · {s.answered}/{s.totalQuestions} answered
+          {formatDate(s.createdAt)} · {levelLabel(s.difficulty)} · {s.answered}/{s.totalQuestions} answered
         </div>
       </div>
       {s.overallScore !== null ? (
