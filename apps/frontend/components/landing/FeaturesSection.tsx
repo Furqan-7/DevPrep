@@ -221,12 +221,13 @@ function RolesDemo() {
 }
 
 /* ───────── Feedback: score ring + skill bars ───────── */
+// Same shape as the real report: an overall score out of 100 and three ratings out of 10.
 const SKILLS = [
-  { label: "Clarity", value: 86 },
-  { label: "Technical depth", value: 72 },
-  { label: "Structure", value: 91 },
+  { label: "Technical", value: 7 },
+  { label: "Communication", value: 8 },
+  { label: "Confidence", value: 6 },
 ];
-const SCORE = 8.4;
+const SCORE = 72;
 const RING = 283; // circumference of r=45
 
 function FeedbackDemo({ active, reduce }: { active: boolean; reduce: boolean }) {
@@ -275,12 +276,12 @@ function FeedbackDemo({ active, reduce }: { active: boolean; reduce: boolean }) 
             </linearGradient>
           </defs>
           <circle cx="50" cy="50" r="45" fill="none" strokeWidth="7" stroke="rgba(255,255,255,0.08)" />
-          <circle cx="50" cy="50" r="45" fill="none" strokeWidth="7" stroke="url(#dp-fb-grad)" strokeLinecap="round" strokeDasharray={RING} strokeDashoffset={RING * (1 - (SCORE / 10) * k)} />
+          <circle cx="50" cy="50" r="45" fill="none" strokeWidth="7" stroke="url(#dp-fb-grad)" strokeLinecap="round" strokeDasharray={RING} strokeDashoffset={RING * (1 - (SCORE / 100) * k)} />
         </svg>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
-            <b className="block text-[26px] font-medium tabular-nums tracking-[-0.05em]">{(SCORE * k).toFixed(1)}</b>
-            <small className="-mt-1 block text-[11px] text-white/40">of 10</small>
+            <b className="block text-[26px] font-medium tabular-nums tracking-[-0.05em]">{Math.round(SCORE * k)}</b>
+            <small className="-mt-1 block text-[11px] text-white/40">of 100</small>
           </div>
         </div>
       </div>
@@ -289,10 +290,10 @@ function FeedbackDemo({ active, reduce }: { active: boolean; reduce: boolean }) 
           <div key={s.label} className="text-[12.5px]">
             <div className="mb-[5px] flex justify-between text-white/56">
               <span>{s.label}</span>
-              <span className="tabular-nums text-[#f0f0f0]">{Math.round(s.value * k)}</span>
+              <span className="tabular-nums text-[#f0f0f0]">{Math.round(s.value * k)}/10</span>
             </div>
             <i className="block h-[5px] overflow-hidden rounded-[5px] bg-white/[0.07]">
-              <b className="block h-full rounded-[5px] bg-[linear-gradient(90deg,#8d96f0,#fff)]" style={{ width: `${s.value * k}%` }} />
+              <b className="block h-full rounded-[5px] bg-[linear-gradient(90deg,#8d96f0,#fff)]" style={{ width: `${s.value * 10 * k}%` }} />
             </i>
           </div>
         ))}
@@ -373,8 +374,8 @@ export function FeaturesSection() {
             className="lg:col-span-2"
             demoClass="flex min-h-[190px] flex-1 items-center"
             demo={<FeedbackDemo active={inView} reduce={reduce} />}
-            title="Instant Feedback"
-            body="Strengths, gaps, and what to sharpen, right after the session."
+            title="Feedback You Can Act On"
+            body="A score for every answer, what was missing, and a stronger version. Then retry it out loud."
           />
           <Tile
             index={2}
@@ -390,7 +391,7 @@ export function FeaturesSection() {
             demoClass="h-[268px] shrink-0 pb-0"
             demo={<RolesDemo />}
             title="Role-Specific Questions"
-            body="24+ roles across Engineering, Data, Design, Product, and Behavioral, each curated for what that role actually tests."
+            body="24 roles across Engineering, Data, Design, Product, and Behavioral, each curated for what that role actually tests."
           />
         </motion.div>
       </div>

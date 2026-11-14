@@ -401,7 +401,9 @@ export default function InterviewSessionPage() {
       videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
       videoRef.current.srcObject = null;
     }
-    router.push(`/dashboard/ai-interview/${slug}`);
+    // Ending early still gets a report for the questions answered so far.
+    if (answered.size > 0) setPhase("done");
+    else router.push(`/dashboard/ai-interview/${slug}`);
   };
 
   if (!data) {
@@ -488,7 +490,7 @@ export default function InterviewSessionPage() {
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full">
             <button
-              onClick={() => router.push("/dashboard/ai-interview/feedback")}
+              onClick={() => router.push(data.sessionId ? `/dashboard/ai-interview/report/${data.sessionId}` : "/dashboard/ai-interview/feedback")}
               className="dp-mono dp-btn-ember flex-1 h-12 rounded-full text-[12px] font-bold uppercase tracking-[0.1em] cursor-pointer"
             >
               View feedback
