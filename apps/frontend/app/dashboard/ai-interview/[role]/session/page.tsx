@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, type MutableRefObject } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Camera, CameraOff, Check, CircleAlert, Clock3, Mic, MicOff, RotateCcw } from "lucide-react";
+import { Camera, CameraOff, Check, ChevronDown, CircleAlert, Clock3, Mic, MicOff, RotateCcw } from "lucide-react";
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
 import Link from "next/link";
@@ -12,8 +12,8 @@ import { levelLabel } from "@/lib/interview/report";
 import { SpaceBackdrop } from "@/components/interviews/SpaceBackdrop";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -67,6 +67,7 @@ export default function InterviewSessionPage() {
   }>({});
   const [micLevel, setMicLevel] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [stage, setStage] = useState<{ zoom: number; height: number; pad: number } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
@@ -87,28 +88,31 @@ export default function InterviewSessionPage() {
     console.log(`[InterviewSession] Zara speech generation complete:`, result);
   }, []);
 
-  const handleTurnComplete = useCallback((turnData: TurnData) => {
-    console.log(`[InterviewSession] Authoritative turn complete:`, turnData);
-    if (turnData?.nextQuestion) {
-      setData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          questions: [...prev.questions, turnData.nextQuestion!],
-        };
-      });
-    }
-    // Side effects stay out of the state updater (React may run updaters twice).
-    const q = currentQRef.current;
-    const nextQ = q + 1;
-    currentQRef.current = nextQ;
-    setCurrentQ(nextQ);
-    setAnswered((prev) => new Set([...prev, q]));
-    if (turnData?.isComplete || nextQ >= totalQuestions) {
-      endRealtimeInterviewRef.current();
-      setPhase("done");
-    }
-  }, [totalQuestions]);
+  const handleTurnComplete = useCallback(
+    (turnData: TurnData) => {
+      console.log(`[InterviewSession] Authoritative turn complete:`, turnData);
+      if (turnData?.nextQuestion) {
+        setData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            questions: [...prev.questions, turnData.nextQuestion!],
+          };
+        });
+      }
+      // Side effects stay out of the state updater (React may run updaters twice).
+      const q = currentQRef.current;
+      const nextQ = q + 1;
+      currentQRef.current = nextQ;
+      setCurrentQ(nextQ);
+      setAnswered((prev) => new Set([...prev, q]));
+      if (turnData?.isComplete || nextQ >= totalQuestions) {
+        endRealtimeInterviewRef.current();
+        setPhase("done");
+      }
+    },
+    [totalQuestions],
+  );
 
   const handleError = useCallback((err: string) => {
     console.error("[InterviewSession] Voice pipeline error:", err);
@@ -143,8 +147,7 @@ export default function InterviewSessionPage() {
   const aiSpeaking = isAiResponding || isTtsSpeaking;
   const userIsSpeaking = vadState === "speaking" || vadState === "silence_detecting";
 
-  const getTimestamp = () =>
-    new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date());
+  const getTimestamp = () => new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date());
 
   useEffect(() => {
     if (!aiResponse) return;
@@ -171,8 +174,7 @@ export default function InterviewSessionPage() {
   const handleChatScroll = () => {
     const el = chatScrollRef.current;
     if (!el) return;
-    stickToBottomRef.current =
-      el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   };
 
   useEffect(() => {
@@ -201,7 +203,10 @@ export default function InterviewSessionPage() {
     }
     // Graceful fallback for direct visits or refreshed pages
     const roleTitle = slug
-      ? slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+      ? slug
+          .split("-")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ")
       : "Technical Interview";
     setData({
       title: roleTitle || "Technical Interview",
@@ -212,6 +217,22 @@ export default function InterviewSessionPage() {
       totalQuestions: 10,
     });
   }, [slug]);
+
+  // Fit the desktop layout to the window (see STAGE_W). null on narrow screens = fluid layout.
+  useEffect(() => {
+    const fit = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (w < 1024) return setStage(null);
+      const zoom = Math.min(w / STAGE_W, h / STAGE_H, 1.6);
+      // keep the buttons just above the horizon, which SpaceBackdrop sizes from the real window
+      const horizon = Math.min(h * 0.145, 130);
+      setStage({ zoom, height: h / zoom, pad: horizon / zoom + 10 });
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
 
   // Session elapsed timer
   useEffect(() => {
@@ -266,10 +287,7 @@ export default function InterviewSessionPage() {
     const errorName = error instanceof DOMException ? error.name : "";
     const label = kind === "camera" ? "camera" : "microphone";
     const message =
-      errorName === "NotFoundError"
-        ? `No ${label} found`
-        : "Click the lock icon in your address bar, set " +
-          `${kind === "camera" ? "Camera" : "Microphone"} to Allow, then press Try again.`;
+      errorName === "NotFoundError" ? `No ${label} found` : "Click the lock icon in your address bar, set " + `${kind === "camera" ? "Camera" : "Microphone"} to Allow, then press Try again.`;
     if (kind === "camera") {
       setCameraPermission("blocked");
       setCamError(true);
@@ -308,9 +326,7 @@ export default function InterviewSessionPage() {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(
-        kind === "camera" ? { video: true } : { audio: true }
-      );
+      const stream = await navigator.mediaDevices.getUserMedia(kind === "camera" ? { video: true } : { audio: true });
       if (kind === "camera") {
         stopPreviewStream(cameraStreamRef);
         cameraStreamRef.current = stream;
@@ -436,11 +452,7 @@ export default function InterviewSessionPage() {
     const count = data.totalQuestions ?? totalQuestions;
     const micReady = microphonePermission === "done";
     const completed = [microphonePermission, cameraPermission].filter((s) => s === "done").length;
-    const hint = micReady
-      ? "Say something to check the level, then start"
-      : microphonePermission === "blocked"
-        ? "Fix microphone access to continue"
-        : "Allow your microphone to continue";
+    const hint = micReady ? "Say something to check the level, then start" : microphonePermission === "blocked" ? "Fix microphone access to continue" : "Allow your microphone to continue";
     const cameraLiveSetup = cameraPermission === "done" && camOn && !camError;
     const segments = 28;
     const lit = Math.round(micLevel * segments);
@@ -480,13 +492,13 @@ export default function InterviewSessionPage() {
     return (
       <div className="relative isolate min-h-dvh font-sans text-[#f0f0f0] antialiased selection:bg-[#a27ce9]/30">
         <SpaceBackdrop fixed={false} />
-        <header className={`${SHELL} flex items-center justify-between pt-6`}>
+        <header className="mx-auto flex max-w-[1444px] items-center justify-between px-5 pt-7 sm:px-8">
           <Logo />
           <Link href={rolePage} className="text-[13.5px] text-white/55 transition-colors hover:text-[#f0f0f0]">
             ← Back to role
           </Link>
         </header>
-        <main className={`${SHELL} grid gap-10 pb-[200px] pt-10 lg:grid-cols-2 lg:gap-16 lg:pt-14`}>
+        <main className="mx-auto grid max-w-[1444px] gap-10 px-5 pb-[200px] pt-10 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:pt-14">
           <section>
             <p className="m-0 flex flex-wrap gap-x-3.5 text-[12.5px] text-white/45">
               <span>{data.title}</span>
@@ -501,9 +513,7 @@ export default function InterviewSessionPage() {
                 interview?
               </em>
             </h1>
-            <p className="m-0 mt-4 max-w-[440px] text-[15.5px] leading-[1.55] text-white/56">
-              Check your microphone first. The camera is optional and only shown to you.
-            </p>
+            <p className="m-0 mt-4 max-w-[440px] text-[15.5px] leading-[1.55] text-white/56">Check your microphone first. The camera is optional and only shown to you.</p>
             <div className="mt-9">
               <div className="flex justify-between border-b border-white/[0.08] pb-2.5 text-[12.5px] text-white/45">
                 <span>Before you start</span>
@@ -550,7 +560,14 @@ export default function InterviewSessionPage() {
                 <span>Mic level</span>
                 <span>{micReady ? "Say hello" : "Off"}</span>
               </div>
-              <div className="grid h-4 grid-cols-[repeat(28,minmax(0,1fr))] gap-[3px]" role="meter" aria-label="Microphone level" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(micLevel * 100)}>
+              <div
+                className="grid h-4 grid-cols-[repeat(28,minmax(0,1fr))] gap-[3px]"
+                role="meter"
+                aria-label="Microphone level"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(micLevel * 100)}
+              >
                 {Array.from({ length: segments }, (_, i) => (
                   <span key={i} className={`rounded-[2px] ${micReady && i < lit ? "bg-[#a27ce9]" : "bg-white/[0.08]"}`} />
                 ))}
@@ -569,7 +586,7 @@ export default function InterviewSessionPage() {
     return (
       <div className="relative isolate min-h-dvh font-sans text-[#f0f0f0] antialiased selection:bg-[#a27ce9]/30">
         <SpaceBackdrop fixed={false} />
-        <header className={`${SHELL} flex items-center justify-between pt-6`}>
+        <header className="mx-auto flex max-w-[1444px] items-center justify-between px-5 pt-7 sm:px-8">
           <Logo />
           <Link href="/dashboard/ai-interview" className="text-[13.5px] text-white/55 transition-colors hover:text-[#f0f0f0]">
             Back to roles
@@ -587,9 +604,7 @@ export default function InterviewSessionPage() {
               complete.
             </em>
           </h1>
-          <p className="m-0 mt-4 max-w-[520px] text-[15.5px] leading-[1.55] text-white/56">
-            Open your report for a score on every answer, what was missing, and a stronger version you can retry.
-          </p>
+          <p className="m-0 mt-4 max-w-[520px] text-[15.5px] leading-[1.55] text-white/56">Open your report for a score on every answer, what was missing, and a stronger version you can retry.</p>
           <dl className="m-0 mt-9 grid grid-cols-3 border-y border-white/[0.08]">
             {[
               [`${answered.size} / ${asked}`, "questions answered"],
@@ -638,235 +653,242 @@ export default function InterviewSessionPage() {
   // ── ACTIVE INTERVIEW ──────────────────────────────────────────────────────────
   // The interview covers these skills; the underline marks them, it is not a progress meter.
   const topicTabs = data.skills.slice(0, 3);
-  const currentQuestionText =
-    data.questions[currentQ] ??
-    data.firstQuestion ??
-    "Can you walk me through your technical background and a recent project you built?";
+  const currentQuestionText = data.questions[currentQ] ?? data.firstQuestion ?? "Can you walk me through your technical background and a recent project you built?";
   const isThinking = vadState === "processing";
-  const statusText = aiSpeaking
-    ? "Speaking to you…"
-    : isThinking
-      ? "Thinking…"
-      : userIsSpeaking
-        ? "Listening to you…"
-        : "Your turn — go ahead";
+  const statusText = aiSpeaking ? "Speaking to you…" : isThinking ? "Thinking…" : userIsSpeaking ? "Listening to you…" : "Your turn — go ahead";
   const cameraLive = camOn && !camError && !camLoading && cameraPermission === "done";
   // Five ascending bars light up with your voice level (one stays lit while idle).
   const level = isMuted ? 0 : userIsSpeaking ? Math.max(0.4, speechEnergy) : 0.2;
   const litBars = Math.max(isMuted ? 0 : 1, Math.ceil(level * 5));
-  const cameraNote =
-    cameraPermission !== "done"
-      ? "Camera preview will appear here"
-      : camError
-        ? "Camera unavailable, audio only"
-        : camLoading
-          ? "Starting camera…"
-          : "Camera is off";
+  const cameraNote = cameraPermission !== "done" ? "Camera preview will appear here" : camError ? "Camera unavailable, audio only" : camLoading ? "Starting camera…" : "Camera is off";
   const switchCamera = () => {
     if (cameraPermission === "done") toggleCam();
     else void requestPermission("camera");
   };
 
+  // Menus render in a portal outside the zoomed stage, so they get the same zoom.
+  const portalZoom = stage ? { zoom: stage.zoom } : undefined;
+
   return (
     <TooltipProvider>
-      <div data-theme="dark" className="relative isolate flex h-[100dvh] flex-col overflow-hidden font-sans text-sm text-foreground antialiased selection:bg-brand-soft/30">
+      <div className="relative isolate h-[100dvh] overflow-hidden font-sans text-[#f0f0f0] antialiased selection:bg-[#a27ce9]/30" data-theme="dark">
         <SpaceBackdrop />
 
-        {/* ── TOP BAR ── */}
-        <header className={`${SHELL} flex-shrink-0 pt-5 lg:pt-6`}>
-          <Logo />
-          <div className="mt-5 flex items-center justify-between gap-6 lg:mt-8">
-            <div className="flex min-w-0 items-center gap-2.5 lg:w-[240px] lg:shrink-0">
-              <span className="size-2 shrink-0 rounded-full bg-[#22e06b]" />
-              <span className="truncate">{data.title}</span>
+        {/* The desktop layout is drawn at the reference size (1855×848) and zoomed to fit the window,
+          so it keeps the same proportions on every screen. Below lg it falls back to a fluid layout. */}
+        <div className="mx-auto flex h-full flex-col" style={stage ? { zoom: stage.zoom, width: STAGE_W, height: stage.height } : undefined}>
+          {/* ── TOP BAR ── */}
+          <header className="mx-auto w-full max-w-[1444px] flex-shrink-0 px-5 pt-5 sm:px-8 lg:pt-7">
+            <Logo />
+            <div className="mt-5 flex items-center justify-between gap-6 lg:mt-9">
+              <div className="flex min-w-0 items-center gap-3 lg:w-[280px] lg:shrink-0 lg:justify-between">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#22e06b]" />
+                  <span className="truncate text-[15px]">{data.title}</span>
+                </span>
+                <span aria-hidden="true" className="hidden h-5 w-px bg-white/20 lg:block" />
+              </div>
+              <nav aria-label="Skills covered" className="hidden flex-1 justify-center gap-[66px] lg:flex">
+                {topicTabs.map((item) => (
+                  <div key={item} className="w-[166px] text-center">
+                    <p className="m-0 truncate text-[15px] text-[#f0f0f0]">{item}</p>
+                    <span aria-hidden="true" className="mt-2.5 block h-[5px] rounded-full bg-[#a27ce9]" />
+                  </div>
+                ))}
+              </nav>
+              <div className="flex shrink-0 items-center justify-between lg:w-[254px] lg:pr-[22px]">
+                <span aria-hidden="true" className="hidden h-5 w-px bg-white/20 lg:block" />
+                <div className="flex h-12 shrink-0 items-center gap-3 rounded-full bg-[#16151a] px-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]" role="timer" aria-label="Elapsed time">
+                  <Clock3 size={20} aria-hidden="true" />
+                  <span className="text-[18px] font-semibold tabular-nums tracking-[0.02em]">{formatTime(elapsed)}</span>
+                </div>
+              </div>
             </div>
-            <nav aria-label="Skills covered" className="hidden flex-1 justify-center gap-10 border-x border-white/15 px-6 lg:flex">
+            <nav aria-label="Skills covered" className="mt-4 flex gap-5 overflow-x-auto [scrollbar-width:none] lg:hidden">
               {topicTabs.map((item) => (
-                <div key={item} className="w-[150px] text-center">
-                  <p className="m-0 truncate">{item}</p>
-                  <span aria-hidden="true" className="mt-2 block h-[3px] rounded-full bg-brand-soft" />
+                <div key={item} className="shrink-0">
+                  <p className="m-0 whitespace-nowrap text-[13px] text-white/85">{item}</p>
+                  <span aria-hidden="true" className="mt-1.5 block h-1 rounded-full bg-[#a27ce9]" />
                 </div>
               ))}
             </nav>
-            <div className="flex shrink-0 justify-end lg:w-[240px]">
-              <Badge variant="secondary" role="timer" aria-label="Elapsed time" className="h-9 gap-2 border-white/[0.06] px-3.5 text-[15px] font-semibold tabular-nums [&>svg]:size-4">
-                <Clock3 aria-hidden="true" />
-                {formatTime(elapsed)}
-              </Badge>
-            </div>
-          </div>
-          <nav aria-label="Skills covered" className="mt-4 flex gap-5 overflow-x-auto [scrollbar-width:none] lg:hidden">
-            {topicTabs.map((item) => (
-              <div key={item} className="shrink-0">
-                <p className="m-0 whitespace-nowrap text-[13px] text-white/85">{item}</p>
-                <span aria-hidden="true" className="mt-1.5 block h-[3px] rounded-full bg-brand-soft" />
-              </div>
-            ))}
-          </nav>
-        </header>
+          </header>
 
-        {/* ── MAIN ── */}
-        <main className={`${SHELL} grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 pb-5 pt-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-1 lg:gap-16 lg:pb-[min(16vh,130px)] lg:pt-9`}>
-          {/* LEFT – mic + self view */}
-          <section aria-label="Your microphone and camera" className="flex min-h-0 flex-col">
-            <div className="flex h-9 items-center gap-2.5">
-              {isMuted ? <MicOff size={17} className="text-[#da4228]" aria-hidden="true" /> : <Mic size={17} className="text-[#da4228]" aria-hidden="true" />}
-              <p className="m-0">{isMuted ? "Mic muted" : "Mic active"}</p>
-              <div className="ml-auto flex items-center gap-3">
-                <div className="flex h-[18px] items-end gap-[3px]" aria-hidden="true">
-                  {[7, 10, 12, 15, 18].map((h, i) => (
-                    <span key={i} style={{ height: h }} className={`w-1 rounded-full transition-colors duration-150 ${i < litBars ? "bg-brand-soft" : "bg-brand-soft/20"}`} />
-                  ))}
+          {/* ── MAIN ── */}
+          <main className="mx-auto grid min-h-0 w-full max-w-[1444px] flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 px-5 pt-5 sm:px-8 lg:grid-cols-[590px_minmax(0,1fr)] lg:grid-rows-1 lg:gap-[104px] lg:pt-12">
+            {/* LEFT – mic + camera */}
+            <section aria-label="Your microphone and camera" className="flex min-h-0 flex-col">
+              <div className="flex items-center gap-3">
+                {isMuted ? <MicOff size={20} className="text-[#da4228]" aria-hidden="true" /> : <Mic size={20} className="text-[#da4228]" aria-hidden="true" />}
+                <p className="m-0 text-[15px]">{isMuted ? "Mic muted" : "Mic active"}</p>
+                <div className="ml-auto flex items-center gap-4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleMute}
+                        aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+                        className="rounded-full hover:bg-white/[0.06] [&_svg:not([class*='size-'])]:size-[19px]"
+                      >
+                        {isMuted ? <MicOff /> : <Mic />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent data-theme="dark" style={portalZoom}>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
+                  </Tooltip>
+                  <div className="flex h-[22px] items-end gap-[3px]" aria-hidden="true">
+                    {[9, 12, 15, 18, 22].map((h, i) => (
+                      <span key={i} style={{ height: h }} className={`w-[5px] rounded-full transition-colors duration-150 ${i < litBars ? "bg-[#a27ce9]" : "bg-[#a27ce9]/20"}`} />
+                    ))}
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Camera options"
+                        className="group rounded-full hover:bg-white/[0.06] data-[state=open]:bg-white/[0.06] [&_svg:not([class*='size-'])]:size-[19px]"
+                      >
+                        <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent data-theme="dark" style={portalZoom} align="end" className="w-[200px] border-white/10 font-sans">
+                      <DropdownMenuItem onSelect={switchCamera}>
+                        {cameraLive ? <CameraOff /> : <Camera />}
+                        {cameraLive ? "Turn camera off" : "Turn camera on"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={toggleMute} aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}>
-                      {isMuted ? <MicOff /> : <Mic />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent data-theme="dark">{isMuted ? "Unmute" : "Mute"}</TooltipContent>
-                </Tooltip>
               </div>
-            </div>
 
-            {/* Self view: a small call-style tile, never taller than the space above the horizon. */}
-            <div className="mt-3 flex min-h-0 flex-1 items-start lg:mt-5">
-              <div className="relative h-[132px] w-full overflow-hidden rounded-2xl bg-card/60 ring-1 ring-white/[0.08] sm:h-[180px] lg:aspect-[4/3] lg:h-auto lg:max-h-full lg:max-w-[400px]">
-                <video ref={videoRef} autoPlay muted playsInline className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-opacity duration-300 ${cameraLive ? "opacity-100" : "opacity-0"}`} />
-                {cameraLive ? (
-                  <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
-                    <Camera size={30} strokeWidth={1.5} className="text-white/70" aria-hidden="true" />
-                    <p className="m-0 text-white/70">{cameraNote}</p>
+              <span className="mt-5 hidden w-fit items-center gap-2.5 rounded-full bg-[#0d0c11] px-4 py-2 text-[15px] shadow-[inset_0_0_0_1px_#29282b] lg:mt-7 lg:flex">
+                <span className={`h-2.5 w-2.5 rounded-full ${cameraLive ? "bg-[#22e06b]" : "bg-white/30"}`} />
+                Camera preview
+              </span>
+
+              <div className="relative mt-3 flex h-[150px] items-center justify-center overflow-hidden rounded-[16px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] sm:h-[200px] lg:mt-4 lg:aspect-video lg:h-auto lg:shadow-none">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className={`absolute inset-0 h-full w-full scale-x-[-1] rounded-[16px] object-cover transition-opacity duration-300 ${cameraLive ? "opacity-100" : "opacity-0"}`}
+                />
+                {!cameraLive && (
+                  <div className="flex flex-col items-center gap-4 p-6 text-center">
+                    <Camera size={52} strokeWidth={1.4} className="text-[#f0f0f0]/90" aria-hidden="true" />
+                    <p className="m-0 text-[15px] text-[#f0f0f0]/90 lg:text-[19px]">{cameraNote}</p>
                   </div>
                 )}
-                <Badge variant="outline" className="absolute left-3 top-3 h-7 gap-2 border-white/10 bg-black/45 px-2.5 font-normal text-white/90 backdrop-blur-md">
-                  <span className={`size-1.5 rounded-full ${cameraLive ? "bg-[#22e06b]" : "bg-white/35"}`} />
-                  Camera preview
-                </Badge>
-                {cameraLive && <span className="absolute bottom-3 left-3.5 text-[13px] font-medium text-white">You</span>}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      onClick={switchCamera}
-                      aria-label={cameraLive ? "Turn camera off" : "Turn camera on"}
-                      className="absolute bottom-2.5 right-2.5 rounded-full border-white/10 bg-black/45 text-white backdrop-blur-md hover:bg-black/65"
-                    >
-                      {cameraLive ? <Camera /> : <CameraOff />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent data-theme="dark">{cameraLive ? "Turn camera off" : "Turn camera on"}</TooltipContent>
-                </Tooltip>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {/* RIGHT – conversation */}
-          <section aria-label="Conversation with Zara" className="flex min-h-0 flex-col">
-            <div className="flex flex-shrink-0 items-center gap-3 pb-2">
-              <ZaraAvatar speaking={aiSpeaking} />
-              <div>
-                <p className="m-0 font-semibold">DevPrep Interviewer</p>
-                <p aria-live="polite" className="m-0 text-[13px] text-brand-soft">
-                  {statusText}
-                </p>
+            {/* RIGHT – conversation */}
+            <section aria-label="Conversation with Zara" className="flex min-h-0 flex-col">
+              <div className="flex flex-shrink-0 items-center gap-4 pb-3">
+                <ZaraAvatar speaking={aiSpeaking} />
+                <div>
+                  <p className="m-0 text-[15.5px] font-semibold">DevPrep Interviewer</p>
+                  <p aria-live="polite" className="m-0 text-[14.5px] text-[#b597f0]">
+                    {statusText}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div
-              ref={chatScrollRef}
-              onScroll={handleChatScroll}
-              className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-5 pt-3 [mask-image:linear-gradient(to_bottom,transparent,#000_16px,#000_92%,transparent)] lg:pl-6"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {chatMessages.length === 0 && <AiMessage text={currentQuestionText} timestamp={getTimestamp()} />}
-              {chatMessages.map((message) =>
-                message.role === "user" ? (
-                  <UserMessage key={message.id} text={message.text} timestamp={message.timestamp} />
-                ) : (
-                  <AiMessage key={message.id} text={message.text} timestamp={message.timestamp} />
-                ),
-              )}
-              {userIsSpeaking && !transcript && (
-                <div className="flex justify-end">
-                  <div className="flex items-center gap-1.5 rounded-2xl bg-brand px-4 py-3.5" aria-label="You are speaking">
+              <div
+                ref={chatScrollRef}
+                onScroll={handleChatScroll}
+                className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-5 pt-3 [mask-image:linear-gradient(to_bottom,transparent,#000_16px,#000_92%,transparent)] lg:pl-[28px]"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {chatMessages.length === 0 && <AiMessage text={currentQuestionText} timestamp={getTimestamp()} />}
+                {chatMessages.map((message) =>
+                  message.role === "user" ? (
+                    <UserMessage key={message.id} text={message.text} timestamp={message.timestamp} />
+                  ) : (
+                    <AiMessage key={message.id} text={message.text} timestamp={message.timestamp} />
+                  ),
+                )}
+                {userIsSpeaking && !transcript && (
+                  <div className="flex justify-end">
+                    <div className="flex items-center gap-1.5 rounded-[16px] bg-[#5934d3] px-5 py-4" aria-label="You are speaking">
+                      {[0, 1, 2].map((dot) => (
+                        <motion.span
+                          key={dot}
+                          animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                          transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
+                          className="h-1.5 w-1.5 rounded-full bg-white"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {isThinking && (
+                  <div className="flex items-center gap-1.5 py-2" aria-label="Zara is thinking">
                     {[0, 1, 2].map((dot) => (
                       <motion.span
                         key={dot}
-                        animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
                         transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
-                        className="size-1.5 rounded-full bg-white"
+                        className="h-1.5 w-1.5 rounded-full bg-[#b597f0]"
                       />
                     ))}
                   </div>
-                </div>
-              )}
-              {isThinking && (
-                <div className="flex items-center gap-1.5 py-2" aria-label="Zara is thinking">
-                  {[0, 1, 2].map((dot) => (
-                    <motion.span
-                      key={dot}
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
-                      className="size-1.5 rounded-full bg-brand-soft"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {(error || realtimeError) && (
-              <Alert variant="destructive" className="mb-3 flex-shrink-0 py-2.5 text-[13px]">
-                <CircleAlert />
-                <AlertDescription className="text-destructive">{error || realtimeError}</AlertDescription>
-              </Alert>
-            )}
+              {(error || realtimeError) && (
+                <Alert variant="destructive" className="mb-3 flex-shrink-0 rounded-[12px] border-[rgba(255,120,120,0.25)] bg-[rgba(255,90,90,0.08)] py-3 text-[13px]">
+                  <CircleAlert />
+                  <AlertDescription className="text-[#ffb4b4]">{error || realtimeError}</AlertDescription>
+                </Alert>
+              )}
 
-            {/* ── CONTROLS ── */}
-            <div className="flex flex-shrink-0 justify-end gap-3 pt-2">
-              <Button onClick={endInterview} className={`${PILL} flex-1 active:scale-[0.97] sm:flex-none`} style={mono}>
-                End interview
-              </Button>
-              <Popover open={helpOpen} onOpenChange={setHelpOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={`${PILL} flex-1 sm:flex-none`} style={mono}>
-                    Having problem
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent data-theme="dark" side="top" align="end" className="w-[320px] font-sans">
-                  <p className="m-0 mb-2.5 text-[13px] font-medium">Troubleshooting</p>
-                  <ul className="m-0 list-disc space-y-2 pl-4 text-[13px] leading-relaxed text-muted-foreground">
-                    <li>Allow microphone access from the lock icon in your address bar.</li>
-                    <li>Pause for about a second when you finish. Zara replies once you stop speaking.</li>
-                    <li>Use headphones if Zara&apos;s voice is being picked up by your mic.</li>
-                  </ul>
-                  <Button variant="link" size="sm" className="mt-3 h-auto p-0 text-brand-soft has-[>svg]:px-0" onClick={() => window.location.reload()}>
-                    <RotateCcw /> Reload session
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </section>
-        </main>
+              {/* ── CONTROLS ── */}
+              <div className="flex flex-shrink-0 justify-end gap-3.5 pb-6 pt-2 sm:gap-4" style={stage ? { paddingBottom: stage.pad } : undefined}>
+                <Button onClick={endInterview} className={`${PILL} bg-[#fcfbfc] text-black hover:bg-white active:scale-[0.97]`} style={mono}>
+                  End interview
+                </Button>
+                <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={`${PILL} border-white/[0.22] bg-[#09090d]/60 text-[#f0f0f0] hover:border-white/40 hover:bg-[#09090d]/60`} style={mono}>
+                      Having problem
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent data-theme="dark" style={portalZoom} side="top" align="end" className="w-[340px] rounded-[16px] border-white/10 bg-[#16151a] p-5 font-sans">
+                    <p className="m-0 mb-3 text-[13px] font-medium">Troubleshooting</p>
+                    <ul className="m-0 list-disc space-y-2 pl-4 text-[13px] leading-relaxed text-white/80">
+                      <li>Allow microphone access from the lock icon in your address bar.</li>
+                      <li>Pause for about a second when you finish. Zara replies once you stop speaking.</li>
+                      <li>Use headphones if Zara&apos;s voice is being picked up by your mic.</li>
+                    </ul>
+                    <Button variant="link" size="sm" className="mt-4 h-auto p-0 text-[13px] text-[#b597f0] has-[>svg]:px-0" onClick={() => window.location.reload()}>
+                      <RotateCcw className="size-[13px]" /> Reload session
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </section>
+          </main>
+        </div>
       </div>
     </TooltipProvider>
   );
 }
 
-/** Page column: 80% of the viewport on desktop, capped, so nothing looks blown up. */
-const SHELL = "mx-auto w-full px-5 sm:px-8 lg:w-[min(1320px,84vw)] lg:px-0";
-const PILL = "h-11 rounded-full px-6 text-[12.5px] font-bold uppercase tracking-[0.04em]";
+/** Reference frame the desktop interview layout is designed at. */
+const STAGE_W = 1855;
+const STAGE_H = 848;
+const PILL = "h-12 flex-1 rounded-full px-7 text-[13px] font-bold uppercase tracking-[0.04em] sm:flex-none sm:text-[14px]";
 
 const LOGO_PATH =
   "M440 142H814A338.5 338.5 0 0 1 814 819H632Q597 819 597 784V672H814A190.5 190.5 0 0 0 814 291H452Q415 291 415 254V167Q415 142 440 142ZM440 502H557Q597 502 597 542V672H452Q415 672 415 635V527Q415 502 440 502Z";
 
 function Logo() {
   return (
-    <Link href="/dashboard/ai-interview" aria-label="DevPrep interviews" className="inline-flex items-center gap-2 text-[19px] font-semibold tracking-[-0.04em] text-[#f0f0f0]">
-      <svg viewBox="415 142 738 677" aria-hidden="true" className="h-[18px] w-[20px]" fill="currentColor">
+    <Link href="/dashboard/ai-interview" aria-label="DevPrep interviews" className="inline-flex items-center gap-2.5 text-[22px] font-semibold tracking-[-0.04em] text-[#f0f0f0]">
+      <svg viewBox="415 142 738 677" aria-hidden="true" className="h-[21px] w-[23px]" fill="currentColor">
         <path d={LOGO_PATH} />
       </svg>
       DevPrep
@@ -877,12 +899,12 @@ function Logo() {
 function ZaraAvatar({ speaking = false }: { speaking?: boolean }) {
   return (
     <motion.div
-      animate={speaking ? { boxShadow: ["0 0 0 0 rgba(162,124,233,0)", "0 0 0 5px rgba(162,124,233,0.22)", "0 0 0 0 rgba(162,124,233,0)"] } : { boxShadow: "0 0 0 0 rgba(162,124,233,0)" }}
+      animate={speaking ? { boxShadow: ["0 0 0 0 rgba(162,124,233,0)", "0 0 0 6px rgba(162,124,233,0.22)", "0 0 0 0 rgba(162,124,233,0)"] } : { boxShadow: "0 0 0 0 rgba(162,124,233,0)" }}
       transition={{ repeat: speaking ? Infinity : 0, duration: 1.6 }}
       className="shrink-0 rounded-full motion-reduce:!shadow-none"
     >
-      <Avatar className="size-11">
-        <AvatarFallback className="bg-[#26262a] text-[18px] font-bold leading-none text-[#f0f0f0]">
+      <Avatar className="size-[52px]">
+        <AvatarFallback className="bg-[#26262a] text-[22px] font-bold leading-none text-[#f0f0f0]">
           D<span className="text-[#a968e4]">.</span>
         </AvatarFallback>
       </Avatar>
@@ -905,8 +927,8 @@ function ViewfinderCorners() {
 function AiMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
     <div className="max-w-[92%] lg:max-w-[480px]">
-      <p className="m-0 leading-[1.5] text-[#ededed]">{text}</p>
-      <p className="m-0 mt-1 text-xs text-white/50">{timestamp}</p>
+      <p className="m-0 text-[15px] leading-[1.36] text-[#ededed]">{text}</p>
+      <p className="m-0 mt-1.5 text-[13px] text-white/80">{timestamp}</p>
     </div>
   );
 }
@@ -914,9 +936,9 @@ function AiMessage({ text, timestamp }: { text: string; timestamp: string }) {
 function UserMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] rounded-2xl bg-brand px-4 py-2.5 text-white">
-        <p className="m-0 leading-[1.45]">{text}</p>
-        <p className="m-0 mt-1 text-xs text-white/70">{timestamp}</p>
+      <div className="max-w-[85%] rounded-[16px] bg-[#5934d3] px-[18px] py-3 text-white">
+        <p className="m-0 text-[14px] leading-[1.45]">{text}</p>
+        <p className="m-0 mt-1 text-[13px] text-white/85">{timestamp}</p>
       </div>
     </div>
   );
