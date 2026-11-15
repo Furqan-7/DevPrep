@@ -1,4 +1,77 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* ===== shadcn/ui tokens. Light by default; dark wherever data-theme="dark" is set
+   (the interview session sets it on its own wrapper, so it is always dark). ===== */
+:root {
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: #1d1d1f;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f4f4f5;
+  --muted-foreground: #6b6b73;
+  --accent: #f4f4f5;
+  --accent-foreground: #1d1d1f;
+  --destructive: #dc2626;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #a27ce9;
+  --brand: #5934d3;
+  --brand-soft: #a27ce9;
+}
+
+[data-theme="dark"] {
+  --background: #09090d;
+  --foreground: #f0f0f0;
+  --card: #111015;
+  --card-foreground: #f0f0f0;
+  --popover: #16151a;
+  --popover-foreground: #f0f0f0;
+  --primary: #fcfbfc;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1b1a20;
+  --secondary-foreground: #f0f0f0;
+  --muted: #1b1a20;
+  --muted-foreground: #9d9ba6;
+  --accent: rgba(255, 255, 255, 0.08);
+  --accent-foreground: #f0f0f0;
+  --destructive: #ff8a8a;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.22);
+  --ring: #a27ce9;
+  --brand: #5934d3;
+  --brand-soft: #b597f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+}
+
 /* ===== DevPrep landing theme — append to the END of app/globals.css (Tailwind v4) ===== */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
