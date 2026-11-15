@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { ChevronDown, LogIn, LogOut, Menu } from "lucide-react";
+import { LogIn, LogOut, Menu } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +61,6 @@ export function AppNav() {
       .map((w) => w[0]!.toUpperCase())
       .join("") || "·";
 
-  const firstName = (user?.name ?? "").split(/\s+/)[0] ?? "";
   const signInHref = `/auth/signin?next=${encodeURIComponent(pathname)}`;
 
   return (
@@ -100,13 +99,11 @@ export function AppNav() {
                 <button
                   type="button"
                   aria-label="Account menu"
-                  className="flex h-9 cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] py-1 pl-1 pr-2.5 text-[13.5px] text-white/85 outline-none transition-colors hover:bg-white/[0.07] focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-white/[0.07]"
+                  className="cursor-pointer rounded-full outline-none ring-offset-2 ring-offset-[#0a0a0a] transition-shadow hover:ring-1 hover:ring-white/25 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:ring-1 data-[state=open]:ring-white/30"
                 >
-                  <Avatar className="size-7">
-                    <AvatarFallback className="bg-gradient-to-br from-[#a27ce9] to-[#5934d3] text-[11px] font-semibold text-white">{initials}</AvatarFallback>
+                  <Avatar className="size-8">
+                    <AvatarFallback className="bg-[#232326] text-[12px] font-medium text-white/90">{initials}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden max-w-[120px] truncate sm:inline">{firstName || "Account"}</span>
-                  <ChevronDown aria-hidden="true" className="size-3.5 text-white/45" />
                 </button>
               ) : (
                 <Button variant="ghost" size="icon" aria-label="Menu" className={`rounded-full ${user && !user.signedIn ? "sm:hidden" : ""}`}>
@@ -119,11 +116,11 @@ export function AppNav() {
                 <>
                   <DropdownMenuLabel className="flex items-center gap-2.5 font-normal">
                     <Avatar className="size-8">
-                      <AvatarFallback className="bg-gradient-to-br from-[#a27ce9] to-[#5934d3] text-[11.5px] font-semibold text-white">{initials}</AvatarFallback>
+                      <AvatarFallback className="bg-[#232326] text-[12px] font-medium text-white/90">{initials}</AvatarFallback>
                     </Avatar>
                     <span className="min-w-0">
-                      <span className="block text-xs text-muted-foreground">Signed in as</span>
                       <span className="block truncate text-sm font-medium">{user.name}</span>
+                      <span className="block text-xs text-muted-foreground">Signed in</span>
                     </span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

@@ -8,18 +8,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Clock3, Mic, Search, X } from "lucide-react";
-import { serif } from "@/lib/fonts";
+import { ArrowRight, Clock3, Search, X } from "lucide-react";
 import { ROLES, ROLE_CATEGORIES, ROLE_DURATION_RANGE, roleSlug } from "@/data/roles";
 import { formatDate, listSessions, type SessionSummary } from "@/lib/interview/report";
 import { ease, revealProps, useMotionMode } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-const italic = { fontStyle: "italic" } as const;
 
 type Role = (typeof ROLES)[number];
 type Entry = { role: Role; slug: string };
@@ -82,66 +78,57 @@ export function RoleCatalog() {
   const latestTitle = history.latest ? (ENTRIES.find((e) => e.slug === history.latest!.role)?.role.title ?? history.latest.role) : "";
 
   return (
-    <main data-theme="dark" className="relative isolate mx-auto max-w-[1200px] px-4 pb-24 pt-14 text-foreground sm:px-6 sm:pt-20">
-      {/* soft violet wash behind the intro */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(162,124,233,0.16),transparent_70%)]" />
-
-      {/* ── intro ── */}
-      <div className="mx-auto max-w-[640px] text-center">
-        <motion.div {...reveal(0)}>
-          <Badge variant="outline" className="h-7 gap-2 border-brand-soft/25 bg-brand-soft/[0.08] px-3 font-normal text-brand-soft">
-            <Mic aria-hidden="true" /> Voice interviews with Zara
-          </Badge>
-        </motion.div>
-        <motion.h1 {...reveal(0.05)} className="m-0 mt-5 text-[38px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[54px]">
-          Choose what to{" "}
-          <em className={`${serif.className} font-normal tracking-normal text-brand-soft`} style={italic}>
-            practice.
-          </em>
-        </motion.h1>
-        <motion.p {...reveal(0.1)} className="m-0 mx-auto mt-4 max-w-[480px] text-[15.5px] leading-[1.55] text-muted-foreground">
-          Pick the role you&rsquo;re interviewing for, answer out loud, and get a scored report on every answer.
-        </motion.p>
-      </div>
-
-      {/* ── search + categories ── */}
-      <motion.div {...reveal(0.15)} className="mx-auto mt-9 max-w-[620px]">
-        <div className="relative">
-          <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <main data-theme="dark" className="mx-auto max-w-[1200px] px-4 pb-24 pt-10 text-foreground sm:px-6 sm:pt-14">
+      {/* ── header ── */}
+      <motion.div {...reveal(0)} className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="m-0 text-[28px] font-semibold tracking-[-0.035em] sm:text-[32px]">Mock interviews</h1>
+          <p className="m-0 mt-1.5 text-[14.5px] text-muted-foreground">
+            Pick a role and answer out loud. You get a scored report on every answer.
+          </p>
+        </div>
+        <div className="relative w-full md:w-[320px]">
+          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && setQuery("")}
-            placeholder="Search by role or skill"
+            placeholder="Search roles or skills"
             aria-label="Search roles or skills"
-            className="h-12 rounded-xl border-white/10 bg-white/[0.03] pl-11 pr-12 text-[15px] md:text-[15px]"
+            className="h-10 rounded-lg border-white/10 bg-white/[0.02] pl-9 pr-10"
           />
           {query ? (
-            <Button variant="ghost" size="icon-sm" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg">
+            <Button variant="ghost" size="icon-sm" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-1 top-1/2 size-8 -translate-y-1/2">
               <X />
             </Button>
           ) : (
-            <kbd className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 rounded-md border border-white/12 px-1.5 py-px font-sans text-[11px] text-muted-foreground">/</kbd>
+            <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-white/12 px-1.5 font-sans text-[11px] text-muted-foreground">/</kbd>
           )}
         </div>
-        <div role="tablist" aria-label="Categories" className="mt-4 flex flex-wrap justify-center gap-2">
+      </motion.div>
+
+      {/* ── categories ── */}
+      <motion.div {...reveal(0.06)} className="mt-7 overflow-x-auto [scrollbar-width:none]">
+        <div role="tablist" aria-label="Categories" className="inline-flex gap-1 rounded-lg border border-white/[0.08] bg-white/[0.02] p-1">
           {TABS.map((t) => {
             const n = t === "All" ? ROLES.length : ROLES.filter((r) => r.category === t).length;
             const on = tab === t;
             return (
-              <Button
+              <button
                 key={t}
+                type="button"
                 role="tab"
                 aria-selected={on}
-                variant={on ? "default" : "outline"}
-                size="sm"
                 onClick={() => setTab(t)}
-                className={cn("h-8 rounded-full px-3.5 text-[13px]", !on && "border-white/10 bg-transparent text-white/70 hover:text-foreground")}
+                className={cn(
+                  "flex h-8 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                  on ? "bg-white/[0.09] text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 {t}
-                <span className={cn("tabular-nums text-[11.5px]", on ? "text-primary-foreground/55" : "text-white/35")}>{n}</span>
-              </Button>
+                <span className="tabular-nums text-[11.5px] text-white/35">{n}</span>
+              </button>
             );
           })}
         </div>
@@ -150,10 +137,10 @@ export function RoleCatalog() {
       {/* ── last time ── */}
       {history.latest && (
         <motion.div {...reveal(0.2)}>
-          <Card className="mx-auto mt-8 max-w-[620px] flex-row flex-wrap items-center gap-x-4 gap-y-3 border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[13.5px] sm:flex-nowrap">
+          <Card className="mt-6 flex-row flex-wrap items-center gap-x-4 gap-y-3 border-white/[0.08] bg-white/[0.02] px-4 py-3 text-[13.5px] sm:flex-nowrap">
             <span className="min-w-0 flex-1 text-muted-foreground">
               Last time: <span className="text-foreground">{latestTitle}</span> ·{" "}
-              <span className="tabular-nums text-brand-soft">{history.latest.overallScore}/100</span> · {formatDate(history.latest.createdAt)}
+              <span className="tabular-nums text-foreground">{history.latest.overallScore}/100</span> · {formatDate(history.latest.createdAt)}
             </span>
             <span className="flex gap-2">
               <Button asChild variant="ghost" size="sm" className="h-8">
@@ -168,7 +155,7 @@ export function RoleCatalog() {
       )}
 
       {/* ── catalogue ── */}
-      <div className="mb-4 mt-12 flex items-baseline justify-between text-[13px] text-muted-foreground" aria-live="polite">
+      <div className="mb-3 mt-8 flex items-baseline justify-between text-[13px] text-muted-foreground" aria-live="polite">
         <span>
           <span className="tabular-nums text-foreground">{matches.length}</span> {matches.length === 1 ? "role" : "roles"} available
           {tab !== "All" ? ` in ${tab}` : ""}
@@ -197,7 +184,7 @@ export function RoleCatalog() {
               </Button>
             </Card>
           ) : (
-            <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
               {matches.map((e) => (
                 <li key={e.slug}>
                   <RoleCard entry={e} lastScore={history.last.get(e.slug)} />
@@ -215,41 +202,39 @@ function RoleCard({ entry, lastScore }: { entry: Entry; lastScore?: number }) {
   const { role, slug } = entry;
   const href = `/dashboard/ai-interview/${slug}`;
   return (
-    <Card className="group relative h-full gap-0 border-white/[0.08] bg-[#111114] py-5 shadow-none transition-colors duration-200 hover:border-brand-soft/30 hover:bg-[#141318]">
-      <CardHeader className="gap-0 px-5">
-        <div className="flex items-center justify-between text-[12.5px] text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Clock3 aria-hidden="true" className="size-3.5" />
-            {role.duration} min
-          </span>
-          {lastScore !== undefined ? (
-            <Badge variant="outline" className="border-brand-soft/25 bg-brand-soft/[0.08] font-normal text-brand-soft">
-              Last score <span className="tabular-nums font-medium">{lastScore}</span>
-            </Badge>
-          ) : (
-            <span className="text-white/35">{role.category}</span>
+    <Card className="group relative h-full gap-0 rounded-lg border-white/[0.08] bg-[#0f0f11] py-4 shadow-none transition-colors duration-150 hover:border-white/[0.16]">
+      <CardHeader className="gap-0 px-4">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-[15.5px] font-medium leading-[1.3] tracking-[-0.015em]">
+            <Link href={href} className="outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2 focus-visible:after:ring-ring">
+              {role.title}
+            </Link>
+          </CardTitle>
+          {lastScore !== undefined && (
+            <span className="shrink-0 rounded border border-white/10 px-1.5 py-px text-[11.5px] tabular-nums text-white/70" title="Your last score">
+              {lastScore}/100
+            </span>
           )}
         </div>
-        <CardTitle className="mt-3 text-[17.5px] font-medium leading-[1.25] tracking-[-0.025em]">
-          <Link href={href} className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring">
-            {role.title}
-          </Link>
-        </CardTitle>
+        <p className="m-0 mt-1 flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
+          <Clock3 aria-hidden="true" className="size-3" />
+          {role.duration} min · {role.category}
+        </p>
       </CardHeader>
-      <CardContent className="mt-3.5 flex flex-wrap gap-1.5 px-5">
+      <CardContent className="mt-3.5 flex flex-wrap gap-1.5 px-4">
         {role.skills.map((s) => (
-          <Badge key={s} variant="secondary" className="rounded-md border-white/[0.06] bg-white/[0.05] px-2 py-0.5 font-normal text-white/70">
+          <span key={s} className="rounded border border-white/[0.07] px-1.5 py-0.5 text-[12px] text-white/60">
             {s}
-          </Badge>
+          </span>
         ))}
       </CardContent>
-      <CardFooter className="mt-auto px-5 pt-5">
+      <CardFooter className="mt-auto px-4 pt-4">
         <span
           aria-hidden="true"
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-white/10 text-[13.5px] font-medium text-white/85 transition-colors duration-200 group-hover:border-transparent group-hover:bg-primary group-hover:text-primary-foreground"
+          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-white/[0.06] text-[13px] font-medium text-white/85 transition-colors duration-150 group-hover:bg-white group-hover:text-black"
         >
           Start interview
-          <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+          <ArrowRight className="size-3.5" />
         </span>
       </CardFooter>
     </Card>
