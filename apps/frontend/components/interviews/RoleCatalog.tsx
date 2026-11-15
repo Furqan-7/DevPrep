@@ -82,8 +82,6 @@ export function RoleCatalog() {
 
   return (
     <main data-theme="dark" className="relative isolate mx-auto max-w-[1200px] px-4 pb-24 pt-14 text-foreground sm:px-6 sm:pt-20">
-      {/* soft violet wash behind the intro */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(162,124,233,0.16),transparent_70%)]" />
 
       {/* ── intro ── */}
       <div className="mx-auto max-w-[640px] text-center">
