@@ -866,7 +866,12 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
       if (errorObj?.name === "NotAllowedError" || errorObj?.name === "PermissionDeniedError") {
         setError("Microphone permission denied. Please allow microphone access to proceed.");
       } else {
-        setError(errorObj?.message || "Failed to start interview recording.");
+        // A failed WebSocket rejects with a bare Event (no message): say what actually went wrong.
+        setError(
+          err instanceof Event
+            ? "Couldn't reach the interview server. Make sure ws-server is running, then reload the page."
+            : errorObj?.message || "Failed to start interview recording.",
+        )
       }
     } finally {
       isStartingInterviewRef.current = false;
