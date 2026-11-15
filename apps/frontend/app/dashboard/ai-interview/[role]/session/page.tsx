@@ -3,13 +3,19 @@
 import { useState, useEffect, useRef, useCallback, type MutableRefObject } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Camera, CameraOff, Check, ChevronDown, Clock3, Mic, MicOff, RotateCcw, X } from "lucide-react";
+import { Camera, CameraOff, Check, CircleAlert, Clock3, Mic, MicOff, RotateCcw } from "lucide-react";
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
 import Link from "next/link";
 import { serif } from "@/lib/fonts";
 import { levelLabel } from "@/lib/interview/report";
 import { SpaceBackdrop } from "@/components/interviews/SpaceBackdrop";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type SessionData = RoleData & {
   sessionId?: number;
@@ -29,8 +35,6 @@ type ChatMessage = {
   text: string;
   timestamp: string;
 };
-
-const EASE = [0.25, 0.8, 0.25, 1] as const;
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
@@ -63,7 +67,6 @@ export default function InterviewSessionPage() {
   }>({});
   const [micLevel, setMicLevel] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [camMenuOpen, setCamMenuOpen] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
@@ -477,13 +480,13 @@ export default function InterviewSessionPage() {
     return (
       <div className="relative isolate min-h-dvh font-sans text-[#f0f0f0] antialiased selection:bg-[#a27ce9]/30">
         <SpaceBackdrop fixed={false} />
-        <header className="mx-auto flex max-w-[1444px] items-center justify-between px-5 pt-7 sm:px-8">
+        <header className={`${SHELL} flex items-center justify-between pt-6`}>
           <Logo />
           <Link href={rolePage} className="text-[13.5px] text-white/55 transition-colors hover:text-[#f0f0f0]">
             ← Back to role
           </Link>
         </header>
-        <main className="mx-auto grid max-w-[1444px] gap-10 px-5 pb-[200px] pt-12 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:pt-16">
+        <main className={`${SHELL} grid gap-10 pb-[200px] pt-10 lg:grid-cols-2 lg:gap-16 lg:pt-14`}>
           <section>
             <p className="m-0 flex flex-wrap gap-x-3.5 text-[12.5px] text-white/45">
               <span>{data.title}</span>
@@ -491,7 +494,7 @@ export default function InterviewSessionPage() {
               <span>~{data.duration} min</span>
               {levelText && <span>{levelText}</span>}
             </p>
-            <h1 className="m-0 mt-3 text-[40px] font-medium leading-[1.03] tracking-[-0.05em] sm:text-[56px]">
+            <h1 className="m-0 mt-3 text-[36px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[46px]">
               Ready for your
               <br />
               <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
@@ -566,7 +569,7 @@ export default function InterviewSessionPage() {
     return (
       <div className="relative isolate min-h-dvh font-sans text-[#f0f0f0] antialiased selection:bg-[#a27ce9]/30">
         <SpaceBackdrop fixed={false} />
-        <header className="mx-auto flex max-w-[1444px] items-center justify-between px-5 pt-7 sm:px-8">
+        <header className={`${SHELL} flex items-center justify-between pt-6`}>
           <Logo />
           <Link href="/dashboard/ai-interview" className="text-[13.5px] text-white/55 transition-colors hover:text-[#f0f0f0]">
             Back to roles
@@ -578,7 +581,7 @@ export default function InterviewSessionPage() {
             {levelText && <span>{levelText}</span>}
             <span>Today</span>
           </p>
-          <h1 className="m-0 mt-3 text-[42px] font-medium leading-[1.03] tracking-[-0.05em] sm:text-[60px]">
+          <h1 className="m-0 mt-3 text-[36px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[48px]">
             Interview{" "}
             <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
               complete.
@@ -651,233 +654,219 @@ export default function InterviewSessionPage() {
   // Five ascending bars light up with your voice level (one stays lit while idle).
   const level = isMuted ? 0 : userIsSpeaking ? Math.max(0.4, speechEnergy) : 0.2;
   const litBars = Math.max(isMuted ? 0 : 1, Math.ceil(level * 5));
+  const cameraNote =
+    cameraPermission !== "done"
+      ? "Camera preview will appear here"
+      : camError
+        ? "Camera unavailable, audio only"
+        : camLoading
+          ? "Starting camera…"
+          : "Camera is off";
+  const switchCamera = () => {
+    if (cameraPermission === "done") toggleCam();
+    else void requestPermission("camera");
+  };
 
   return (
-    <div className="relative isolate flex h-[100dvh] flex-col overflow-hidden font-sans text-[#f0f0f0] antialiased selection:bg-[#a27ce9]/30">
-      <SpaceBackdrop />
+    <TooltipProvider>
+      <div data-theme="dark" className="relative isolate flex h-[100dvh] flex-col overflow-hidden font-sans text-sm text-foreground antialiased selection:bg-brand-soft/30">
+        <SpaceBackdrop />
 
-      {/* ── TOP BAR ── */}
-      <header className="mx-auto w-full max-w-[1444px] flex-shrink-0 px-5 pt-5 sm:px-8 lg:pt-7">
-        <Logo />
-        <div className="mt-5 flex items-center justify-between gap-6 lg:mt-9">
-          <div className="flex min-w-0 items-center gap-3 lg:w-[280px] lg:shrink-0 lg:justify-between">
-            <span className="flex min-w-0 items-center gap-3">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#22e06b]" />
-              <span className="truncate text-[15px]">{data.title}</span>
-            </span>
-            <span aria-hidden="true" className="hidden h-5 w-px bg-white/20 lg:block" />
+        {/* ── TOP BAR ── */}
+        <header className={`${SHELL} flex-shrink-0 pt-5 lg:pt-6`}>
+          <Logo />
+          <div className="mt-5 flex items-center justify-between gap-6 lg:mt-8">
+            <div className="flex min-w-0 items-center gap-2.5 lg:w-[240px] lg:shrink-0">
+              <span className="size-2 shrink-0 rounded-full bg-[#22e06b]" />
+              <span className="truncate">{data.title}</span>
+            </div>
+            <nav aria-label="Skills covered" className="hidden flex-1 justify-center gap-10 border-x border-white/15 px-6 lg:flex">
+              {topicTabs.map((item) => (
+                <div key={item} className="w-[150px] text-center">
+                  <p className="m-0 truncate">{item}</p>
+                  <span aria-hidden="true" className="mt-2 block h-[3px] rounded-full bg-brand-soft" />
+                </div>
+              ))}
+            </nav>
+            <div className="flex shrink-0 justify-end lg:w-[240px]">
+              <Badge variant="secondary" role="timer" aria-label="Elapsed time" className="h-9 gap-2 border-white/[0.06] px-3.5 text-[15px] font-semibold tabular-nums [&>svg]:size-4">
+                <Clock3 aria-hidden="true" />
+                {formatTime(elapsed)}
+              </Badge>
+            </div>
           </div>
-          <nav aria-label="Skills covered" className="hidden flex-1 justify-center gap-[66px] lg:flex">
+          <nav aria-label="Skills covered" className="mt-4 flex gap-5 overflow-x-auto [scrollbar-width:none] lg:hidden">
             {topicTabs.map((item) => (
-              <div key={item} className="min-w-[166px] text-center">
-                <p className="m-0 truncate text-[15px] text-[#f0f0f0]">{item}</p>
-                <span aria-hidden="true" className="mt-2.5 block h-[5px] rounded-full bg-[#a27ce9]" />
+              <div key={item} className="shrink-0">
+                <p className="m-0 whitespace-nowrap text-[13px] text-white/85">{item}</p>
+                <span aria-hidden="true" className="mt-1.5 block h-[3px] rounded-full bg-brand-soft" />
               </div>
             ))}
           </nav>
-          <div className="flex shrink-0 items-center justify-between lg:w-[254px] lg:pr-[22px]">
-          <span aria-hidden="true" className="hidden h-5 w-px bg-white/20 lg:block" />
-          <div className="flex h-12 shrink-0 items-center gap-3 rounded-full bg-[#16151a] px-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]" role="timer" aria-label="Elapsed time">
-            <Clock3 size={20} aria-hidden="true" />
-            <span className="text-[18px] font-semibold tabular-nums tracking-[0.02em]">{formatTime(elapsed)}</span>
-          </div>
-          </div>
-        </div>
-        <nav aria-label="Skills covered" className="mt-4 flex gap-5 overflow-x-auto [scrollbar-width:none] lg:hidden">
-          {topicTabs.map((item) => (
-            <div key={item} className="shrink-0">
-              <p className="m-0 whitespace-nowrap text-[13px] text-white/85">{item}</p>
-              <span aria-hidden="true" className="mt-1.5 block h-1 rounded-full bg-[#a27ce9]" />
-            </div>
-          ))}
-        </nav>
-      </header>
+        </header>
 
-      {/* ── MAIN ── */}
-      <main className="mx-auto grid min-h-0 w-full max-w-[1444px] flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 px-5 pt-5 sm:px-8 lg:grid-cols-[minmax(0,590fr)_minmax(0,685fr)] lg:grid-rows-1 lg:gap-[104px] lg:pt-12">
-        {/* LEFT – mic + camera */}
-        <section aria-label="Your microphone and camera" className="flex min-h-0 flex-col">
-          <div className="flex items-center gap-3">
-            {isMuted ? <MicOff size={20} className="text-[#da4228]" aria-hidden="true" /> : <Mic size={20} className="text-[#da4228]" aria-hidden="true" />}
-            <p className="m-0 text-[15px]">{isMuted ? "Mic muted" : "Mic active"}</p>
-            <div className="relative ml-auto flex items-center gap-4">
-              <button
-                type="button"
-                onClick={toggleMute}
-                aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#f0f0f0] hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#a27ce9]"
-              >
-                {isMuted ? <MicOff size={19} /> : <Mic size={19} />}
-              </button>
-              <div className="flex h-[22px] items-end gap-[3px]" aria-hidden="true">
-                {[9, 12, 15, 18, 22].map((h, i) => (
-                  <span key={i} style={{ height: h }} className={`w-[5px] rounded-full transition-colors duration-150 ${i < litBars ? "bg-[#a27ce9]" : "bg-[#a27ce9]/20"}`} />
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => setCamMenuOpen((o) => !o)}
-                aria-label="Camera options"
-                aria-expanded={camMenuOpen}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[#f0f0f0] hover:bg-white/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#a27ce9]"
-              >
-                <ChevronDown size={19} className={`transition-transform ${camMenuOpen ? "rotate-180" : ""}`} />
-              </button>
-              {camMenuOpen && (
-                <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-[200px] rounded-[12px] bg-[#16151a] p-1.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1),0_20px_50px_-20px_rgba(0,0,0,0.8)]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCamMenuOpen(false);
-                      if (cameraPermission === "done") toggleCam();
-                      else void requestPermission("camera");
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-3 py-2 text-left text-[13.5px] text-white/80 hover:bg-white/[0.06]"
-                  >
-                    {cameraLive ? <CameraOff size={15} /> : <Camera size={15} />}
-                    {cameraLive ? "Turn camera off" : "Turn camera on"}
-                  </button>
+        {/* ── MAIN ── */}
+        <main className={`${SHELL} grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 pb-5 pt-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-1 lg:gap-16 lg:pb-[min(16vh,130px)] lg:pt-9`}>
+          {/* LEFT – mic + self view */}
+          <section aria-label="Your microphone and camera" className="flex min-h-0 flex-col">
+            <div className="flex h-9 items-center gap-2.5">
+              {isMuted ? <MicOff size={17} className="text-[#da4228]" aria-hidden="true" /> : <Mic size={17} className="text-[#da4228]" aria-hidden="true" />}
+              <p className="m-0">{isMuted ? "Mic muted" : "Mic active"}</p>
+              <div className="ml-auto flex items-center gap-3">
+                <div className="flex h-[18px] items-end gap-[3px]" aria-hidden="true">
+                  {[7, 10, 12, 15, 18].map((h, i) => (
+                    <span key={i} style={{ height: h }} className={`w-1 rounded-full transition-colors duration-150 ${i < litBars ? "bg-brand-soft" : "bg-brand-soft/20"}`} />
+                  ))}
                 </div>
-              )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" className="rounded-full" onClick={toggleMute} aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}>
+                      {isMuted ? <MicOff /> : <Mic />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent data-theme="dark">{isMuted ? "Unmute" : "Mute"}</TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-          </div>
 
-          <span className="mt-5 hidden w-fit items-center gap-2.5 rounded-full bg-[#0d0c11] px-4 py-2 text-[14.5px] shadow-[inset_0_0_0_1px_#29282b] lg:mt-7 lg:flex">
-            <span className={`h-2.5 w-2.5 rounded-full ${cameraLive ? "bg-[#22e06b]" : "bg-white/30"}`} />
-            Camera preview
-          </span>
+            {/* Self view: a small call-style tile, never taller than the space above the horizon. */}
+            <div className="mt-3 flex min-h-0 flex-1 items-start lg:mt-5">
+              <div className="relative h-[132px] w-full overflow-hidden rounded-2xl bg-card/60 ring-1 ring-white/[0.08] sm:h-[180px] lg:aspect-[4/3] lg:h-auto lg:max-h-full lg:max-w-[400px]">
+                <video ref={videoRef} autoPlay muted playsInline className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-opacity duration-300 ${cameraLive ? "opacity-100" : "opacity-0"}`} />
+                {cameraLive ? (
+                  <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 p-6 text-center">
+                    <Camera size={30} strokeWidth={1.5} className="text-white/70" aria-hidden="true" />
+                    <p className="m-0 text-white/70">{cameraNote}</p>
+                  </div>
+                )}
+                <Badge variant="outline" className="absolute left-3 top-3 h-7 gap-2 border-white/10 bg-black/45 px-2.5 font-normal text-white/90 backdrop-blur-md">
+                  <span className={`size-1.5 rounded-full ${cameraLive ? "bg-[#22e06b]" : "bg-white/35"}`} />
+                  Camera preview
+                </Badge>
+                {cameraLive && <span className="absolute bottom-3 left-3.5 text-[13px] font-medium text-white">You</span>}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={switchCamera}
+                      aria-label={cameraLive ? "Turn camera off" : "Turn camera on"}
+                      className="absolute bottom-2.5 right-2.5 rounded-full border-white/10 bg-black/45 text-white backdrop-blur-md hover:bg-black/65"
+                    >
+                      {cameraLive ? <Camera /> : <CameraOff />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent data-theme="dark">{cameraLive ? "Turn camera off" : "Turn camera on"}</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </section>
 
-          <div className="relative mt-3 flex h-[150px] items-center justify-center overflow-hidden rounded-[16px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] sm:h-[200px] lg:mt-4 lg:aspect-video lg:h-auto lg:shadow-none">
-            <video ref={videoRef} autoPlay muted playsInline className={`h-full w-full scale-x-[-1] rounded-[16px] object-cover ${cameraLive ? "opacity-100" : "absolute opacity-0"}`} />
-            {!cameraLive && (
-              <div className="flex flex-col items-center gap-4 p-6 text-center">
-                <Camera size={52} strokeWidth={1.4} className="text-[#f0f0f0]/90" aria-hidden="true" />
-                <p className="m-0 text-[15px] text-[#f0f0f0]/90 lg:text-[19px]">
-                  {cameraPermission !== "done" ? "Camera preview will appear here" : camError ? "Camera unavailable, audio only" : camLoading ? "Starting camera…" : "Camera is off"}
+          {/* RIGHT – conversation */}
+          <section aria-label="Conversation with Zara" className="flex min-h-0 flex-col">
+            <div className="flex flex-shrink-0 items-center gap-3 pb-2">
+              <ZaraAvatar speaking={aiSpeaking} />
+              <div>
+                <p className="m-0 font-semibold">DevPrep Interviewer</p>
+                <p aria-live="polite" className="m-0 text-[13px] text-brand-soft">
+                  {statusText}
                 </p>
               </div>
-            )}
-          </div>
-        </section>
-
-        {/* RIGHT – conversation */}
-        <section aria-label="Conversation with Zara" className="flex min-h-0 flex-col">
-          <div className="flex flex-shrink-0 items-center gap-4 pb-3">
-            <ZaraAvatar speaking={aiSpeaking} />
-            <div>
-              <p className="m-0 text-[15.5px] font-semibold">DevPrep Interviewer</p>
-              <p aria-live="polite" className="m-0 text-[14.5px] text-[#b597f0]">
-                {statusText}
-              </p>
             </div>
-          </div>
 
-          <div
-            ref={chatScrollRef}
-            onScroll={handleChatScroll}
-            className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-5 pt-3 [mask-image:linear-gradient(to_bottom,transparent,#000_16px,#000_92%,transparent)] lg:pl-[30px]"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {chatMessages.length === 0 && <AiMessage text={currentQuestionText} timestamp={getTimestamp()} />}
-            {chatMessages.map((message) =>
-              message.role === "user" ? (
-                <UserMessage key={message.id} text={message.text} timestamp={message.timestamp} />
-              ) : (
-                <AiMessage key={message.id} text={message.text} timestamp={message.timestamp} />
-              ),
-            )}
-            {userIsSpeaking && !transcript && (
-              <div className="flex justify-end">
-                <div className="flex items-center gap-1.5 rounded-[16px] bg-[#5934d3] px-5 py-4" aria-label="You are speaking">
+            <div
+              ref={chatScrollRef}
+              onScroll={handleChatScroll}
+              className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-5 pt-3 [mask-image:linear-gradient(to_bottom,transparent,#000_16px,#000_92%,transparent)] lg:pl-6"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {chatMessages.length === 0 && <AiMessage text={currentQuestionText} timestamp={getTimestamp()} />}
+              {chatMessages.map((message) =>
+                message.role === "user" ? (
+                  <UserMessage key={message.id} text={message.text} timestamp={message.timestamp} />
+                ) : (
+                  <AiMessage key={message.id} text={message.text} timestamp={message.timestamp} />
+                ),
+              )}
+              {userIsSpeaking && !transcript && (
+                <div className="flex justify-end">
+                  <div className="flex items-center gap-1.5 rounded-2xl bg-brand px-4 py-3.5" aria-label="You are speaking">
+                    {[0, 1, 2].map((dot) => (
+                      <motion.span
+                        key={dot}
+                        animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
+                        className="size-1.5 rounded-full bg-white"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {isThinking && (
+                <div className="flex items-center gap-1.5 py-2" aria-label="Zara is thinking">
                   {[0, 1, 2].map((dot) => (
                     <motion.span
                       key={dot}
-                      animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                      animate={{ opacity: [0.3, 1, 0.3] }}
                       transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
-                      className="h-1.5 w-1.5 rounded-full bg-white"
+                      className="size-1.5 rounded-full bg-brand-soft"
                     />
                   ))}
                 </div>
-              </div>
-            )}
-            {isThinking && (
-              <div className="flex items-center gap-1.5 py-2" aria-label="Zara is thinking">
-                {[0, 1, 2].map((dot) => (
-                  <motion.span
-                    key={dot}
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
-                    className="h-1.5 w-1.5 rounded-full bg-[#b597f0]"
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {(error || realtimeError) && (
-            <div role="alert" className="mb-3 flex-shrink-0 rounded-[12px] bg-[rgba(255,90,90,0.08)] px-4 py-3 text-[13px] text-[#ffb4b4] shadow-[inset_0_0_0_1px_rgba(255,120,120,0.25)]">
-              {error || realtimeError}
+              )}
             </div>
-          )}
 
-          {/* ── CONTROLS ── */}
-          <div className="relative flex flex-shrink-0 justify-end gap-3.5 pb-6 pt-2 sm:gap-4 lg:pb-[min(15vh,124px)]">
-            <button
-              type="button"
-              onClick={endInterview}
-              className="h-12 flex-1 cursor-pointer rounded-full bg-[#fcfbfc] px-7 text-[13px] font-bold uppercase tracking-[0.04em] text-black transition-transform active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a27ce9] sm:flex-none sm:text-[14px]"
-              style={mono}
-            >
-              End interview
-            </button>
-            <button
-              type="button"
-              onClick={() => setHelpOpen((open) => !open)}
-              aria-expanded={helpOpen}
-              className="h-12 flex-1 cursor-pointer rounded-full bg-[#09090d]/60 px-7 text-[13px] font-bold uppercase tracking-[0.04em] text-[#f0f0f0] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)] backdrop-blur-sm transition-shadow hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a27ce9] sm:flex-none sm:text-[14px]"
-              style={mono}
-            >
-              Having problem
-            </button>
-            {helpOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: EASE }}
-                role="dialog"
-                aria-label="Troubleshooting"
-                className="absolute bottom-[calc(100%+4px)] left-0 right-0 z-20 rounded-[16px] bg-[#16151a] p-5 text-left shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1),0_30px_60px_-20px_rgba(0,0,0,0.8)] sm:left-auto sm:w-[340px]"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="m-0 text-[13px] font-medium">Troubleshooting</p>
-                  <button type="button" onClick={() => setHelpOpen(false)} aria-label="Close" className="cursor-pointer text-white/50 hover:text-[#f0f0f0]">
-                    <X size={16} />
-                  </button>
-                </div>
-                <ul className="m-0 list-disc space-y-2 pl-4 text-[13px] leading-relaxed text-white/80">
-                  <li>Allow microphone access from the lock icon in your address bar.</li>
-                  <li>Pause for about a second when you finish. Zara replies once you stop speaking.</li>
-                  <li>Use headphones if Zara&apos;s voice is being picked up by your mic.</li>
-                </ul>
-                <button type="button" onClick={() => window.location.reload()} className="mt-4 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-[#b597f0]">
-                  <RotateCcw size={13} /> Reload session
-                </button>
-              </motion.div>
+            {(error || realtimeError) && (
+              <Alert variant="destructive" className="mb-3 flex-shrink-0 py-2.5 text-[13px]">
+                <CircleAlert />
+                <AlertDescription className="text-destructive">{error || realtimeError}</AlertDescription>
+              </Alert>
             )}
-          </div>
-        </section>
-      </main>
-    </div>
+
+            {/* ── CONTROLS ── */}
+            <div className="flex flex-shrink-0 justify-end gap-3 pt-2">
+              <Button onClick={endInterview} className={`${PILL} flex-1 active:scale-[0.97] sm:flex-none`} style={mono}>
+                End interview
+              </Button>
+              <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={`${PILL} flex-1 sm:flex-none`} style={mono}>
+                    Having problem
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent data-theme="dark" side="top" align="end" className="w-[320px] font-sans">
+                  <p className="m-0 mb-2.5 text-[13px] font-medium">Troubleshooting</p>
+                  <ul className="m-0 list-disc space-y-2 pl-4 text-[13px] leading-relaxed text-muted-foreground">
+                    <li>Allow microphone access from the lock icon in your address bar.</li>
+                    <li>Pause for about a second when you finish. Zara replies once you stop speaking.</li>
+                    <li>Use headphones if Zara&apos;s voice is being picked up by your mic.</li>
+                  </ul>
+                  <Button variant="link" size="sm" className="mt-3 h-auto p-0 text-brand-soft has-[>svg]:px-0" onClick={() => window.location.reload()}>
+                    <RotateCcw /> Reload session
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </section>
+        </main>
+      </div>
+    </TooltipProvider>
   );
 }
+
+/** Page column: 80% of the viewport on desktop, capped, so nothing looks blown up. */
+const SHELL = "mx-auto w-full px-5 sm:px-8 lg:w-[min(1320px,84vw)] lg:px-0";
+const PILL = "h-11 rounded-full px-6 text-[12.5px] font-bold uppercase tracking-[0.04em]";
 
 const LOGO_PATH =
   "M440 142H814A338.5 338.5 0 0 1 814 819H632Q597 819 597 784V672H814A190.5 190.5 0 0 0 814 291H452Q415 291 415 254V167Q415 142 440 142ZM440 502H557Q597 502 597 542V672H452Q415 672 415 635V527Q415 502 440 502Z";
 
 function Logo() {
   return (
-    <Link href="/dashboard/ai-interview" aria-label="DevPrep interviews" className="inline-flex items-center gap-2.5 text-[22px] font-semibold tracking-[-0.04em] text-[#f0f0f0]">
-      <svg viewBox="415 142 738 677" aria-hidden="true" className="h-[21px] w-[23px]" fill="currentColor">
+    <Link href="/dashboard/ai-interview" aria-label="DevPrep interviews" className="inline-flex items-center gap-2 text-[19px] font-semibold tracking-[-0.04em] text-[#f0f0f0]">
+      <svg viewBox="415 142 738 677" aria-hidden="true" className="h-[18px] w-[20px]" fill="currentColor">
         <path d={LOGO_PATH} />
       </svg>
       DevPrep
@@ -888,13 +877,15 @@ function Logo() {
 function ZaraAvatar({ speaking = false }: { speaking?: boolean }) {
   return (
     <motion.div
-      animate={speaking ? { boxShadow: ["0 0 0 0 rgba(162,124,233,0)", "0 0 0 6px rgba(162,124,233,0.22)", "0 0 0 0 rgba(162,124,233,0)"] } : { boxShadow: "0 0 0 0 rgba(162,124,233,0)" }}
+      animate={speaking ? { boxShadow: ["0 0 0 0 rgba(162,124,233,0)", "0 0 0 5px rgba(162,124,233,0.22)", "0 0 0 0 rgba(162,124,233,0)"] } : { boxShadow: "0 0 0 0 rgba(162,124,233,0)" }}
       transition={{ repeat: speaking ? Infinity : 0, duration: 1.6 }}
-      className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[#26262a] motion-reduce:!shadow-none"
+      className="shrink-0 rounded-full motion-reduce:!shadow-none"
     >
-      <span className="text-[22px] font-bold leading-none">
-        D<span className="text-[#a968e4]">.</span>
-      </span>
+      <Avatar className="size-11">
+        <AvatarFallback className="bg-[#26262a] text-[18px] font-bold leading-none text-[#f0f0f0]">
+          D<span className="text-[#a968e4]">.</span>
+        </AvatarFallback>
+      </Avatar>
     </motion.div>
   );
 }
@@ -914,8 +905,8 @@ function ViewfinderCorners() {
 function AiMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
     <div className="max-w-[92%] lg:max-w-[480px]">
-      <p className="m-0 text-[15px] leading-[1.36] text-[#ededed]">{text}</p>
-      <p className="m-0 mt-1.5 text-[13px] text-white/80">{timestamp}</p>
+      <p className="m-0 leading-[1.5] text-[#ededed]">{text}</p>
+      <p className="m-0 mt-1 text-xs text-white/50">{timestamp}</p>
     </div>
   );
 }
@@ -923,9 +914,9 @@ function AiMessage({ text, timestamp }: { text: string; timestamp: string }) {
 function UserMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-[16px] bg-[#5934d3] px-[18px] py-3 text-white">
-        <p className="m-0 text-[14px] leading-[1.45]">{text}</p>
-        <p className="m-0 mt-1 text-[13px] text-white/85">{timestamp}</p>
+      <div className="max-w-[80%] rounded-2xl bg-brand px-4 py-2.5 text-white">
+        <p className="m-0 leading-[1.45]">{text}</p>
+        <p className="m-0 mt-1 text-xs text-white/70">{timestamp}</p>
       </div>
     </div>
   );
