@@ -134,7 +134,7 @@ export function GoogleComingSoon() {
 /** Same-origin path from ?next= / ?returnUrl=, or the default dashboard. */
 export function safeNext(params: { get(name: string): string | null } | null): string {
   const next = params?.get("next") || params?.get("returnUrl");
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard/ai-interview";
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 }
 
 /** Status and server message from an axios error; `network` means no response came back. */

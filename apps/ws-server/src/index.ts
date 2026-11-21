@@ -301,7 +301,10 @@ wss.on("connection", (client) => {
                 // Construct complete WAV audio buffer
                 let completeAudioBuffer: any = Buffer.concat(session.audioChunks);
                 let effectiveMime = session.mimeType;
+                // Answer length for speaking-pace stats; only known for raw 16-bit mono PCM
+                let speakingMs: number | undefined;
                 if (session.mimeType.includes("wav") || session.mimeType.includes("pcm")) {
+                    speakingMs = Math.round((completeAudioBuffer.length / 2 / (session.sampleRate || 16000)) * 1000);
                     completeAudioBuffer = ensureWavHeader(completeAudioBuffer, session.sampleRate || 16000);
                     effectiveMime = "audio/wav";
                 }
@@ -436,6 +439,7 @@ wss.on("connection", (client) => {
                         sessionId: session.sessionId,
                         candidateAnswer: transcriptText,
                         currentQuestion: session.currentQuestion,
+                        speakingMs,
                         token: session.token,
                         onChunk: (spokenToken) => {
                             chunker.feed(spokenToken);

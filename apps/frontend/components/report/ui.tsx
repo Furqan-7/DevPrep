@@ -58,7 +58,7 @@ export function PageShell({ children }: { children: ReactNode }) {
   );
 }
 
-export function TopBar({ active }: { active: "report" | "history" }) {
+export function TopBar({ active, actions }: { active: "report" | "history"; actions?: ReactNode }) {
   const tab = (on: boolean) =>
     `inline-flex h-[30px] items-center rounded-[7px] px-3 text-[13px] transition-colors ${on ? "bg-[#f0f0f0] text-[#0a0a0a]" : "text-white/50 hover:text-[#f0f0f0]"}`;
   return (
@@ -66,16 +66,19 @@ export function TopBar({ active }: { active: "report" | "history" }) {
       <Link href="/dashboard/ai-interview" className="transition-colors hover:text-[#f0f0f0]">
         ← Back to roles
       </Link>
-      <nav aria-label="Feedback" className="flex gap-1 rounded-[10px] bg-[#0d0d0f] p-1 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
-        {active === "report" ? (
-          <span aria-current="page" className={tab(true)}>
-            Report
-          </span>
-        ) : null}
-        <Link href="/dashboard/ai-interview/feedback" aria-current={active === "history" ? "page" : undefined} className={tab(active === "history")}>
-          History
-        </Link>
-      </nav>
+      <div className="flex items-center gap-2">
+        {actions}
+        <nav aria-label="Feedback" className="flex gap-1 rounded-[10px] bg-[#0d0d0f] p-1 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
+          {active === "report" ? (
+            <span aria-current="page" className={tab(true)}>
+              Report
+            </span>
+          ) : null}
+          <Link href="/dashboard/ai-interview/feedback" aria-current={active === "history" ? "page" : undefined} className={tab(active === "history")}>
+            History
+          </Link>
+        </nav>
+      </div>
     </header>
   );
 }

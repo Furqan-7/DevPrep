@@ -19,6 +19,11 @@ model User {
   email    String    @unique
   password String?
   accounts Account[]
+
+  resume            Resume?
+  applications      Application[]
+  problemProgress   ProblemProgress[]
+  codingSubmissions CodingSubmission[]
 }
 
 model Account {
@@ -46,20 +51,29 @@ model InterviewSession {
   currentQues  Int      @default(0) // 0 = intro stage, 1-10 = questions
   createdAt    DateTime @default(now())
 
+  // Optional context the interviewer tailors questions to (snapshots taken when the interview starts)
+  resume         String? @db.Text
+  jobDescription String? @db.Text
+
+  // Set while the candidate shares a read-only link to the report
+  shareToken String? @unique
+
   questions InterviewQuestion[]
   report    InterviewReport?
 }
 
 model InterviewQuestion {
-  id        Int              @id @default(autoincrement())
-  sessionId Int
-  session   InterviewSession @relation(fields: [sessionId], references: [id])
-  question  String           @db.Text
-  answer    String?          @db.Text
-  score     Int?
-  feedback  String?          @db.Text // Zara's spoken reply during the live turn
-  order     Int // 0 = intro, 1-10 = actual questions
-  createdAt DateTime         @default(now())
+  id         Int              @id @default(autoincrement())
+  sessionId  Int
+  session    InterviewSession @relation(fields: [sessionId], references: [id])
+  question   String           @db.Text
+  answer     String?          @db.Text
+  score      Int?
+  // Length of the spoken answer, used for speaking-pace stats in the report
+  speakingMs Int?
+  feedback   String?          @db.Text // Zara's spoken reply during the live turn
+  order      Int // 0 = intro, 1-10 = actual questions
+  createdAt  DateTime         @default(now())
 
   // Rubric evaluation written when the report is generated:
   // { verdict, strengths[], gaps[], betterAnswer, rubric: { relevance, depth, clarity, evidence } }
@@ -192,4 +206,76 @@ model ProblemCompany {
   @@unique([problemId, companyId, timeWindow])
   @@index([problemId])
   @@index([companyId])
+}
+
+// Career tools
+
+/// The candidate's resume as plain text, extracted from the uploaded PDF.
+model Resume {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName  String
+  text      String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+enum ApplicationStage {
+  SAVED
+  APPLIED
+  INTERVIEWING
+  OFFER
+  REJECTED
+}
+
+/// A job the candidate is tracking, from saving it to the final outcome.
+model Application {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String? // id from the jobs board, when the application started there
+  company   String
+  title     String
+  url       String?
+  location  String?
+  notes     String?          @db.Text
+  stage     ApplicationStage @default(SAVED)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([userId, jobId])
+  @@index([userId])
+}
+
+// Practice progress
+
+/// Per-user state of a problem on the DSA sheet.
+model ProblemProgress {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId Int // id from the DSA sheet
+  solvedAt  DateTime?
+  note      String?   @db.Text
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, problemId])
+}
+
+/// A solution submitted in the coding round, with the AI review of it.
+model CodingSubmission {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem   String // slug of the coding problem
+  language  String
+  code      String   @db.Text
+  passed    Int
+  total     Int
+  score     Int
+  // { score, verdict, correctness, timeComplexity, spaceComplexity, strengths[], improvements[], followUp }
+  review    Json
+  createdAt DateTime @default(now())
+
+  @@index([userId, problem])
 }

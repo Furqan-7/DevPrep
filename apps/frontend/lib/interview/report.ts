@@ -3,7 +3,7 @@
  * the session report, interview history and single-question retries.
  */
 
-import api from "@/lib/api";
+import api, { ApiError, call } from "@/lib/api";
 import { ROLES, roleSlug } from "@/data/roles";
 
 export interface Rubric {
@@ -31,11 +31,27 @@ export interface Attempt {
   createdAt: string;
 }
 
+export interface AnswerDelivery {
+  words: number;
+  wpm: number | null;
+  fillers: number;
+}
+
+/** Speaking pace and filler words across the interview's answers. */
+export interface SessionDelivery {
+  answers: number;
+  words: number;
+  wpm: number | null;
+  fillersPer100Words: number;
+  topFillers: { word: string; count: number }[];
+}
+
 export interface ReportQuestion {
   id: number;
   order: number;
   question: string;
   answer: string | null;
+  delivery: AnswerDelivery | null;
   score: number | null;
   evaluation: AnswerEvaluation | null;
   attempts: Attempt[];
@@ -58,8 +74,22 @@ export interface SessionDetail {
   difficulty: string;
   status: string;
   createdAt: string;
+  tailored: { resume: boolean; job: boolean };
+  shareToken: string | null;
+  delivery: SessionDelivery | null;
   report: SessionReport | null;
   questions: ReportQuestion[];
+}
+
+/** The read-only report behind a share link: scores and feedback, no answers. */
+export interface SharedReport {
+  candidate: string;
+  role: string;
+  difficulty: string;
+  createdAt: string;
+  report: SessionReport;
+  delivery: SessionDelivery | null;
+  questions: { order: number; question: string; score: number; verdict: string; rubric: Rubric }[];
 }
 
 export interface SessionSummary {
@@ -81,36 +111,8 @@ export interface AttemptResult {
 
 export const MAX_ATTEMPTS = 5;
 
-export type ApiErrorKind = "auth" | "not_found" | "no_answers" | "limit" | "invalid" | "network" | "server";
-export class ReportApiError extends Error {
-  constructor(public kind: ApiErrorKind, message: string) {
-    super(message);
-  }
-}
-
-function toError(err: unknown): ReportApiError {
-  const e = err as { response?: { status?: number; data?: { message?: string } }; request?: unknown };
-  const status = e.response?.status;
-  const message = e.response?.data?.message;
-  if (!e.response) return new ReportApiError("network", "Can't reach the server. Check your connection and try again.");
-  // MiddleWhere answers 411 (no token), 403 (expired) or 404 with "Invalid Token".
-  if (status === 411 || status === 403 || status === 401 || message === "Invalid Token") {
-    return new ReportApiError("auth", "Please sign in again.");
-  }
-  if (status === 404) return new ReportApiError("not_found", message ?? "Not found.");
-  if (status === 409) return new ReportApiError("no_answers", message ?? "Nothing to review yet.");
-  if (status === 429) return new ReportApiError("limit", message ?? "No retries left for this question.");
-  if (status === 400) return new ReportApiError("invalid", message ?? "Something about that request wasn't right.");
-  return new ReportApiError("server", message ?? "Something went wrong. Please try again.");
-}
-
-async function call<T>(p: Promise<{ data: T }>): Promise<T> {
-  try {
-    return (await p).data;
-  } catch (err) {
-    throw toError(err);
-  }
-}
+// Errors are shared with the other API clients; the old name is kept for existing imports.
+export { ApiError as ReportApiError, type ApiErrorKind } from "@/lib/api";
 
 export const getSession = (id: number) =>
   call(api.get<{ session: SessionDetail }>(`/api/interview/sessions/${id}`)).then((d) => d.session);
@@ -120,6 +122,14 @@ export const createReport = (id: number) =>
 
 export const listSessions = () =>
   call(api.get<{ sessions: SessionSummary[] }>("/api/interview/sessions")).then((d) => d.sessions);
+
+export const shareSession = (id: number) =>
+  call(api.post<{ shareToken: string }>(`/api/interview/sessions/${id}/share`)).then((d) => d.shareToken);
+
+export const unshareSession = (id: number) => call(api.delete(`/api/interview/sessions/${id}/share`));
+
+export const getSharedReport = (token: string) =>
+  call(api.get<{ report: SharedReport }>(`/api/public/reports/${encodeURIComponent(token)}`)).then((d) => d.report);
 
 export const submitAttempt = (questionId: number, answer: string) =>
   call(api.post<AttemptResult>(`/api/interview/questions/${questionId}/attempts`, { answer }));
@@ -132,11 +142,11 @@ export async function transcribe(audio: Blob): Promise<string> {
   try {
     res = await fetch("/api/transcribe", { method: "POST", body: form });
   } catch {
-    throw new ReportApiError("network", "Can't reach the server. Check your connection and try again.");
+    throw new ApiError("network", "Can't reach the server. Check your connection and try again.");
   }
   const data = (await res.json().catch(() => ({}))) as { transcript?: string };
   if (!res.ok || typeof data.transcript !== "string") {
-    throw new ReportApiError("server", "We couldn't transcribe that recording. Please try again.");
+    throw new ApiError("server", "We couldn't transcribe that recording. Please try again.");
   }
   return data.transcript.trim();
 }
