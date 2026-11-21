@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * Dark top bar for the signed-in app. Only links to pages that exist; the account
- * menu has the user's name and Sign out. On small screens the links move into the menu.
+ * Dark top bar for the signed-in app. The account menu has the user's name, How it works
+ * and Sign out. Below the large breakpoint the links move into the menu.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { LogIn, LogOut, Menu } from "lucide-react";
+import { CircleHelp, LogIn, LogOut, Menu } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,15 +25,22 @@ const LOGO_PATH =
   "M440 142H814A338.5 338.5 0 0 1 814 819H632Q597 819 597 784V672H814A190.5 190.5 0 0 0 814 291H452Q415 291 415 254V167Q415 142 440 142ZM440 502H557Q597 502 597 542V672H452Q415 672 415 635V527Q415 502 440 502Z";
 
 const LINKS = [
+  { label: "Overview", href: "/dashboard" },
   { label: "Interviews", href: "/dashboard/ai-interview" },
-  { label: "Your reports", href: "/dashboard/ai-interview/feedback" },
-  { label: "How it works", href: "/dashboard/ai-interview/how-it-works" },
+  { label: "Reports", href: "/dashboard/ai-interview/feedback" },
+  { label: "Coding", href: "/dashboard/coding" },
+  { label: "DSA", href: "/dashboard/dsa" },
+  { label: "Jobs", href: "/dashboard/jobs" },
+  { label: "Applications", href: "/dashboard/applications" },
+  { label: "Resume", href: "/dashboard/resume" },
 ];
 
-function activeHref(pathname: string): string {
-  if (pathname.startsWith("/dashboard/ai-interview/feedback") || pathname.startsWith("/dashboard/ai-interview/report")) return LINKS[1]!.href;
-  if (pathname.startsWith("/dashboard/ai-interview/how-it-works")) return LINKS[2]!.href;
-  return LINKS[0]!.href;
+/** The nav link for a path: the longest matching prefix; reports count as Reports. */
+function activeHref(pathname: string): string | null {
+  if (pathname.startsWith("/dashboard/ai-interview/report")) return "/dashboard/ai-interview/feedback";
+  const match = LINKS.filter((l) => pathname === l.href || (l.href !== "/dashboard" && pathname.startsWith(`${l.href}/`)))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  return match?.href ?? null;
 }
 
 export function AppNav() {
@@ -66,20 +73,20 @@ export function AppNav() {
   return (
     <header data-theme="dark" className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0a0a0a]/75 text-foreground backdrop-blur-[14px]">
       <div className="mx-auto flex h-[60px] max-w-[1200px] items-center justify-between px-4 sm:px-6">
-        <Link href="/dashboard/ai-interview" className="flex items-center gap-[9px] text-[15.5px] font-semibold tracking-[-0.04em] text-[#f0f0f0]" aria-label="DevPrep interviews">
+        <Link href="/dashboard" className="flex items-center gap-[9px] text-[15.5px] font-semibold tracking-[-0.04em] text-[#f0f0f0]" aria-label="DevPrep overview">
           <svg viewBox="415 142 738 677" aria-hidden="true" className="h-[15px] w-[17px]" fill="currentColor">
             <path d={LOGO_PATH} />
           </svg>
           DevPrep
         </Link>
 
-        <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
+        <nav aria-label="Main" className="hidden items-center gap-0.5 lg:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               aria-current={active === l.href ? "page" : undefined}
-              className={`relative isolate rounded-md px-3 py-1.5 text-[13.5px] tracking-[-0.01em] transition-colors ${active === l.href ? "text-[#f0f0f0]" : "text-white/50 hover:bg-white/[0.04] hover:text-[#f0f0f0]"}`}
+              className={`relative isolate rounded-md px-2.5 py-1.5 text-[13.5px] tracking-[-0.01em] transition-colors ${active === l.href ? "text-[#f0f0f0]" : "text-white/50 hover:bg-white/[0.04] hover:text-[#f0f0f0]"}`}
             >
               {active === l.href && <motion.span layoutId="app-nav-active" className="absolute inset-0 -z-10 rounded-md bg-white/[0.07]" />}
               {l.label}
@@ -89,7 +96,7 @@ export function AppNav() {
 
         <div className="flex items-center gap-2">
           {user && !user.signedIn ? (
-            <Button asChild variant="outline" size="sm" className="hidden border-white/14 bg-transparent sm:inline-flex">
+            <Button asChild variant="outline" size="sm" className="hidden border-white/14 bg-transparent lg:inline-flex">
               <Link href={signInHref}>Sign in</Link>
             </Button>
           ) : null}
@@ -106,7 +113,7 @@ export function AppNav() {
                   </Avatar>
                 </button>
               ) : (
-                <Button variant="ghost" size="icon" aria-label="Menu" className={`rounded-full ${user && !user.signedIn ? "sm:hidden" : ""}`}>
+                <Button variant="ghost" size="icon" aria-label="Menu" className={`rounded-full ${user && !user.signedIn ? "lg:hidden" : ""}`}>
                   <Menu />
                 </Button>
               )}
@@ -126,7 +133,7 @@ export function AppNav() {
                   <DropdownMenuSeparator />
                 </>
               ) : null}
-              <div className="sm:hidden">
+              <div className="lg:hidden">
                 {LINKS.map((l) => (
                   <DropdownMenuItem key={l.href} asChild>
                     <Link href={l.href}>{l.label}</Link>
@@ -134,6 +141,12 @@ export function AppNav() {
                 ))}
                 <DropdownMenuSeparator />
               </div>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/ai-interview/how-it-works">
+                  <CircleHelp /> How it works
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {user?.signedIn ? (
                 <DropdownMenuItem onSelect={signOut}>
                   <LogOut /> Sign out

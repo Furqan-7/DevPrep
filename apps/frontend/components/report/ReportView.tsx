@@ -20,7 +20,9 @@ import {
   type AttemptResult,
   type SessionDetail,
 } from "@/lib/interview/report";
+import { DeliveryCard } from "./Delivery";
 import { QuestionRow } from "./QuestionRow";
+import { ShareReport } from "./ShareReport";
 import { PageShell, StateMessage, TopBar, card, ease, primaryBtn, reveal, secondaryBtn, useReducedMotionFlag } from "./ui";
 
 type View =
@@ -43,7 +45,7 @@ export function ReportView({ sessionId }: { sessionId: number }) {
       let session = await getSession(sessionId);
       if (!session.report) {
         const answered = session.questions.filter((q) => q.answer).length;
-        if (answered === 0) throw new ReportApiError("no_answers", "No answers to review.");
+        if (answered === 0) throw new ReportApiError("conflict", "No answers to review.");
         setView({ name: "generating", answered });
         session = await createReport(sessionId);
       }
@@ -80,7 +82,7 @@ export function ReportView({ sessionId }: { sessionId: number }) {
 
   return (
     <PageShell>
-      <TopBar active="report" />
+      <TopBar active="report" actions={view.name === "ready" && view.session.report ? <ShareReport sessionId={view.session.id} initialToken={view.session.shareToken} /> : null} />
       {view.name === "loading" && <Skeleton />}
       {view.name === "generating" && <Generating answered={view.answered} reduce={reduce} />}
       {view.name === "error" && <ErrorState error={view.error} onRetry={load} />}
@@ -132,7 +134,7 @@ function ErrorState({ error, onRetry }: { error: ReportApiError; onRetry: () => 
         </Link>
       </StateMessage>
     );
-  if (error.kind === "no_answers")
+  if (error.kind === "conflict")
     return (
       <StateMessage title="Nothing to review yet" body="This interview ended before any answers were recorded. Start a new one and answer at least one question.">
         <Link href="/dashboard/ai-interview" className={primaryBtn}>
@@ -160,6 +162,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
   // open the weakest scored answer first: that's where a retry helps most
   const scored = session.questions.filter((q) => q.score !== null);
   const weakest = scored.length ? scored.reduce((a, b) => ((b.score ?? 0) < (a.score ?? 0) ? b : a)).id : null;
+  const tailoredTo = [session.tailored.resume && "resume", session.tailored.job && "target job"].filter(Boolean).join(" and ");
 
   return (
     <>
@@ -170,6 +173,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
           <div className="text-[13px] tracking-[-0.02em] text-white/45">
             {roleTitle(session.role)} · {levelLabel(session.difficulty)} · {formatDate(session.createdAt)} · {answered}{" "}
             {answered === 1 ? "answer" : "answers"}
+            {tailoredTo ? ` · Tailored to your ${tailoredTo}` : ""}
           </div>
           <h1 className="m-0 mb-3 mt-2 text-[32px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[40px]">
             Your interview{" "}
@@ -222,6 +226,12 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
           </ol>
         </motion.section>
       )}
+
+      {session.delivery ? (
+        <motion.div {...reveal(reduce, 0.11)}>
+          <DeliveryCard delivery={session.delivery} />
+        </motion.div>
+      ) : null}
 
       <motion.h2 {...reveal(reduce, 0.14)} className="m-0 mb-3 ml-1 mt-[34px] text-[13px] font-medium text-white/45">
         Question by question · open one to see feedback and retry it

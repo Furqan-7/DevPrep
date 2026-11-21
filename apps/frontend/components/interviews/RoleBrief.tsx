@@ -3,19 +3,23 @@
 /**
  * Role detail ("prep brief"): what the role covers, how the interview runs, a study
  * list of common questions, the user's past interviews for this role, and a sticky
- * panel to pick a level and start.
+ * panel to pick a level, optionally tailor the interview (resume, target job) and start.
+ * ?job=<id> pre-fills the target job from the jobs board.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import api from "@/lib/api";
 import { serif } from "@/lib/fonts";
 import { ROLES, ROLE_CATEGORIES, roleSlug } from "@/data/roles";
 import { ROLE_STUDY_QUESTIONS } from "@/data/roleQuestions";
+import { HARDCODED_JOBS, jobDescriptionText } from "@/data/jobs";
+import { getResume } from "@/lib/career";
 import { formatDate, levelLabel, listSessions, type SessionSummary } from "@/lib/interview/report";
 import { ease, revealProps, useMotionMode } from "@/lib/motion";
+import { MIN_JOB_CHARS, TailorOptions, type TargetJob } from "./TailorOptions";
 
 const italic = { fontStyle: "italic" } as const;
 
@@ -38,6 +42,7 @@ const STEPS = [
 
 export function RoleBrief({ slug }: { slug: string }) {
   const router = useRouter();
+  const params = useSearchParams();
   const mode = useMotionMode();
   const reveal = (d: number) => revealProps(mode, d);
   const index = ORDERED.findIndex((r) => roleSlug(r.title) === slug);
@@ -49,6 +54,12 @@ export function RoleBrief({ slug }: { slug: string }) {
   const [history, setHistory] = useState<SessionSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
+  const [resumeName, setResumeName] = useState<string | null | undefined>(undefined);
+  const [useResume, setUseResume] = useState(false);
+  const [job, setJob] = useState<TargetJob | null>(() => {
+    const fromBoard = HARDCODED_JOBS.find((j) => j.id === params.get("job"));
+    return fromBoard ? { label: `${fromBoard.title} at ${fromBoard.company}`, text: jobDescriptionText(fromBoard) } : null;
+  });
 
   useEffect(() => {
     try {
@@ -57,11 +68,17 @@ export function RoleBrief({ slug }: { slug: string }) {
     } catch {
       /* storage unavailable: keep the default */
     }
-    if (!localStorage.getItem("token")) return;
+    if (!localStorage.getItem("token")) {
+      setResumeName(null);
+      return;
+    }
     let alive = true;
     listSessions()
       .then((s) => alive && setHistory(s.filter((x) => x.role === slug)))
       .catch(() => {}); // history is optional on this page
+    getResume()
+      .then((r) => alive && setResumeName(r?.fileName ?? null))
+      .catch(() => alive && setResumeName(null));
     return () => {
       alive = false;
     };
@@ -80,6 +97,11 @@ export function RoleBrief({ slug }: { slug: string }) {
 
   const start = async () => {
     if (!localStorage.getItem("token")) return toSignIn();
+    const jobDescription = job?.text.trim() ?? "";
+    if (jobDescription && jobDescription.length < MIN_JOB_CHARS) {
+      setError(`Paste more of the job description (at least ${MIN_JOB_CHARS} characters), or remove it.`);
+      return;
+    }
     setStarting(true);
     setError("");
     try {
@@ -90,7 +112,12 @@ export function RoleBrief({ slug }: { slug: string }) {
         totalQuestions: number;
         candidateName?: string | null;
         message?: string;
-      }>("/api/interview/generate", { role: slug, difficulty: level });
+      }>("/api/interview/generate", {
+        role: slug,
+        difficulty: level,
+        ...(useResume ? { useResume: true } : {}),
+        ...(jobDescription ? { jobDescription } : {}),
+      });
       if (!data.success) throw new Error(data.message ?? "start failed");
       // read by the session page (app/dashboard/ai-interview/[role]/session)
       sessionStorage.setItem(
@@ -112,6 +139,11 @@ export function RoleBrief({ slug }: { slug: string }) {
       const status = e.response?.status;
       // MiddleWhere answers 411 (no token), 403 (expired) or 404 "Invalid Token"
       if (status === 411 || status === 403 || e.response?.data?.message === "Invalid Token") return toSignIn();
+      if (status === 409 && e.response?.data?.message) {
+        setError(e.response.data.message);
+        setStarting(false);
+        return;
+      }
       setError(e.response ? "Couldn't start the interview. Please try again." : "Can't reach the server. Check your connection and try again.");
       setStarting(false);
     }
@@ -179,6 +211,8 @@ export function RoleBrief({ slug }: { slug: string }) {
           <p className="m-0 mt-2 min-h-[36px] text-[12.5px] leading-[1.45] text-white/45" aria-live="polite">
             {levelInfo.hint}
           </p>
+
+          <TailorOptions resumeName={resumeName} useResume={useResume} onUseResume={setUseResume} job={job} onJob={setJob} />
 
           <dl className="m-0 mt-4 border-t border-white/[0.08] text-[13.5px]">
             {[

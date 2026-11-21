@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { AppNav } from "@/components/dashboard/AppNav";
 import { RoleBrief } from "@/components/interviews/RoleBrief";
@@ -19,7 +20,9 @@ export default async function RolePage({ params }: Params) {
   return (
     <div className="min-h-dvh bg-[#0a0a0a] font-sans text-[#f0f0f0] selection:bg-[#bec8ff]/25">
       <AppNav />
-      <RoleBrief slug={slug} />
+      <Suspense>
+        <RoleBrief slug={slug} />
+      </Suspense>
     </div>
   );
 }

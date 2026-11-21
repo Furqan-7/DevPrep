@@ -1,9 +1,8 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { OverviewView } from "@/components/overview/OverviewView";
 
-/**
- * /dashboard → redirect to AI Interview role-selection page.
- * Jobs, DSA, and CS Core are not part of the current deployment.
- */
+export const metadata: Metadata = { title: "Overview · DevPrep" };
+
 export default function DashboardPage() {
-  redirect("/dashboard/ai-interview");
+  return <OverviewView />;
 }
