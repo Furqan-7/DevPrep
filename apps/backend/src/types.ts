@@ -19,6 +19,9 @@ export const InterviewSessionSchema = z.object({
     role: z.string(),
     difficulty: z.string(),
     introduction: z.string().optional(),
+    // Tailor the questions to the saved resume and/or a target job's description
+    useResume: z.boolean().optional(),
+    jobDescription: z.string().trim().min(80).max(8000).optional(),
 });
 
 export const InterviewQuestions = z.object({

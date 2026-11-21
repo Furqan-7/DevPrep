@@ -12,6 +12,13 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import authRouter from "./routes/auth.route";
 import interviewRouter from "./routes/interview.route";
+import resumeRouter from "./routes/resume.route";
+import applicationRouter from "./routes/application.route";
+import progressRouter from "./routes/progress.route";
+import codingRouter from "./routes/coding.route";
+import insightsRouter from "./routes/insights.route";
+import adminRouter from "./routes/admin.route";
+import publicRouter from "./routes/public.route";
 
 const app = express();
 app.use(express.json());
@@ -36,6 +43,13 @@ app.get("/health", (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/interview', interviewRouter);
+app.use('/api/resume', resumeRouter);
+app.use('/api/applications', applicationRouter);
+app.use('/api/progress', progressRouter);
+app.use('/api/coding', codingRouter);
+app.use('/api/insights', insightsRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/public', publicRouter);
 
 
 

@@ -11,6 +11,8 @@ export interface AuthoritativeTurnInput {
     sessionId: number;
     candidateAnswer: string;
     currentQuestion?: string;
+    /** Length of the candidate's spoken answer. */
+    speakingMs?: number;
     token?: string;
     onChunk: (spokenChunk: string) => void;
     /** Called once the spoken text is complete (before metrics/DB work finishes). */
@@ -27,7 +29,7 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
 export async function streamAuthoritativeInterviewTurn(
     input: AuthoritativeTurnInput
 ): Promise<TurnResult> {
-    const { sessionId, candidateAnswer, currentQuestion, token, onChunk, onSpokenEnd } = input;
+    const { sessionId, candidateAnswer, currentQuestion, speakingMs, token, onChunk, onSpokenEnd } = input;
 
     const endpoint = `${BACKEND_URL}/api/interview/turn-stream`;
     console.log(`[AuthoritativeService] Requesting turn stream from: ${endpoint} for session #${sessionId}`);
@@ -47,6 +49,7 @@ export async function streamAuthoritativeInterviewTurn(
             sessionId,
             candidateAnswer,
             currentQuestion,
+            speakingMs,
         }),
     });
 
