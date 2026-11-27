@@ -23,7 +23,7 @@ import {
 import { DeliveryCard } from "./Delivery";
 import { QuestionRow } from "./QuestionRow";
 import { ShareReport } from "./ShareReport";
-import { PageShell, StateMessage, TopBar, card, ease, primaryBtn, reveal, secondaryBtn, useReducedMotionFlag } from "./ui";
+import { PageShell, ReportHeader, StateMessage, card, ease, primaryBtn, reveal, secondaryBtn, useReducedMotionFlag } from "./ui";
 
 type View =
   | { name: "loading" }
@@ -53,7 +53,7 @@ export function ReportView({ sessionId }: { sessionId: number }) {
     } catch (err) {
       const error = err instanceof ReportApiError ? err : new ReportApiError("server", "Something went wrong.");
       if (error.kind === "auth") {
-        router.replace(`/auth/signin?next=${encodeURIComponent(`/dashboard/ai-interview/report/${sessionId}`)}`);
+        router.replace(`/auth/signin?next=${encodeURIComponent(`/dashboard/reports/${sessionId}`)}`);
         return;
       }
       setView({ name: "error", error });
@@ -82,7 +82,7 @@ export function ReportView({ sessionId }: { sessionId: number }) {
 
   return (
     <PageShell>
-      <TopBar active="report" actions={view.name === "ready" && view.session.report ? <ShareReport sessionId={view.session.id} initialToken={view.session.shareToken} /> : null} />
+      <ReportHeader actions={view.name === "ready" && view.session.report ? <ShareReport sessionId={view.session.id} initialToken={view.session.shareToken} /> : null} />
       {view.name === "loading" && <Skeleton />}
       {view.name === "generating" && <Generating answered={view.answered} reduce={reduce} />}
       {view.name === "error" && <ErrorState error={view.error} onRetry={load} />}
@@ -129,7 +129,7 @@ function ErrorState({ error, onRetry }: { error: ReportApiError; onRetry: () => 
   if (error.kind === "not_found")
     return (
       <StateMessage title="Interview not found" body="This interview doesn't exist, or it belongs to another account.">
-        <Link href="/dashboard/ai-interview/feedback" className={primaryBtn}>
+        <Link href="/dashboard/reports" className={primaryBtn}>
           See your interviews
         </Link>
       </StateMessage>
@@ -147,7 +147,7 @@ function ErrorState({ error, onRetry }: { error: ReportApiError; onRetry: () => 
       <button type="button" onClick={onRetry} className={primaryBtn}>
         Try again
       </button>
-      <Link href="/dashboard/ai-interview/feedback" className={secondaryBtn}>
+      <Link href="/dashboard/reports" className={secondaryBtn}>
         Back to history
       </Link>
     </StateMessage>

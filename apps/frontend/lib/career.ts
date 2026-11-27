@@ -45,7 +45,7 @@ export interface Application {
   updatedAt: string;
 }
 
-export type ApplicationInput = Pick<Application, "company" | "title"> & Partial<Pick<Application, "jobId" | "url" | "location" | "notes" | "stage">>;
+export type ApplicationInput = Pick<Application, "company" | "title"> & Partial<Pick<Application, "url" | "location" | "notes" | "stage">>;
 
 export const getResume = () => call(api.get<{ resume: Resume | null }>("/api/resume")).then((d) => d.resume);
 

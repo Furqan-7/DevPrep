@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
-import { AppNav } from "@/components/dashboard/AppNav";
 import { cn } from "@/lib/utils";
 
 /**
- * Frame for the signed-in app pages: the dark canvas, the top nav, and an optional page
- * header (title, one line of description, actions on the right).
+ * Content frame for the signed-in app pages (the nav comes from app/dashboard/layout.tsx),
+ * with an optional page header: title, one line of description, actions on the right.
  */
 export function AppPage({
   title,
@@ -20,21 +19,18 @@ export function AppPage({
   className?: string;
 }) {
   return (
-    <div className="min-h-dvh bg-[#0a0a0a] font-sans text-[#f0f0f0] selection:bg-[#bec8ff]/25">
-      <AppNav />
-      <main data-theme="dark" className={cn("mx-auto max-w-[1200px] px-4 pb-24 pt-10 text-foreground sm:px-6", className)}>
-        {title ? (
-          <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="m-0 text-[28px] font-medium leading-[1.1] tracking-[-0.04em]">{title}</h1>
-              {description ? <p className="m-0 mt-2 max-w-[620px] text-[14.5px] leading-[1.5] text-muted-foreground">{description}</p> : null}
-            </div>
-            {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
-          </header>
-        ) : null}
-        {children}
-      </main>
-    </div>
+    <main data-theme="dark" className={cn("mx-auto max-w-[1200px] px-4 pb-24 pt-10 text-foreground sm:px-6", className)}>
+      {title ? (
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[28px] font-medium leading-[1.1] tracking-[-0.04em]">{title}</h1>
+            {description ? <p className="m-0 mt-2 max-w-[620px] text-[14.5px] leading-[1.5] text-muted-foreground">{description}</p> : null}
+          </div>
+          {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        </header>
+      ) : null}
+      {children}
+    </main>
   );
 }
 

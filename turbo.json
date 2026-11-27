@@ -10,11 +10,6 @@
     "CORS_ORIGIN",
     "FRONTEND_URL",
     "PORT",
-    "RAPID_API_KEY",
-    "REMOTIVE_API_KEY",
-    "ADZUNA_API_KEY",
-    "COMPONY_LOGO_API",
-    "OPENAI_API_KEY",
     "NODE_ENV"
   ],
   "tasks": {

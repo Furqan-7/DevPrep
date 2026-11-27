@@ -382,7 +382,6 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("[useRealtimeVoice] Single WebSocket connected successfully");
         setWsStatus("connected");
         wsConnectingPromiseRef.current = null;
         resolve(ws);
@@ -522,7 +521,6 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
               };
               lastTurnDataRef.current = null;
               optionsRef.current.onTurnComplete?.(turnPayload);
-              console.log("[useRealtimeVoice] AI finished speaking. Microphone active and listening for candidate turn.");
             }, cooldownMs);
 
             optionsRef.current.onTtsEnd?.(data);
@@ -536,7 +534,6 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
               isComplete: data.isComplete,
             };
           } else if (data.type === "empty_speech") {
-            console.log("[useRealtimeVoice] Empty speech detected. Resuming listening safely.");
             setIsTranscribing(false);
             setIsAiResponding(false);
             setIsTtsSpeaking(false);
@@ -631,7 +628,6 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
 
       // If authoritative session config is provided, initialize session on ws-server
       if (config?.sessionId) {
-        console.log(`[useRealtimeVoice] Initializing authoritative session #${config.sessionId}`);
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({
             type: "init_session",
@@ -886,7 +882,6 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
   ]);
 
   const endInterview = useCallback(() => {
-    console.log("[useRealtimeVoice] User ended interview.");
     cleanupMicrophone();
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "stop_recording" }));

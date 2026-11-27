@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Interview history: every session with its score, filterable by role. A score trend
+ * Reports: every interview session with its score, filterable by role. A score trend
  * is drawn only within one role, since scores across different roles aren't comparable:
  * the selected role, or with "All roles" the most recent role that has two reports.
  */
@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { serif } from "@/lib/fonts";
 import { formatDate, levelLabel, listSessions, roleTitle, ReportApiError, type SessionSummary } from "@/lib/interview/report";
-import { PageShell, ScoreChip, StateMessage, TopBar, card, ease, primaryBtn, reveal, useReducedMotionFlag } from "./ui";
+import { PageShell, ScoreChip, StateMessage, card, ease, primaryBtn, reveal, useReducedMotionFlag } from "./ui";
 
 const italic = { fontStyle: "italic" } as const;
 
@@ -31,7 +31,7 @@ export function HistoryView() {
       .catch((err: unknown) => {
         if (!alive) return;
         const e = err instanceof ReportApiError ? err : new ReportApiError("server", "Couldn't load your interviews.");
-        if (e.kind === "auth") router.replace(`/auth/signin?next=${encodeURIComponent("/dashboard/ai-interview/feedback")}`);
+        if (e.kind === "auth") router.replace(`/auth/signin?next=${encodeURIComponent("/dashboard/reports")}`);
         else setError(e);
       });
     return () => {
@@ -56,7 +56,6 @@ export function HistoryView() {
 
   return (
     <PageShell>
-      <TopBar active="history" />
       {error ? (
         <StateMessage title="Couldn't load your interviews" body={error.message}>
           <button type="button" onClick={() => location.reload()} className={primaryBtn}>
@@ -77,10 +76,10 @@ export function HistoryView() {
         </StateMessage>
       ) : (
         <>
-          <motion.h1 {...reveal(reduce)} className="m-0 mb-5 mt-2 text-[34px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[40px]">
-            Past{" "}
+          <motion.h1 {...reveal(reduce)} className="m-0 mb-5 mt-10 text-[34px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[40px]">
+            Your{" "}
             <em className={`${serif.className} font-normal tracking-normal`} style={italic}>
-              interviews
+              reports
             </em>
           </motion.h1>
 
@@ -137,7 +136,7 @@ function Row({ s }: { s: SessionSummary }) {
   );
   const cls = "flex items-center gap-4 px-5 py-[18px]";
   return s.answered > 0 ? (
-    <Link href={`/dashboard/ai-interview/report/${s.id}`} className={`${cls} transition-colors hover:bg-white/[0.02] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#bec8ff]/60`}>
+    <Link href={`/dashboard/reports/${s.id}`} className={`${cls} transition-colors hover:bg-white/[0.02] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#bec8ff]/60`}>
       {body}
     </Link>
   ) : (

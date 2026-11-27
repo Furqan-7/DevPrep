@@ -55,24 +55,32 @@ DevPrep Architecture :
 
 ```text
 apps/
-├── web/          # Next.js frontend
-├── ws-server/    # Real-time WebSocket server
-└── http-server/  # REST API
+├── frontend/     # Next.js app (landing page, dashboard, interview room)
+└── backend/      # Express REST API
 
-packages/         # Shared packages
-prisma/           # Database schema & migrations
+packages/
+├── database/           # Prisma schema, migrations and client
+├── eslint-config/      # Shared ESLint config
+└── typescript-config/  # Shared tsconfig presets
+```
 
+## Getting Started
 
+```bash
 git clone https://github.com/Furqan-7/devprep.git
 cd devprep
 pnpm install
-cp .env.example .env
+cp apps/backend/.env.example apps/backend/.env
 pnpm dev
+```
 
+Environment variables:
+
+```text
 DATABASE_URL=
+JWT_TOKEN=
 GROQ_API_KEY=
 GEMINI_API_KEY=
 DEEPGRAM_API_KEY=
-
-
-This keeps the README focused on **what DevPrep is, how it works, its architecture, features, and stack**, without turning it into technical documentation.
+NEXT_PUBLIC_API_URL=
+```
