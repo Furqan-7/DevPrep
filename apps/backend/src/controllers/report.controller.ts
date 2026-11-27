@@ -1,13 +1,16 @@
+import { randomBytes } from "crypto";
 import { prisma } from "@repo/database";
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { answerDelivery, sessionDelivery } from "../services/delivery.service";
 import { evaluateAttempt, evaluateSession, type AnswerEvaluation } from "../services/evaluation.service";
 import { forgetSession, TOTAL_QUESTIONS } from "../services/interview-engine.service";
 
 /**
  * Post-interview feedback: the session report (per-answer rubric feedback plus an
- * overall assessment), the user's interview history, and retries of single questions.
- * All routes run behind MiddleWhere, so res.locals.userId is set.
+ * overall assessment), the user's interview history, retries of single questions, and
+ * read-only share links. All routes except the public report run behind MiddleWhere,
+ * so res.locals.userId is set.
  */
 
 const MAX_ATTEMPTS_PER_QUESTION = 5;
@@ -51,12 +54,16 @@ type LoadedSession = NonNullable<Awaited<ReturnType<typeof loadOwnedSession>>>;
 
 function serialize(session: LoadedSession) {
     const report = session.report;
+    const answered = session.questions.filter((q) => hasAnswer(q.answer));
     return {
         id: session.id,
         role: session.role,
         difficulty: session.difficulty,
         status: session.status,
         createdAt: session.createdAt,
+        tailored: { resume: !!session.resume, job: !!session.jobDescription },
+        shareToken: session.shareToken,
+        delivery: sessionDelivery(answered.map((q) => ({ answer: q.answer as string, speakingMs: q.speakingMs }))),
         report: report
             ? {
                   overallScore: report.overallScore,
@@ -79,6 +86,7 @@ function serialize(session: LoadedSession) {
                     order: q.order,
                     question: q.question,
                     answer: hasAnswer(q.answer) ? q.answer : null,
+                    delivery: hasAnswer(q.answer) ? answerDelivery(q.answer, q.speakingMs) : null,
                     // Only rubric scores are shown; the quick live score is not.
                     score: evaluation ? evaluation.score : null,
                     evaluation,
@@ -269,5 +277,70 @@ export const createAttempt = async (req: Request, res: Response) => {
     } catch (err: any) {
         console.error("[createAttempt]", err?.message ?? err);
         return res.status(502).json({ success: false, message: "Couldn't score your answer right now. Please try again." });
+    }
+};
+
+/* ───────── share links ───────── */
+
+/** POST /sessions/:id/share: turns on the read-only link (reusing an existing token). */
+export const shareSession = async (req: Request, res: Response) => {
+    const id = idParam(req);
+    if (!id) return res.status(400).json({ success: false, message: "Invalid session id." });
+    try {
+        const session = await loadOwnedSession(id, userIdOf(res));
+        if (!session) return res.status(404).json({ success: false, message: "Interview not found." });
+        if (!session.report) return res.status(409).json({ success: false, message: "Get the report before sharing it." });
+        const shareToken = session.shareToken ?? randomBytes(18).toString("base64url");
+        if (!session.shareToken) await prisma.interviewSession.update({ where: { id }, data: { shareToken } });
+        return res.json({ success: true, shareToken });
+    } catch (err: any) {
+        console.error("[shareSession]", err?.message ?? err);
+        return res.status(500).json({ success: false, message: "Couldn't create a share link." });
+    }
+};
+
+/** DELETE /sessions/:id/share: the old link stops working. */
+export const unshareSession = async (req: Request, res: Response) => {
+    const id = idParam(req);
+    if (!id) return res.status(400).json({ success: false, message: "Invalid session id." });
+    try {
+        const { count } = await prisma.interviewSession.updateMany({ where: { id, userId: userIdOf(res) }, data: { shareToken: null } });
+        if (count === 0) return res.status(404).json({ success: false, message: "Interview not found." });
+        return res.json({ success: true });
+    } catch (err: any) {
+        console.error("[unshareSession]", err?.message ?? err);
+        return res.status(500).json({ success: false, message: "Couldn't turn off the share link." });
+    }
+};
+
+/**
+ * GET /api/public/reports/:token: the shared report. Scores and feedback only; the
+ * candidate's answers, the suggested answers and their retries stay private.
+ */
+export const getSharedReport = async (req: Request, res: Response) => {
+    const token = String(req.params.token ?? "");
+    if (!/^[\w-]{16,64}$/.test(token)) return res.status(404).json({ success: false, message: "Report not found." });
+    try {
+        const session = await prisma.interviewSession.findUnique({ where: { shareToken: token }, include: sessionInclude });
+        if (!session?.report) return res.status(404).json({ success: false, message: "Report not found." });
+        const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { username: true } });
+        const full = serialize(session);
+        return res.json({
+            success: true,
+            report: {
+                candidate: user?.username ?? "",
+                role: full.role,
+                difficulty: full.difficulty,
+                createdAt: full.createdAt,
+                report: full.report,
+                delivery: full.delivery,
+                questions: full.questions
+                    .filter((q) => q.evaluation)
+                    .map((q) => ({ order: q.order, question: q.question, score: q.score, verdict: q.evaluation!.verdict, rubric: q.evaluation!.rubric })),
+            },
+        });
+    } catch (err: any) {
+        console.error("[getSharedReport]", err?.message ?? err);
+        return res.status(500).json({ success: false, message: "Couldn't load this report." });
     }
 };

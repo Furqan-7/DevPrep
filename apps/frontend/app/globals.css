@@ -24,6 +24,7 @@
   --ring: #a27ce9;
   --brand: #5934d3;
   --brand-soft: #a27ce9;
+  --radius: 0.625rem;
 }
 
 [data-theme="dark"] {

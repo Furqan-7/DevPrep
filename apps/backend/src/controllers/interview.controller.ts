@@ -86,19 +86,22 @@ export const startInterview = async (req: Request, res: Response) => {
                 success: false,
             });
         }
-        const { role, difficulty, introduction } = parseResult.data;
+        const { role, difficulty, introduction, useResume, jobDescription } = parseResult.data;
 
         // Select authoritative Question 1 from curated role pool (<1ms execution)
         const defaultFallback = "Can you walk me through your technical background and a recent project you built?";
         const pool = ROLE_FIRST_QUESTIONS[role] ?? [defaultFallback];
         const question: string = pool[Math.floor(Math.random() * pool.length)] ?? defaultFallback;
 
-        // Fetch candidate username for AI context
+        // Fetch candidate username (and resume, when asked for) for AI context
         const candidateUser = await prisma.user.findUnique({
             where: { id: parseInt(userId, 10) },
-            select: { username: true },
+            select: { username: true, resume: useResume ? { select: { text: true } } : false },
         });
         const candidateName = candidateUser?.username ?? null;
+        if (useResume && !candidateUser?.resume) {
+            return res.status(409).json({ success: false, message: "Upload your resume before starting a resume-based interview." });
+        }
 
         // Atomically create session with intro (order 0) and first technical question (order 1).
         // currentQues starts at 0 so the intro is the authoritative first spoken question.
@@ -108,6 +111,8 @@ export const startInterview = async (req: Request, res: Response) => {
                 role,
                 difficulty,
                 introduction,
+                resume: candidateUser?.resume?.text ?? null,
+                jobDescription: jobDescription ?? null,
                 status: "active",
                 currentQues: 0,
                 questions: {
@@ -152,7 +157,7 @@ export const startInterview = async (req: Request, res: Response) => {
  */
 export const streamInterviewTurn = async (req: Request, res: Response) => {
     try {
-        const { sessionId, candidateAnswer, currentQuestion } = req.body;
+        const { sessionId, candidateAnswer, currentQuestion, speakingMs } = req.body;
 
         if (!sessionId || !candidateAnswer) {
             return res.status(400).json({
@@ -180,6 +185,7 @@ export const streamInterviewTurn = async (req: Request, res: Response) => {
             sessionId: sessIdNum,
             candidateAnswer: String(candidateAnswer).trim(),
             currentQuestionText: currentQuestion ? String(currentQuestion).trim() : undefined,
+            speakingMs: Number.isInteger(speakingMs) && speakingMs > 0 ? speakingMs : undefined,
             onSpokenChunk: (chunk: string) => {
                 res.write(`data: ${JSON.stringify({ type: "spoken_chunk", text: chunk })}\n\n`);
             },

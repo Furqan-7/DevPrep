@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, animate, motion } from "motion/react";
 import { MAX_ATTEMPTS, currentScore, questionLabel, type AttemptResult, type ReportQuestion } from "@/lib/interview/report";
 import { MicIcon, ScoreChip, WithPlaceholders, card, ease, primaryBtn } from "./ui";
+import { deliveryLine } from "./Delivery";
 import { VoiceRetry } from "./VoiceRetry";
 
 export function QuestionRow({
@@ -88,6 +89,7 @@ export function QuestionRow({
                     <div>
                       <Label>{latest ? `What you said · attempt ${q.attempts.length + 1}` : "What you said"}</Label>
                       <p className="m-0 border-l-2 border-white/10 pl-3 text-[14px] leading-[1.55] text-white/72">{answer}</p>
+                      {!latest && q.delivery ? <p className="mt-2 pl-3 text-[12.5px] tabular-nums text-white/40">{deliveryLine(q.delivery)}</p> : null}
                       {q.attempts.length > 0 && q.score !== null ? (
                         <p className="mt-3 text-[12.5px] tabular-nums text-white/40">
                           Scores so far: {[q.score, ...q.attempts.map((a) => a.score)].join(" → ")}

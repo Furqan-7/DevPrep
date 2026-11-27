@@ -380,3 +380,23 @@ export const HARDCODED_JOBS: Job[] = [
     isSaved: false,
   },
 ];
+
+/** The interview role closest to a job, for "Practice for this job". */
+export function practiceRoleFor(job: Job): string {
+  const title = job.title.toLowerCase();
+  const skills = job.skills.join(" ").toLowerCase();
+  if (/android/.test(title)) return "android-developer";
+  if (/\bios\b|swift/.test(title)) return "ios-developer";
+  if (/quantitative researcher|data scientist/.test(title)) return "data-scientist";
+  if (/data engineer/.test(title)) return "data-engineer";
+  if (/machine learning|\bml\b/.test(`${title} ${skills}`)) return "machine-learning-engineer";
+  if (/platform|devops/.test(title)) return "devops-engineer";
+  if (/site reliability|\bsre\b/.test(title)) return "site-reliability-engineer";
+  if (/full stack/.test(title)) return "full-stack-developer";
+  if (/frontend|front-end/.test(title)) return "frontend-engineer";
+  return "backend-engineer";
+}
+
+/** A job as text, to tailor an interview or check a resume against it. */
+export const jobDescriptionText = (job: Job) =>
+  `${job.title} at ${job.company} (${job.location})\n\n${job.description}\n\nSkills: ${job.skills.join(", ")}`;
