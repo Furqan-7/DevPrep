@@ -29,6 +29,28 @@ let thinkingConfigSupported = process.env.GEMINI_DISABLE_THINKING_CONFIG !== "tr
 
 const modelCache = new Map<string, GenerativeModel>();
 
+// Report scoring, code review and resume tools return JSON. They need some reasoning but
+// not the model's full default, which adds seconds before the first byte.
+const JSON_THINKING_CONFIG = { thinkingConfig: { thinkingLevel: process.env.GEMINI_JSON_THINKING_LEVEL || "low" } };
+
+const GEMINI_HOST = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com";
+const WARM_INTERVAL_MS = 2000;
+let lastWarmAt = 0;
+
+/**
+ * Opens (or refreshes) the HTTPS connection to Gemini so the next interview turn reuses
+ * it instead of paying for DNS, TCP and TLS on the critical path. Node's fetch keeps idle
+ * connections for a few seconds, so this is called just before a turn is expected.
+ */
+export function warmGeminiConnection(): void {
+    const now = Date.now();
+    if (now - lastWarmAt < WARM_INTERVAL_MS) return;
+    lastWarmAt = now;
+    fetch(GEMINI_HOST, { method: "HEAD", signal: AbortSignal.timeout(4000) })
+        .then((res) => res.body?.cancel())
+        .catch(() => {});
+}
+
 function getInterviewModel(systemInstruction: string | undefined, withThinking: boolean): GenerativeModel {
     const key = `${withThinking ? "t" : "n"}:${systemInstruction ?? ""}`;
     let model = modelCache.get(key);
@@ -141,22 +163,32 @@ export async function generateJSON<T>(prompt: string, options: GenerateJsonOptio
 
     for (const modelName of candidates) {
         try {
-            const model = genAI.getGenerativeModel(
-                {
-                    model: modelName,
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        ...(options.responseSchema ? { responseSchema: options.responseSchema } : {}),
-                        ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
-                        ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
+            const build = (withThinking: boolean) =>
+                genAI.getGenerativeModel(
+                    {
+                        model: modelName,
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            ...(options.responseSchema ? { responseSchema: options.responseSchema } : {}),
+                            ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+                            ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
+                            ...(withThinking ? JSON_THINKING_CONFIG : {}),
+                        } as GenerationConfig,
                     },
-                },
-                REQUEST_OPTIONS,
-            );
+                    REQUEST_OPTIONS,
+                );
+            const request = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
 
-            const result = await model.generateContent({
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-            });
+            let result;
+            try {
+                result = await build(thinkingConfigSupported).generateContent(request);
+            } catch (err: any) {
+                // Same fallback as the interview stream: drop the thinking config once if rejected
+                if (!thinkingConfigSupported || !/thinking/i.test(String(err?.message || err))) throw err;
+                console.warn(`[gemini.ts] ${modelName} rejected thinkingConfig, retrying without it`);
+                thinkingConfigSupported = false;
+                result = await build(false).generateContent(request);
+            }
 
             const text = result.response.text();
             return JSON.parse(text) as T;

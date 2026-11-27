@@ -45,7 +45,7 @@ https://github.com/user-attachments/assets/e849b172-3296-481f-a1bc-5e0ba44fd50e
 - **24 roles** across Engineering, Data, Product, Design and Behavioral, each at three levels: Fresher, Mid-level and Senior
 - **Zara**, the AI interviewer: she opens with your introduction, then asks ten questions with follow-ups based on what you said
 - **Hands-free turn taking:** voice activity detection in the browser (Silero VAD) notices when you stop talking, so there's no push-to-talk button
-- **Low-latency replies:** Zara's reply goes to text-to-speech a sentence or clause at a time as it's written, so she starts speaking before the whole reply is ready
+- **Low-latency replies:** transcription starts while you pause, so the text is ready the moment the turn ends; the API loads the session and opens its Gemini connection at the same time; and Zara's reply goes to text-to-speech a sentence or clause at a time as it's written, so she starts speaking before the whole reply is ready
 - **Tailored interviews:** questions about the projects on your resume, a target job description, or both
 - A live transcript of the conversation and an optional camera preview, like a real video call
 
@@ -93,7 +93,7 @@ flowchart TB
     live ~~~ after
 ```
 
-**During the interview:** the browser listens with Silero VAD and, when you stop speaking, sends the recording to the voice server as 16-bit PCM. The voice server transcribes it with Groq Whisper and passes the answer to the API, which saves it and streams Zara's reply and the next question back from Gemini. The voice server turns that reply into speech with Deepgram a phrase at a time as it arrives and streams the audio back to the browser.
+**During the interview:** the browser listens with Silero VAD and streams your answer to the voice server as 16-bit PCM while you talk. As soon as you pause, the voice server starts transcribing with Groq Whisper and asks the API to get ready (session in memory, Gemini connection open); if you carry on talking, that attempt is dropped. When the pause turns out to be the end of your answer, the transcript is already there, and the voice server passes it to the API, which saves it and streams Zara's reply and the next question back from Gemini. The voice server turns that reply into speech with Deepgram a phrase at a time as it arrives and streams the audio back to the browser.
 
 **After the interview:** opening the report asks the API to evaluate the session. Gemini scores each answer on the rubric, lists what was strong and what was missing, and writes a stronger answer. Retries are transcribed and scored the same way, one question at a time.
 
@@ -109,7 +109,7 @@ flowchart TB
 | Layer | Technology |
 | --- | --- |
 | Language | TypeScript, end to end |
-| Frontend | Next.js 16, React 19, Tailwind CSS 4, Motion, Radix UI, CodeMirror |
+| Frontend | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui (Radix UI), Motion, cmdk, Recharts, CodeMirror |
 | Backend | Node.js, Express 5, Zod |
 | Real-time voice | WebSocket server (`ws`), Web Audio API, Silero VAD with ONNX Runtime Web |
 | Database | PostgreSQL, Prisma |
@@ -159,7 +159,7 @@ Create an env file for each app:
 | File | Variables |
 | --- | --- |
 | `packages/database/.env` | `DATABASE_URL` |
-| `apps/backend/.env` (copy `.env.example`) | `DATABASE_URL`, `JWT_TOKEN`, `GEMINI_API_KEY`, `CORS_ORIGIN`, `ADMIN_EMAILS`; for Google sign-in, `GOOGLE_CLIENT_ID`, `GOOGLE_SECRET_KEY` and `GOOGLE_REDIRECT_URI` |
+| `apps/backend/.env` (copy `.env.example`) | `DATABASE_URL`, `JWT_TOKEN`, `GEMINI_API_KEY`, `CORS_ORIGIN`, `ADMIN_EMAILS`; for Google sign-in, `GOOGLE_CLIENT_ID`, `GOOGLE_SECRET_KEY` and `GOOGLE_REDIRECT_URI`; optionally `GEMINI_JSON_THINKING_LEVEL` (default `low`) for reports, code reviews and resume tools |
 | `apps/ws-server/.env` | `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `BACKEND_URL=http://localhost:3001` |
 | `apps/frontend/.env.local` | `NEXT_PUBLIC_API_URL=http://localhost:3001`, `NEXT_PUBLIC_WS_URL=ws://localhost:8080`, `GROQ_API_KEY` (for retrying answers by voice) |
 
@@ -206,6 +206,7 @@ Routes marked 🔒 need the JWT from sign-in in a `token` header.
 | GET | `/api/auth/me` | The signed-in user (Google sign-in keeps the JWT in a cookie) |
 | POST | `/api/interview/generate` 🔒 | Start an interview for a role and level, optionally tailored to your resume or a job description |
 | POST | `/api/interview/turn-stream` | One interview turn: saves the answer and streams Zara's reply (called by the voice server) |
+| POST | `/api/interview/prewarm` | Loads a session into memory and warms the Gemini connection before a turn (called by the voice server) |
 | POST | `/api/interview/answer` 🔒 | Submit an answer without the voice pipeline |
 | GET | `/api/interview/sessions` 🔒 | Your interviews with their scores |
 | GET | `/api/interview/sessions/:id` 🔒 | One interview with its questions, answers, feedback and delivery |

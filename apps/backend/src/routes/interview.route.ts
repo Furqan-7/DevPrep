@@ -1,4 +1,4 @@
-import { startInterview, submitAnswer, streamInterviewTurn } from "../controllers/interview.controller";
+import { prewarmInterview, startInterview, submitAnswer, streamInterviewTurn } from "../controllers/interview.controller";
 import { createAttempt, createReport, getSession, listSessions, shareSession, unshareSession } from "../controllers/report.controller";
 import { Router } from "express";
 import { MiddleWhere } from "../Middlewhere";
@@ -7,6 +7,7 @@ const routes: Router = Router();
 
 routes.post('/generate', MiddleWhere, startInterview);
 routes.post('/turn-stream', streamInterviewTurn);
+routes.post('/prewarm', prewarmInterview);
 routes.post('/answer', MiddleWhere, submitAnswer);
 
 // Post-interview feedback

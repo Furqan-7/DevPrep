@@ -118,3 +118,21 @@ export async function streamAuthoritativeInterviewTurn(
 
     return turnResult;
 }
+
+/**
+ * Asks the backend to get ready for the next turn: load the session into its cache and
+ * open its connection to Gemini. Fire and forget; it only ever saves time, so failures
+ * are ignored. The request itself also keeps this server's connection to the backend warm.
+ */
+export function prewarmAuthoritativeSession(sessionId: number, token?: string): void {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["token"] = token;
+    fetch(`${BACKEND_URL}/api/interview/prewarm`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ sessionId }),
+        signal: AbortSignal.timeout(5000),
+    })
+        .then((res) => res.body?.cancel())
+        .catch(() => {});
+}

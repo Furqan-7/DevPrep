@@ -1,5 +1,5 @@
 import { prisma } from "@repo/database";
-import { streamGeminiContent } from "../lib/gemini";
+import { streamGeminiContent, warmGeminiConnection } from "../lib/gemini";
 
 export const TOTAL_QUESTIONS = 10;
 // Keeps each turn's prompt short enough that Zara still answers quickly
@@ -57,6 +57,15 @@ function pruneSessionCache() {
     for (const [id, entry] of sessionCache) {
         if (entry.touchedAt < cutoff) sessionCache.delete(id);
     }
+}
+
+/**
+ * Gets everything ready for the session's next turn, ahead of time: the session is loaded
+ * into the cache (so the turn skips the database) and the Gemini connection is opened.
+ */
+export async function prewarmSession(sessionId: number): Promise<void> {
+    warmGeminiConnection();
+    await loadSession(sessionId).catch(() => null);
 }
 
 /** Drops a session from the cache, e.g. after it is closed outside a live turn. */
@@ -178,8 +187,24 @@ export async function processInterviewTurn(input: ProcessTurnInput): Promise<Tur
 
     const isIntroTurn = session.currentQues === 0;
 
-    // 4. Construct prompt for single unified streaming generation
+    // 4. Construct prompt for single unified streaming generation.
+    // Order matters for latency: everything that stays the same for the whole session
+    // (persona, format rules, candidate context, resume) comes first and the history only
+    // grows at the end, so Gemini's implicit prompt caching can reuse the shared prefix
+    // from one turn to the next. Only the final block changes completely each turn.
     const prompt = `You are Zara, DevPrep's professional, supportive, and conversational AI technical interviewer conducting a LIVE interview for a "${session.role}" role at "${session.difficulty}" difficulty.
+
+FORMATTING RULES (apply to ALL turns):
+1. Provide your spoken response enclosed strictly within [SPOKEN] and [/SPOKEN] tags. Start immediately with [SPOKEN].
+   - Natural human speech only. NO markdown, NO bullets, NO asterisks, NO headers, NO "Question N:" prefixes.
+   - End spoken text with [/SPOKEN].
+
+2. Immediately after [/SPOKEN], provide evaluation metrics enclosed in [METRICS] and [/METRICS]:
+[METRICS]
+Score: <integer 0-10 evaluating the candidate's answer>
+NextQuestion: <the exact new question you asked in your spoken response, or "NONE" if final>
+IsComplete: <true if this turn concludes the interview, otherwise false>
+[/METRICS]
 ${
   candidateContext
     ? `\nCandidate Context:\n${candidateContext}\n`
@@ -205,7 +230,8 @@ ${
     : "- If you naturally heard their name in their answer, you may use it once. Do not invent or guess a name."
 }
 - Immediately follow with the first technical interview question for the "${session.role}" role. Ask naturally without numbering it.
-- Total spoken response: 2 to 3 sentences maximum.`
+- Total spoken response: 2 to 3 sentences maximum.
+- IsComplete: false`
     : `You just asked: "${questionText}"
 Candidate's spoken answer: "${candidateAnswer}"
 
@@ -221,20 +247,9 @@ ${
     ? `- NAME RULE: Do NOT address the candidate as "${candidateName}" in this response. Their name was already used in the post-introduction response. Only use their name again if it arises completely naturally and at least 3 technical questions have passed.`
     : ""
 }
-- Total spoken response: 2 to 4 sentences maximum.`
-}
-
-FORMATTING RULES (apply to ALL turns):
-1. Provide your spoken response enclosed strictly within [SPOKEN] and [/SPOKEN] tags. Start immediately with [SPOKEN].
-   - Natural human speech only. NO markdown, NO bullets, NO asterisks, NO headers, NO "Question N:" prefixes.
-   - End spoken text with [/SPOKEN].
-
-2. Immediately after [/SPOKEN], provide evaluation metrics enclosed in [METRICS] and [/METRICS]:
-[METRICS]
-Score: <integer 0-10 evaluating the candidate's answer>
-NextQuestion: <the exact new question you asked in your spoken response, or "NONE" if final>
-IsComplete: <${isLastQuestion ? "true" : "false"}>
-[/METRICS]`.trim();
+- Total spoken response: 2 to 4 sentences maximum.
+- IsComplete: ${isLastQuestion ? "true" : "false"}`
+}`.trim();
 
     // 5. Stream Gemini tokens and filter [SPOKEN] block directly to onSpokenChunk in real time
     let spokenBuffer = "";

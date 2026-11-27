@@ -1,6 +1,6 @@
 import { prisma } from "@repo/database";
 import { InterviewQuestions, InterviewSessionSchema } from "../types";
-import { processInterviewTurn, TOTAL_QUESTIONS } from "../services/interview-engine.service";
+import { prewarmSession, processInterviewTurn, TOTAL_QUESTIONS } from "../services/interview-engine.service";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import path from "path";
@@ -149,6 +149,17 @@ export const startInterview = async (req: Request, res: Response) => {
             message: "Something went wrong starting your interview. Please try again.",
         });
     }
+};
+
+/**
+ * Called by ws-server when a turn is about to happen (session start, candidate pausing).
+ * Loads the session into the engine's cache and warms the Gemini connection, then answers
+ * 204 straight away; it returns no data, so it needs no more checks than turn-stream.
+ */
+export const prewarmInterview = (req: Request, res: Response) => {
+    const sessionId = parseInt(String(req.body?.sessionId), 10);
+    if (Number.isInteger(sessionId) && sessionId > 0) void prewarmSession(sessionId);
+    res.status(204).end();
 };
 
 /**

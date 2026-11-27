@@ -46,6 +46,12 @@ export interface UseRealtimeVoiceOptions {
   wsUrl?: string;
   silenceThresholdMs?: number;
   minSpeechDurationMs?: number;
+  /**
+   * Pause length after which the server starts transcribing speculatively, so the text is
+   * ready when the turn ends. Must be longer than the tail kept at the end of a turn
+   * (300 ms) and shorter than silenceThresholdMs.
+   */
+  speculateAfterMs?: number;
   preRollMs?: number;
   speechThreshold?: number;
   onTranscript?: (text: string) => void;
@@ -212,6 +218,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     wsUrl = WS_URL,
     silenceThresholdMs = 900,
     minSpeechDurationMs = 300,
+    speculateAfterMs = 450,
     preRollMs = 300,
     speechThreshold = 0.5,
   } = options;
@@ -267,6 +274,8 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     silenceMs: 0,
     turnMs: 0,
     startCount: 0,
+    // whether speech_paused was sent for the current pause
+    pausedSent: false,
   });
   const transcriptRef = useRef<string | null>(null);
   const aiResponseRef = useRef<string>("");
@@ -313,6 +322,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     turnRef.current.silenceMs = 0;
     turnRef.current.turnMs = 0;
     turnRef.current.startCount = 0;
+    turnRef.current.pausedSent = false;
     if (micStreamRef.current) {
       micStreamRef.current.getTracks().forEach((track) => track.stop());
       micStreamRef.current = null;
@@ -690,6 +700,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
         turn.silenceMs = 0;
         turn.turnMs = 0;
         turn.startCount = 0;
+        turn.pausedSent = false;
         candidateSpeakingRef.current = false;
       };
       resetTurn();
@@ -822,6 +833,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
             turn.tail = [];
             turn.speechMs += frameMs;
             turn.silenceMs = 0;
+            turn.pausedSent = false;
             if (vadStateRef.current === "silence_detecting") {
               vadStateRef.current = "speaking";
               setVadState("speaking");
@@ -840,6 +852,22 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
               setVadState("silence_detecting");
             }
             setSilenceProgress(Math.min(1, turn.silenceMs / silenceThresholdMs));
+
+            // Every frame the server will transcribe has been sent by now (the rest of the
+            // pause is held back), so it can start transcribing while we wait to be sure
+            // the candidate is done. If they carry on, the server drops that attempt.
+            if (
+              !turn.pausedSent &&
+              turn.silenceMs >= speculateAfterMs &&
+              turn.silenceMs < silenceThresholdMs &&
+              turn.speechMs >= minSpeechDurationMs
+            ) {
+              turn.pausedSent = true;
+              const socket = wsRef.current;
+              if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: "speech_paused" }));
+              }
+            }
           }
 
           if (turn.silenceMs >= silenceThresholdMs || turn.turnMs >= MAX_TURN_MS) {
@@ -877,6 +905,7 @@ export function useRealtimeVoice(options: UseRealtimeVoiceOptions = {}) {
     cleanupMicrophone,
     silenceThresholdMs,
     minSpeechDurationMs,
+    speculateAfterMs,
     preRollMs,
     speechThreshold,
   ]);

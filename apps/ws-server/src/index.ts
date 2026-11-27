@@ -5,7 +5,7 @@ import http from "http";
 import express from "express";
 import { WebSocket, WebSocketServer, RawData } from "ws";
 import { transcribeAudio } from "./services/transcription.service";
-import { streamAuthoritativeInterviewTurn } from "./services/authoritative-interview.service";
+import { prewarmAuthoritativeSession, streamAuthoritativeInterviewTurn } from "./services/authoritative-interview.service";
 import { TextChunker, DeepgramStreamingTtsSession } from "./services/tts.service";
 
 const app = express();
@@ -38,6 +38,41 @@ interface ClientSession {
     currentTtsSession?: DeepgramStreamingTtsSession | null;
     prewarmedTtsSession?: DeepgramStreamingTtsSession | null;
     persistentTtsSession?: DeepgramStreamingTtsSession | null;
+    /** Transcription started during the candidate's pause, for the audio received so far. */
+    speculative?: SpeculativeTranscript | null;
+    lastPrewarmAt?: number;
+}
+
+interface SpeculativeTranscript {
+    /** Number of audio chunks it covers; any new chunk means the candidate kept talking. */
+    chunks: number;
+    result: Promise<{ text: string; latencyMs: number }>;
+    startedAt: number;
+}
+
+// Backend prewarms are cheap but not free; one every few seconds per connection is plenty.
+const PREWARM_INTERVAL_MS = 3000;
+
+function prewarmBackend(session: ClientSession, force = false) {
+    if (!session.sessionId) return;
+    const now = Date.now();
+    if (!force && session.lastPrewarmAt && now - session.lastPrewarmAt < PREWARM_INTERVAL_MS) return;
+    session.lastPrewarmAt = now;
+    prewarmAuthoritativeSession(session.sessionId, session.token);
+}
+
+/** The buffered turn as one audio file, plus its spoken length for pace stats. */
+function buildTurnAudio(session: ClientSession): { audio: Buffer; mimeType: string; speakingMs?: number } {
+    let audio: Buffer = Buffer.concat(session.audioChunks);
+    let mimeType = session.mimeType;
+    let speakingMs: number | undefined;
+    // Answer length is only known for raw 16-bit mono PCM
+    if (session.mimeType.includes("wav") || session.mimeType.includes("pcm")) {
+        speakingMs = Math.round((audio.length / 2 / (session.sampleRate || 16000)) * 1000);
+        audio = ensureWavHeader(audio, session.sampleRate || 16000);
+        mimeType = "audio/wav";
+    }
+    return { audio, mimeType, speakingMs };
 }
 
 interface ActiveSessionRegistration {
@@ -91,6 +126,27 @@ wss.on("connection", (client) => {
         currentTtsSession: null,
         prewarmedTtsSession: null,
         persistentTtsSession: null,
+    };
+
+    // Opens Deepgram ahead of the reply, or replaces a prewarmed socket that has since closed
+    // (long answers can outlive it), so the handshake is never on the critical path.
+    const ensureTtsPrewarm = () => {
+        if (session.prewarmedTtsSession && session.prewarmedTtsSession.isAlive()) return;
+        try {
+            session.prewarmedTtsSession = new DeepgramStreamingTtsSession({
+                model: "flux-hannah-en",
+                sampleRate: 24000,
+                onAudioChunk: (audioChunk) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(audioChunk, { binary: true });
+                    }
+                },
+            });
+            session.prewarmedTtsSession.start();
+        } catch (err) {
+            session.prewarmedTtsSession = null;
+            console.warn("[ws-server] Deepgram prewarm error:", err);
+        }
     };
 
     client.on("message", async (data: RawData, isBinary: boolean) => {
@@ -148,6 +204,9 @@ wss.on("connection", (client) => {
                 });
 
                 console.log(`[ws-server] Initialized authoritative session #${sessId} for role: ${session.role}`);
+
+                // Load the session into the backend cache while Zara greets the candidate
+                prewarmBackend(session, true);
 
                 // Speak Question 1 through production Deepgram TTS pipeline ONCE per session lifecycle
                 if (parsedMessage.firstQuestion && !alreadySpokeQ1) {
@@ -211,6 +270,7 @@ wss.on("connection", (client) => {
                 if (parsedMessage.mimeType) session.mimeType = parsedMessage.mimeType;
                 if (parsedMessage.sampleRate) session.sampleRate = parsedMessage.sampleRate;
                 session.audioChunks = [];
+                session.speculative = null;
                 session.isRecording = true;
                 session.isTranscribing = false;
                 session.isGenerating = false;
@@ -221,6 +281,7 @@ wss.on("connection", (client) => {
             if (parsedMessage.type === "speech_started") {
                 console.log(`[VAD] speech_started. Resetting audio buffer.`);
                 session.audioChunks = [];
+                session.speculative = null;
                 session.isRecording = true;
                 session.isTranscribing = false;
                 session.isGenerating = false;
@@ -243,23 +304,8 @@ wss.on("connection", (client) => {
                     session.persistentTtsSession = null;
                 }
 
-                // Pre-warm single Deepgram WebSocket during candidate speech turn
-                try {
-                    if (!session.prewarmedTtsSession) {
-                    session.prewarmedTtsSession = new DeepgramStreamingTtsSession({
-                        model: "flux-hannah-en",
-                        sampleRate: 24000,
-                        onAudioChunk: (audioChunk) => {
-                            if (client.readyState === WebSocket.OPEN) {
-                                client.send(audioChunk, { binary: true });
-                            }
-                        },
-                    });
-                    session.prewarmedTtsSession.start();
-                    }
-                } catch (err) {
-                    console.warn("[ws-server] Deepgram prewarm error:", err);
-                }
+                // Pre-warm a single Deepgram WebSocket during the candidate's turn
+                ensureTtsPrewarm();
 
                 if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({ type: "speech_started" }));
@@ -270,7 +316,26 @@ wss.on("connection", (client) => {
             if (parsedMessage.type === "speech_cancelled") {
                 // Client VAD decided the utterance was too short; drop buffered audio but keep the TTS prewarm.
                 session.audioChunks = [];
+                session.speculative = null;
                 session.isRecording = false;
+                return;
+            }
+
+            if (parsedMessage.type === "speech_paused") {
+                // The candidate has paused long enough that they may be done. Start
+                // transcribing what we have now; if they finish here, the transcript is
+                // (nearly) ready when speech_ended arrives instead of starting then.
+                if (session.isTranscribing || session.audioChunks.length === 0) return;
+                if (session.speculative && session.speculative.chunks === session.audioChunks.length) return;
+
+                const { audio, mimeType } = buildTurnAudio(session);
+                const result = transcribeAudio(audio, mimeType);
+                result.catch(() => {}); // awaited later, or dropped if they keep talking
+                session.speculative = { chunks: session.audioChunks.length, result, startedAt: Date.now() };
+
+                // Get the rest of the pipeline ready while transcription runs
+                prewarmBackend(session);
+                ensureTtsPrewarm();
                 return;
             }
 
@@ -298,24 +363,36 @@ wss.on("connection", (client) => {
                     return;
                 }
 
-                // Construct complete WAV audio buffer
-                let completeAudioBuffer: any = Buffer.concat(session.audioChunks);
-                let effectiveMime = session.mimeType;
-                // Answer length for speaking-pace stats; only known for raw 16-bit mono PCM
-                let speakingMs: number | undefined;
-                if (session.mimeType.includes("wav") || session.mimeType.includes("pcm")) {
-                    speakingMs = Math.round((completeAudioBuffer.length / 2 / (session.sampleRate || 16000)) * 1000);
-                    completeAudioBuffer = ensureWavHeader(completeAudioBuffer, session.sampleRate || 16000);
-                    effectiveMime = "audio/wav";
-                }
+                const { audio, mimeType, speakingMs } = buildTurnAudio(session);
+
+                // Reuse the transcription started during the pause when no audio arrived
+                // since; otherwise (or if it failed) transcribe the full turn now.
+                const speculative = session.speculative;
+                session.speculative = null;
+                const reusable = speculative && speculative.chunks === session.audioChunks.length ? speculative : null;
 
                 let transcriptText = "";
                 let groqLatencyMs = 0;
                 try {
-                    const { text, latencyMs } = await transcribeAudio(completeAudioBuffer, effectiveMime);
-                    groqLatencyMs = latencyMs;
+                    const waitStart = Date.now();
+                    let transcription: { text: string; latencyMs: number } | null = null;
+                    if (reusable) {
+                        transcription = await reusable.result.catch((err) => {
+                            console.warn("[Groq Whisper] Speculative transcription failed, retrying:", err?.message || err);
+                            return null;
+                        });
+                    }
+                    const usedSpeculative = !!transcription;
+                    if (!transcription) transcription = await transcribeAudio(audio, mimeType);
+                    const { text, latencyMs } = transcription;
+                    // Time the candidate actually waited for the transcript
+                    groqLatencyMs = Date.now() - waitStart;
                     transcriptText = text ? text.trim() : "";
-                    console.log(`[Groq Whisper] Transcribed in ${latencyMs}ms: "${transcriptText}"`);
+                    console.log(
+                        usedSpeculative
+                            ? `[Groq Whisper] Speculative transcript ready (${latencyMs}ms total, waited ${groqLatencyMs}ms): "${transcriptText}"`
+                            : `[Groq Whisper] Transcribed in ${latencyMs}ms: "${transcriptText}"`,
+                    );
                 } catch (err: any) {
                     console.error("[Groq Whisper] Transcription failed:", err);
                     if (client.readyState === WebSocket.OPEN) {
@@ -502,6 +579,7 @@ wss.on("connection", (client) => {
 
     client.on("close", () => {
         console.log("[ws-server] Client disconnected");
+        session.speculative = null;
         session.isRecording = false;
         session.isTranscribing = false;
         session.isGenerating = false;
