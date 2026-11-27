@@ -9,7 +9,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Clock3, Search, X } from "lucide-react";
-import { serif } from "@/lib/fonts";
 import { ROLES, ROLE_CATEGORIES, ROLE_DURATION_RANGE, roleSlug } from "@/data/roles";
 import { formatDate, listSessions, type SessionSummary } from "@/lib/interview/report";
 import { ease, revealProps, useMotionMode } from "@/lib/motion";
@@ -18,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-const italic = { fontStyle: "italic" } as const;
 
 type Role = (typeof ROLES)[number];
 type Entry = { role: Role; slug: string };
@@ -87,7 +85,7 @@ export function RoleCatalog() {
       <div className="mx-auto max-w-[640px] text-center">
         <motion.h1 {...reveal(0)} className="m-0 text-[38px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[54px]">
           Choose what to{" "}
-          <em className={`${serif.className} font-normal tracking-normal text-brand-soft`} style={italic}>
+          <em className="fx-accent not-italic">
             practice.
           </em>
         </motion.h1>

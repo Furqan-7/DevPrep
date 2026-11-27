@@ -7,7 +7,6 @@ import { Camera, CameraOff, Check, ChevronDown, CircleAlert, Clock3, Mic, MicOff
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
 import Link from "next/link";
-import { serif } from "@/lib/fonts";
 import { levelLabel } from "@/lib/interview/report";
 import { SpaceBackdrop } from "@/components/interviews/SpaceBackdrop";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -498,7 +497,7 @@ export default function InterviewSessionPage() {
             <h1 className="m-0 mt-3 text-[36px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[46px]">
               Ready for your
               <br />
-              <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+              <em className="fx-accent not-italic">
                 interview?
               </em>
             </h1>
@@ -589,7 +588,7 @@ export default function InterviewSessionPage() {
           </p>
           <h1 className="m-0 mt-3 text-[36px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[48px]">
             Interview{" "}
-            <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+            <em className="fx-accent not-italic">
               complete.
             </em>
           </h1>

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 const WEEKS = 53;
 const DAY_MS = 86_400_000;
-const LEVELS = ["bg-white/[0.05]", "bg-[#bec8ff]/25", "bg-[#bec8ff]/45", "bg-[#bec8ff]/70", "bg-[#bec8ff]"];
+const LEVELS = ["bg-white/[0.045]", "bg-[#4d7cff]/30", "bg-[#4d7cff]/55", "bg-[#4d7cff]/80", "bg-[#8fb0ff]"];
 
 const level = (n: number) => (n === 0 ? 0 : n === 1 ? 1 : n <= 3 ? 2 : n <= 5 ? 3 : 4);
 

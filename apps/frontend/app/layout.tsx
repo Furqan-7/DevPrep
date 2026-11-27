@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import { inter, outfit, jetbrainsMono } from "@/lib/fonts";
+import type { Metadata, Viewport } from "next";
+import { inter, jetbrainsMono } from "@/lib/fonts";
 import "./globals.css";
-import Script from "next/script";
-
 
 export const metadata: Metadata = {
   title: "DevPrep — AI Mock Interviews for Placement Prep",
@@ -15,20 +13,20 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#08080a",
+  colorScheme: "dark",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable} antialiased`}>
-      <body className="bg-[#ffffff] text-[#1d1d1f] font-sans selection:bg-[#0066cc]/15 selection:text-[#1d1d1f]">
-        <Script id="devprep-theme" strategy="beforeInteractive">
-          {`try{var t=localStorage.getItem("devprep-theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`}
-        </Script>
-        {children}
-      </body>
+    // The product is dark only; data-theme keeps older components that read it in sync.
+    <html lang="en" data-theme="dark" className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body className="bg-background font-sans text-foreground">{children}</body>
     </html>
   );
 }
-

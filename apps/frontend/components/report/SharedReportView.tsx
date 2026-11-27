@@ -4,12 +4,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { serif } from "@/lib/fonts";
 import { formatDate, getSharedReport, levelLabel, questionLabel, roleTitle, ReportApiError, type SharedReport } from "@/lib/interview/report";
 import { DeliveryCard } from "./Delivery";
 import { PageShell, ScoreChip, StateMessage, card, primaryBtn } from "./ui";
 
-const italic = { fontStyle: "italic" } as const;
 
 export function SharedReportView({ token }: { token: string }) {
   const [report, setReport] = useState<SharedReport | null>(null);
@@ -59,7 +57,7 @@ function Shared({ report: r }: { report: SharedReport }) {
           </div>
           <h1 className="m-0 mb-3 mt-2 text-[30px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[36px]">
             {r.candidate ? `${r.candidate}'s` : "A"} mock{" "}
-            <em className={`${serif.className} font-normal tracking-normal`} style={italic}>
+            <em className="fx-accent not-italic">
               interview
             </em>
           </h1>

@@ -9,7 +9,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { animate, motion } from "motion/react";
-import { serif } from "@/lib/fonts";
 import {
   createReport,
   formatDate,
@@ -31,7 +30,6 @@ type View =
   | { name: "ready"; session: SessionDetail }
   | { name: "error"; error: ReportApiError };
 
-const italic = { fontStyle: "italic" } as const;
 
 export function ReportView({ sessionId }: { sessionId: number }) {
   const router = useRouter();
@@ -114,7 +112,7 @@ function Generating({ answered, reduce }: { answered: number; reduce: boolean })
       />
       <motion.h1 {...reveal(reduce, 0.08)} className="m-0 mt-[30px] text-[34px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[40px]">
         Reviewing your{" "}
-        <em className={`${serif.className} font-normal tracking-normal`} style={italic}>
+        <em className="fx-accent not-italic">
           answers
         </em>
       </motion.h1>
@@ -177,7 +175,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
           </div>
           <h1 className="m-0 mb-3 mt-2 text-[32px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[40px]">
             Your interview{" "}
-            <em className={`${serif.className} font-normal tracking-normal`} style={italic}>
+            <em className="fx-accent not-italic">
               report
             </em>
           </h1>

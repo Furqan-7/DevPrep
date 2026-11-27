@@ -10,11 +10,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { serif } from "@/lib/fonts";
 import { formatDate, levelLabel, listSessions, roleTitle, ReportApiError, type SessionSummary } from "@/lib/interview/report";
 import { PageShell, ScoreChip, StateMessage, card, ease, primaryBtn, reveal, useReducedMotionFlag } from "./ui";
 
-const italic = { fontStyle: "italic" } as const;
 
 export function HistoryView() {
   const router = useRouter();
@@ -78,7 +76,7 @@ export function HistoryView() {
         <>
           <motion.h1 {...reveal(reduce)} className="m-0 mb-5 mt-10 text-[34px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[40px]">
             Your{" "}
-            <em className={`${serif.className} font-normal tracking-normal`} style={italic}>
+            <em className="fx-accent not-italic">
               reports
             </em>
           </motion.h1>

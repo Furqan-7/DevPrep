@@ -11,7 +11,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import api from "@/lib/api";
-import { serif } from "@/lib/fonts";
 import { ROLES, ROLE_CATEGORIES, roleSlug } from "@/data/roles";
 import { ROLE_STUDY_QUESTIONS } from "@/data/roleQuestions";
 import { getResume } from "@/lib/career";
@@ -19,7 +18,6 @@ import { formatDate, levelLabel, listSessions, type SessionSummary } from "@/lib
 import { ease, revealProps, useMotionMode } from "@/lib/motion";
 import { MIN_JOB_CHARS, TailorOptions } from "./TailorOptions";
 
-const italic = { fontStyle: "italic" } as const;
 
 // Sent as the session's "difficulty"; the backend passes it to Zara's prompt as-is.
 const LEVELS = [
@@ -176,7 +174,7 @@ export function RoleBrief({ slug }: { slug: string }) {
           <div aria-hidden="true" className="pointer-events-none absolute -bottom-[300px] left-1/2 -z-10 h-[420px] w-[700px] -translate-x-1/2 bg-[radial-gradient(ellipse_45%_45%_at_50%_55%,rgba(150,160,255,0.24),rgba(10,10,10,0)_72%)]" />
           <h2 className="m-0 text-[22px] font-medium tracking-[-0.04em]">
             Ready when{" "}
-            <em className={`${serif.className} font-normal tracking-normal`} style={italic}>
+            <em className="fx-accent not-italic">
               you are.
             </em>
           </h2>
