@@ -80,17 +80,8 @@ export default function InterviewSessionPage() {
   const stickToBottomRef = useRef(true);
   const endRealtimeInterviewRef = useRef<() => void>(() => {});
 
-  const handleTranscript = useCallback((userText: string) => {
-    console.log(`[InterviewSession] Candidate transcript: "${userText}"`);
-  }, []);
-
-  const handleAiEnd = useCallback((result: unknown) => {
-    console.log(`[InterviewSession] Zara speech generation complete:`, result);
-  }, []);
-
   const handleTurnComplete = useCallback(
     (turnData: TurnData) => {
-      console.log(`[InterviewSession] Authoritative turn complete:`, turnData);
       if (turnData?.nextQuestion) {
         setData((prev) => {
           if (!prev) return prev;
@@ -133,8 +124,6 @@ export default function InterviewSessionPage() {
     isMuted,
     toggleMute,
   } = useRealtimeVoice({
-    onTranscript: handleTranscript,
-    onAiEnd: handleAiEnd,
     onTurnComplete: handleTurnComplete,
     onError: handleError,
   });
@@ -631,7 +620,7 @@ export default function InterviewSessionPage() {
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-2.5">
             <Link
-              href={data.sessionId ? `/dashboard/ai-interview/report/${data.sessionId}` : "/dashboard/ai-interview/feedback"}
+              href={data.sessionId ? `/dashboard/reports/${data.sessionId}` : "/dashboard/reports"}
               className="inline-flex h-12 items-center rounded-full bg-[#f0f0f0] px-6 text-[14px] font-bold uppercase tracking-[0.04em] text-[#0a0a0a] transition-colors hover:bg-white"
               style={mono}
             >

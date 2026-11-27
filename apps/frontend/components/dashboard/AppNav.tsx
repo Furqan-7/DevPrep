@@ -27,17 +27,14 @@ const LOGO_PATH =
 const LINKS = [
   { label: "Overview", href: "/dashboard" },
   { label: "Interviews", href: "/dashboard/ai-interview" },
-  { label: "Reports", href: "/dashboard/ai-interview/feedback" },
+  { label: "Reports", href: "/dashboard/reports" },
   { label: "Coding", href: "/dashboard/coding" },
-  { label: "DSA", href: "/dashboard/dsa" },
-  { label: "Jobs", href: "/dashboard/jobs" },
   { label: "Applications", href: "/dashboard/applications" },
   { label: "Resume", href: "/dashboard/resume" },
 ];
 
-/** The nav link for a path: the longest matching prefix; reports count as Reports. */
+/** The nav link for a path: the longest matching prefix. */
 function activeHref(pathname: string): string | null {
-  if (pathname.startsWith("/dashboard/ai-interview/report")) return "/dashboard/ai-interview/feedback";
   const match = LINKS.filter((l) => pathname === l.href || (l.href !== "/dashboard" && pathname.startsWith(`${l.href}/`)))
     .sort((a, b) => b.href.length - a.href.length)[0];
   return match?.href ?? null;
@@ -69,6 +66,9 @@ export function AppNav() {
       .join("") || "·";
 
   const signInHref = `/auth/signin?next=${encodeURIComponent(pathname)}`;
+
+  // the live interview room is full screen
+  if (pathname.endsWith("/session")) return null;
 
   return (
     <header data-theme="dark" className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0a0a0a]/75 text-foreground backdrop-blur-[14px]">

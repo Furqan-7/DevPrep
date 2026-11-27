@@ -14,11 +14,9 @@ import { toast } from "sonner";
 import { AppPage, EmptyState, PanelTitle, panel } from "@/components/app/AppPage";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
-import { HARDCODED_JOBS, jobDescriptionText } from "@/data/jobs";
 import { useSignedIn } from "@/hooks/useSignedIn";
 import { ApiError, signInHref } from "@/lib/api";
 import { deleteResume, getResume, matchResume, uploadResume, writeCoverLetter, type Resume, type ResumeMatch } from "@/lib/career";
@@ -130,28 +128,9 @@ export function ResumeView() {
         <section className={panel}>
           <PanelTitle>Check it against a job</PanelTitle>
           <div className="grid gap-3 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label htmlFor="job-text" className="text-[12.5px] font-normal text-muted-foreground">
-                Job description
-              </Label>
-              <Select
-                onValueChange={(id) => {
-                  const picked = HARDCODED_JOBS.find((j) => j.id === id);
-                  if (picked) setJob(jobDescriptionText(picked));
-                }}
-              >
-                <SelectTrigger size="sm" aria-label="Fill from the jobs board" className="h-8 border-white/10 bg-transparent text-[12.5px]">
-                  <SelectValue placeholder="Fill from the jobs board" />
-                </SelectTrigger>
-                <SelectContent data-theme="dark" position="popper" align="end" className="max-h-[320px] border-white/10">
-                  {HARDCODED_JOBS.map((j) => (
-                    <SelectItem key={j.id} value={j.id} className="text-[13px]">
-                      {j.company} · {j.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Label htmlFor="job-text" className="text-[12.5px] font-normal text-muted-foreground">
+              Job description
+            </Label>
             <Textarea id="job-text" value={job} onChange={(e) => setJob(e.target.value)} rows={7} maxLength={8000} placeholder="Paste the full job description: responsibilities, requirements, nice-to-haves." className="text-[13.5px]" />
             <div className="flex flex-wrap items-center gap-2">
               <Button onClick={() => run("match")} disabled={!resume || !jobReady || !!busy}>

@@ -149,7 +149,7 @@ export function RoleCatalog() {
             </span>
             <span className="flex gap-2">
               <Button asChild variant="ghost" size="sm" className="h-8">
-                <Link href={`/dashboard/ai-interview/report/${history.latest.id}`}>Open report</Link>
+                <Link href={`/dashboard/reports/${history.latest.id}`}>Open report</Link>
               </Button>
               <Button asChild variant="outline" size="sm" className="h-8 border-white/12 bg-transparent">
                 <Link href={`/dashboard/ai-interview/${history.latest.role}`}>Practice again</Link>

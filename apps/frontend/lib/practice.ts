@@ -1,16 +1,6 @@
-/**
- * Client for practice progress (apps/backend progress.controller.ts and
- * coding.controller.ts): the DSA sheet and the coding round.
- */
+/** Client for the coding round (apps/backend coding.controller.ts). */
 
 import api, { call } from "@/lib/api";
-
-export interface ProblemProgress {
-  problemId: number;
-  solved: boolean;
-  solvedAt: string | null;
-  note: string | null;
-}
 
 export interface CodingTest {
   args: unknown[];
@@ -51,11 +41,6 @@ export interface Submission {
   review: CodeReview;
   createdAt: string;
 }
-
-export const listProblemProgress = () => call(api.get<{ progress: ProblemProgress[] }>("/api/progress/problems")).then((d) => d.progress);
-
-export const updateProblemProgress = (problemId: number, change: { solved?: boolean; note?: string | null }) =>
-  call(api.put<{ progress: ProblemProgress }>(`/api/progress/problems/${problemId}`, change)).then((d) => d.progress);
 
 export const listCodingProblems = () => call(api.get<{ problems: CodingProblem[] }>("/api/coding/problems")).then((d) => d.problems);
 

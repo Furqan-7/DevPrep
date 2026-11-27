@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { HistoryView } from "@/components/report/HistoryView";
 
-export const metadata: Metadata = { title: "Your interviews · DevPrep" };
+export const metadata: Metadata = { title: "Reports · DevPrep" };
 
-export default function FeedbackHistoryPage() {
+export default function ReportsPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-[#0a0a0a]" />}>
+    <Suspense>
       <HistoryView />
     </Suspense>
   );

@@ -2,7 +2,7 @@
 
 /**
  * Overview: headline numbers, score trend, what to practise next, the activity heatmap,
- * readiness per role and focus areas (weakest rubric dimension and DSA topic coverage).
+ * readiness per role and focus areas (weakest rubric dimension).
  */
 
 import { useEffect, useState } from "react";
@@ -13,12 +13,10 @@ import { AppPage, EmptyState, PanelTitle, panel } from "@/components/app/AppPage
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DSA_PROBLEMS, DSA_TOPICS } from "@/data/dsa";
 import { useSignedIn } from "@/hooks/useSignedIn";
 import { ApiError, signInHref } from "@/lib/api";
 import { getInsights, type Insights } from "@/lib/insights";
 import { formatDate, roleTitle, type Rubric } from "@/lib/interview/report";
-import { listProblemProgress } from "@/lib/practice";
 import { cn } from "@/lib/utils";
 import { ActivityHeatmap } from "./ActivityHeatmap";
 import { ScoreTrend } from "./ScoreTrend";
@@ -36,7 +34,6 @@ export function OverviewView() {
   const router = useRouter();
   const signedIn = useSignedIn();
   const [insights, setInsights] = useState<Insights | null>(null);
-  const [solved, setSolved] = useState<Set<number>>(new Set());
   const [error, setError] = useState("");
   const [name, setName] = useState("");
 
@@ -44,11 +41,9 @@ export function OverviewView() {
     if (!signedIn) return;
     setName((localStorage.getItem("username") ?? "").split(/\s+/)[0] ?? "");
     let alive = true;
-    Promise.all([getInsights(), listProblemProgress()])
-      .then(([i, progress]) => {
-        if (!alive) return;
-        setInsights(i);
-        setSolved(new Set(progress.filter((p) => p.solved).map((p) => p.problemId)));
+    getInsights()
+      .then((i) => {
+        if (alive) setInsights(i);
       })
       .catch((err: unknown) => {
         if (!alive) return;
@@ -99,17 +94,17 @@ export function OverviewView() {
           <Skeleton className="h-[200px] rounded-xl" />
         </div>
       ) : (
-        <Overview insights={insights} solved={solved} />
+        <Overview insights={insights} />
       )}
     </AppPage>
   );
 }
 
-function Overview({ insights, solved }: { insights: Insights; solved: Set<number> }) {
+function Overview({ insights }: { insights: Insights }) {
   const { stats, trend, nextSteps } = insights;
   const tiles = [
     { label: "Interviews reviewed", value: stats.interviews, sub: stats.averageScore !== null ? `${stats.averageScore}/100 average, last 5` : "No reports yet" },
-    { label: "DSA problems solved", value: `${solved.size}/${DSA_PROBLEMS.length}`, sub: `${stats.codingSolved} solved in the coding round` },
+    { label: "Coding problems solved", value: `${stats.codingSolved}/${stats.codingTotal}`, sub: "All tests passing in the coding round" },
     { label: "Current streak", value: `${stats.currentStreak} ${stats.currentStreak === 1 ? "day" : "days"}`, sub: `Longest ${stats.longestStreak} ${stats.longestStreak === 1 ? "day" : "days"}` },
     { label: "Roles practised", value: insights.readiness.length, sub: insights.readiness[0] ? `Latest: ${roleTitle(insights.readiness[0].role)}` : "Pick one to start" },
   ];
@@ -144,7 +139,7 @@ function Overview({ insights, solved }: { insights: Insights; solved: Set<number
         </section>
 
         <section className={panel}>
-          <PanelTitle aside={nextSteps.sessionId ? <Link href={`/dashboard/ai-interview/report/${nextSteps.sessionId}`} className="hover:text-foreground">Latest report</Link> : undefined}>
+          <PanelTitle aside={nextSteps.sessionId ? <Link href={`/dashboard/reports/${nextSteps.sessionId}`} className="hover:text-foreground">Latest report</Link> : undefined}>
             Practise next
           </PanelTitle>
           {nextSteps.items.length ? (
@@ -163,7 +158,7 @@ function Overview({ insights, solved }: { insights: Insights; solved: Set<number
       </div>
 
       <section className={panel}>
-        <PanelTitle aside="Interviews, solved problems and code submissions">Activity</PanelTitle>
+        <PanelTitle aside="Interviews and code submissions">Activity</PanelTitle>
         <div className="px-5 py-4">
           <ActivityHeatmap activity={insights.activity} />
         </div>
@@ -171,7 +166,7 @@ function Overview({ insights, solved }: { insights: Insights; solved: Set<number
 
       <div className="grid gap-4 lg:grid-cols-[repeat(2,minmax(0,1fr))]">
         <Readiness readiness={insights.readiness} />
-        <FocusAreas rubric={insights.rubric} solved={solved} />
+        <FocusAreas rubric={insights.rubric} />
       </div>
     </div>
   );
@@ -209,12 +204,8 @@ function Readiness({ readiness }: { readiness: Insights["readiness"] }) {
   );
 }
 
-function FocusAreas({ rubric, solved }: { rubric: Insights["rubric"]; solved: Set<number> }) {
+function FocusAreas({ rubric }: { rubric: Insights["rubric"] }) {
   const weakest = rubric ? [...RUBRIC].sort((a, b) => rubric[a.key] - rubric[b.key])[0]! : null;
-  const topics = DSA_TOPICS.map((topic) => {
-    const all = DSA_PROBLEMS.filter((p) => p.topic === topic);
-    return { topic, total: all.length, done: all.filter((p) => solved.has(p.id)).length };
-  }).sort((a, b) => a.done / a.total - b.done / b.total);
 
   return (
     <section className={panel}>
@@ -242,26 +233,6 @@ function FocusAreas({ rubric, solved }: { rubric: Insights["rubric"]; solved: Se
         ) : (
           <p className="m-0 text-[13px] text-muted-foreground">Your weakest answer skill shows here after your first report.</p>
         )}
-
-        <h3 className="m-0 mt-6 text-[12.5px] font-normal text-muted-foreground">DSA topics, least covered first</h3>
-        <ul className="m-0 mt-2.5 flex list-none flex-wrap gap-1.5 p-0">
-          {topics.map((t) => (
-            <li key={t.topic}>
-              <Link
-                href={`/dashboard/dsa?topic=${encodeURIComponent(t.topic)}`}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[12px] transition-colors hover:border-white/25",
-                  t.done === t.total ? "border-white/[0.06] text-muted-foreground" : "border-white/12 text-white/85",
-                )}
-              >
-                {t.topic}
-                <span className="tabular-nums text-muted-foreground">
-                  {t.done}/{t.total}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   );

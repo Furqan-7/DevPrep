@@ -7,14 +7,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-
-export interface TargetJob {
-  label: string | null; // set when the job came from the jobs board
-  text: string;
-}
 
 export const MIN_JOB_CHARS = 80;
 
@@ -28,8 +23,8 @@ export function TailorOptions({
   resumeName: string | null | undefined; // undefined while loading, null when none is saved
   useResume: boolean;
   onUseResume: (v: boolean) => void;
-  job: TargetJob | null;
-  onJob: (job: TargetJob | null) => void;
+  job: string | null; // target job description, null when not added
+  onJob: (job: string | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -58,17 +53,7 @@ export function TailorOptions({
         </span>
       </label>
 
-      {job?.label && !editing ? (
-        <div className="flex items-start justify-between gap-2 rounded-[10px] bg-white/[0.04] px-3 py-2.5 text-[13px]">
-          <span className="min-w-0">
-            <span className="block text-[12px] text-white/45">Target job</span>
-            <span className="block truncate">{job.label}</span>
-          </span>
-          <button type="button" onClick={() => onJob(null)} aria-label="Remove the target job" className="cursor-pointer rounded p-0.5 text-white/45 hover:text-[#f0f0f0]">
-            <X className="size-4" />
-          </button>
-        </div>
-      ) : job || editing ? (
+      {job !== null || editing ? (
         <div>
           <div className="flex items-center justify-between">
             <label htmlFor="target-job" className="text-[12.5px] text-white/45">
@@ -87,8 +72,8 @@ export function TailorOptions({
           </div>
           <Textarea
             id="target-job"
-            value={job?.text ?? ""}
-            onChange={(e) => onJob({ label: null, text: e.target.value })}
+            value={job ?? ""}
+            onChange={(e) => onJob(e.target.value)}
             rows={5}
             maxLength={8000}
             placeholder="Paste the job description and Zara will focus on what it asks for."

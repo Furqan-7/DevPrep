@@ -158,9 +158,9 @@ export function ApplicationsBoard() {
         <>
           {apps.length === 0 ? (
             <div className={cn(panel, "mb-4")}>
-              <EmptyState title="Nothing tracked yet" body="Save a job from the jobs board, or add one you found elsewhere.">
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/jobs">Browse jobs</Link>
+              <EmptyState title="Nothing tracked yet" body="Add a job you're applying to and move it through each stage.">
+                <Button variant="outline" size="sm" onClick={() => setDialog({ open: true, app: null, stage: "SAVED" })}>
+                  <Plus /> Add application
                 </Button>
               </EmptyState>
             </div>

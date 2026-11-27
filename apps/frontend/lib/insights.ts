@@ -7,7 +7,7 @@ export interface Insights {
   stats: {
     interviews: number;
     averageScore: number | null;
-    problemsSolved: number;
+    codingTotal: number;
     codingSolved: number;
     currentStreak: number;
     longestStreak: number;

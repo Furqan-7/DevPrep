@@ -2,6 +2,7 @@ import { prisma, Prisma } from "@repo/database";
 import type { Request, Response } from "express";
 import { dayKey, userIdOf } from "../lib/request";
 import type { Rubric } from "../services/evaluation.service";
+import { CODING_PROBLEMS } from "../data/coding-problems";
 
 /**
  * Overview of the user's practice: headline numbers, score trend, daily activity for the
@@ -45,7 +46,7 @@ export const getInsights = async (req: Request, res: Response) => {
     const since = new Date(Date.now() - ACTIVITY_DAYS * DAY_MS);
 
     try {
-        const [reports, evaluated, sessions, solved, submissions] = await Promise.all([
+        const [reports, evaluated, sessions, submissions] = await Promise.all([
             prisma.interviewReport.findMany({
                 where: { session: { userId } },
                 orderBy: { createdAt: "asc" },
@@ -58,11 +59,10 @@ export const getInsights = async (req: Request, res: Response) => {
                 select: { evaluation: true },
             }),
             prisma.interviewSession.findMany({ where: { userId, createdAt: { gte: since } }, select: { createdAt: true } }),
-            prisma.problemProgress.findMany({ where: { userId, solvedAt: { not: null } }, select: { solvedAt: true } }),
             prisma.codingSubmission.findMany({ where: { userId }, select: { problem: true, passed: true, total: true, createdAt: true } }),
         ]);
 
-        // daily activity: interviews started, problems solved, code submitted
+        // daily activity: interviews started and code submitted
         const counts = new Map<string, number>();
         const bump = (d: Date) => {
             if (d < since) return;
@@ -70,7 +70,6 @@ export const getInsights = async (req: Request, res: Response) => {
             counts.set(k, (counts.get(k) ?? 0) + 1);
         };
         sessions.forEach((s) => bump(s.createdAt));
-        solved.forEach((p) => bump(p.solvedAt!));
         submissions.forEach((s) => bump(s.createdAt));
         const now = new Date();
         const streak = streaks(new Set(counts.keys()), dayKey(now, tz), dayKey(new Date(now.getTime() - DAY_MS), tz));
@@ -109,7 +108,7 @@ export const getInsights = async (req: Request, res: Response) => {
                 stats: {
                     interviews: reports.length,
                     averageScore: lastFive.length ? Math.round(lastFive.reduce((s, r) => s + r.overallScore, 0) / lastFive.length) : null,
-                    problemsSolved: solved.length,
+                    codingTotal: CODING_PROBLEMS.length,
                     codingSolved: new Set(submissions.filter((s) => s.passed === s.total).map((s) => s.problem)).size,
                     currentStreak: streak.current,
                     longestStreak: streak.longest,

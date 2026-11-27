@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { AppNav } from "@/components/dashboard/AppNav";
 import { RoleBrief } from "@/components/interviews/RoleBrief";
 import { ROLES, roleSlug } from "@/data/roles";
 
@@ -17,12 +15,5 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function RolePage({ params }: Params) {
   const { role: slug } = await params;
   if (!findRole(slug)) notFound();
-  return (
-    <div className="min-h-dvh bg-[#0a0a0a] font-sans text-[#f0f0f0] selection:bg-[#bec8ff]/25">
-      <AppNav />
-      <Suspense>
-        <RoleBrief slug={slug} />
-      </Suspense>
-    </div>
-  );
+  return <RoleBrief slug={slug} />;
 }

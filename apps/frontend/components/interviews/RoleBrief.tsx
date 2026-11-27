@@ -4,22 +4,20 @@
  * Role detail ("prep brief"): what the role covers, how the interview runs, a study
  * list of common questions, the user's past interviews for this role, and a sticky
  * panel to pick a level, optionally tailor the interview (resume, target job) and start.
- * ?job=<id> pre-fills the target job from the jobs board.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import api from "@/lib/api";
 import { serif } from "@/lib/fonts";
 import { ROLES, ROLE_CATEGORIES, roleSlug } from "@/data/roles";
 import { ROLE_STUDY_QUESTIONS } from "@/data/roleQuestions";
-import { HARDCODED_JOBS, jobDescriptionText } from "@/data/jobs";
 import { getResume } from "@/lib/career";
 import { formatDate, levelLabel, listSessions, type SessionSummary } from "@/lib/interview/report";
 import { ease, revealProps, useMotionMode } from "@/lib/motion";
-import { MIN_JOB_CHARS, TailorOptions, type TargetJob } from "./TailorOptions";
+import { MIN_JOB_CHARS, TailorOptions } from "./TailorOptions";
 
 const italic = { fontStyle: "italic" } as const;
 
@@ -42,7 +40,6 @@ const STEPS = [
 
 export function RoleBrief({ slug }: { slug: string }) {
   const router = useRouter();
-  const params = useSearchParams();
   const mode = useMotionMode();
   const reveal = (d: number) => revealProps(mode, d);
   const index = ORDERED.findIndex((r) => roleSlug(r.title) === slug);
@@ -56,10 +53,7 @@ export function RoleBrief({ slug }: { slug: string }) {
   const [error, setError] = useState("");
   const [resumeName, setResumeName] = useState<string | null | undefined>(undefined);
   const [useResume, setUseResume] = useState(false);
-  const [job, setJob] = useState<TargetJob | null>(() => {
-    const fromBoard = HARDCODED_JOBS.find((j) => j.id === params.get("job"));
-    return fromBoard ? { label: `${fromBoard.title} at ${fromBoard.company}`, text: jobDescriptionText(fromBoard) } : null;
-  });
+  const [job, setJob] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -97,7 +91,7 @@ export function RoleBrief({ slug }: { slug: string }) {
 
   const start = async () => {
     if (!localStorage.getItem("token")) return toSignIn();
-    const jobDescription = job?.text.trim() ?? "";
+    const jobDescription = job?.trim() ?? "";
     if (jobDescription && jobDescription.length < MIN_JOB_CHARS) {
       setError(`Paste more of the job description (at least ${MIN_JOB_CHARS} characters), or remove it.`);
       return;
@@ -309,7 +303,7 @@ export function RoleBrief({ slug }: { slug: string }) {
                 return (
                   <li key={s.id}>
                     {s.answered > 0 ? (
-                      <Link href={`/dashboard/ai-interview/report/${s.id}`} className={`${cls} transition-colors hover:bg-white/[0.02]`}>
+                      <Link href={`/dashboard/reports/${s.id}`} className={`${cls} transition-colors hover:bg-white/[0.02]`}>
                         {body}
                       </Link>
                     ) : (
