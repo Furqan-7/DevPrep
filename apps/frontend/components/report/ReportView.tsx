@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { animate, motion } from "motion/react";
-import { CircleCheck, FileQuestion, Lightbulb, RotateCcw, Sparkles, Target } from "lucide-react";
+import { CircleCheck, FileQuestion, Lightbulb, RotateCcw, Target } from "lucide-react";
 import {
   createReport,
   currentScore,
@@ -128,12 +128,11 @@ const GENERATING_STEPS = ["Reading your answers", "Scoring each one on four skil
 function Generating({ answered, reduce }: { answered: number; reduce: boolean }) {
   return (
     <div className={cn(card, "flex flex-col items-center overflow-hidden px-6 pb-14 pt-16 text-center")} role="status" aria-live="polite">
-      <motion.div {...reveal(reduce)} aria-hidden="true" className="relative grid size-24 place-items-center">
-        <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#a78bfa]/70" style={{ animation: reduce ? undefined : "fx-spin-slow 1.4s linear infinite" }} />
-        <span className="size-[72px] animate-[dp-rep-breathe_2.4s_ease-in-out_infinite] rounded-full bg-[radial-gradient(circle_at_32%_28%,#fff,#c9d6ff_14%,#7f8cff_38%,#6a3dd8_70%,#1b0f3a)] shadow-[0_0_60px_rgba(140,150,255,0.45)] motion-reduce:animate-none" />
+      <motion.div {...reveal(reduce)} aria-hidden="true" className="relative grid size-16 place-items-center rounded-2xl border border-white/[0.08] bg-white/[0.03]">
+        <span className="size-7 rounded-full border-2 border-white/10 border-t-[#4d7cff]" style={{ animation: reduce ? undefined : "fx-spin-slow 0.9s linear infinite" }} />
       </motion.div>
       <motion.h1 {...reveal(reduce, 0.08)} className="m-0 mt-7 text-[26px] font-semibold leading-[1.15] tracking-[-0.035em]">
-        Reviewing your <span className="fx-accent">answers</span>
+        Reviewing your answers
       </motion.h1>
       <motion.p {...reveal(reduce, 0.14)} className="mx-auto mt-2.5 max-w-[440px] text-[14px] leading-[1.55] text-white/55">
         Zara is scoring your {answered} {answered === 1 ? "answer" : "answers"} and writing a stronger version of each. This usually takes 15–30 seconds.
@@ -142,7 +141,7 @@ function Generating({ answered, reduce }: { answered: number; reduce: boolean })
         {GENERATING_STEPS.map((s, i) => (
           <li key={s} className="flex items-center gap-2.5 text-[13px] text-white/60">
             <motion.span
-              className="size-1.5 rounded-full bg-[#a78bfa]"
+              className="size-1.5 rounded-full bg-[#4d7cff]"
               animate={reduce ? undefined : { opacity: [0.25, 1, 0.25] }}
               transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.4 }}
             />
@@ -214,15 +213,10 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
   return (
     <div className="grid gap-4">
       {/* ── hero ── */}
-      <motion.section {...reveal(reduce)} className={cn(card, "fx-grain relative isolate grid items-center gap-6 overflow-hidden p-6 sm:grid-cols-[210px_1fr] sm:gap-9 sm:p-8")}>
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="fx-grid absolute inset-0 opacity-50" />
-          <div className="absolute -left-24 -top-32 size-[420px] rounded-full bg-[#4d7cff]/20 blur-[100px]" />
-          <div className="absolute -bottom-40 right-0 size-[360px] rounded-full bg-[#a78bfa]/15 blur-[100px]" />
-        </div>
+      <motion.section {...reveal(reduce)} className={cn(card, "grid items-center gap-6 p-6 sm:grid-cols-[210px_1fr] sm:gap-9 sm:p-8")}>
         <div className="flex flex-col items-center gap-3">
           <ScoreRing value={report.overallScore} reduce={reduce} />
-          <span className="rounded-full border border-white/[0.08] bg-black/30 px-3 py-1 text-[12px] font-medium" style={{ color: bandColor(report.overallScore / 10) }}>
+          <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[12px] font-medium" style={{ color: bandColor(report.overallScore / 10) }}>
             {verdictFor(report.overallScore)}
           </span>
         </div>
@@ -235,7 +229,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
             ))}
           </div>
           <h1 className="m-0 mt-4 text-[30px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[38px]">
-            Your interview <span className="fx-accent">report</span>
+            Interview report
           </h1>
           {report.summary ? <p className="m-0 mt-3 max-w-[560px] text-[14.5px] leading-[1.6] text-white/60">{report.summary}</p> : null}
           <dl className="m-0 mt-6 grid gap-2.5 sm:grid-cols-3">
@@ -246,7 +240,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
                 ["Confidence", report.confidence],
               ] as const
             ).map(([label, v], i) => (
-              <div key={label} className="rounded-xl border border-white/[0.06] bg-black/25 px-3.5 py-3 backdrop-blur">
+              <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
                 <div className="flex items-baseline justify-between text-[12.5px]">
                   <dt className="text-white/55">{label}</dt>
                   <dd className="m-0 text-[15px] font-semibold tabular-nums text-white">
@@ -257,7 +251,7 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
                 <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/[0.07]" aria-hidden="true">
                   <motion.i
                     className="block h-full rounded-full"
-                    style={{ background: `linear-gradient(90deg, ${bandColor(v)}aa, ${bandColor(v)})` }}
+                    style={{ background: bandColor(v) }}
                     initial={reduce ? false : { width: 0 }}
                     animate={{ width: `${v * 10}%` }}
                     transition={{ duration: 1.2, delay: 0.3 + i * 0.1, ease }}
@@ -379,18 +373,17 @@ function Report({ session, reduce, onAttempt }: { session: SessionDetail; reduce
         ))}
       </div>
 
-      <div className={cn(card, "relative flex flex-wrap items-center justify-between gap-4 overflow-hidden p-5")}>
-        <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 size-[220px] rounded-full bg-[#a78bfa]/20 blur-[70px]" />
-        <div className="relative flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.05]">
-            <Sparkles className="size-4" />
+      <div className={cn(card, "flex flex-wrap items-center justify-between gap-4 p-5")}>
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/70">
+            <RotateCcw className="size-4" />
           </span>
           <div>
             <div className="text-[14px] font-semibold text-white">Ready for another round?</div>
             <div className="text-[12.5px] text-white/50">Same role, fresh questions. Your next report shows the trend.</div>
           </div>
         </div>
-        <Link href={`/dashboard/ai-interview/${session.role}`} className={cn(primaryBtn, "relative")}>
+        <Link href={`/dashboard/ai-interview/${session.role}`} className={primaryBtn}>
           <RotateCcw /> Practise {roleTitle(session.role)} again
         </Link>
       </div>
@@ -413,20 +406,13 @@ function ScoreRing({ value, reduce }: { value: number; reduce: boolean }) {
   return (
     <div className="relative size-[160px] sm:size-[190px]" role="img" aria-label={`Interview score ${value} out of 100`}>
       <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90" aria-hidden="true">
-        <defs>
-          <linearGradient id="dp-rep-ring" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stopColor="#4d7cff" />
-            <stop offset="0.6" stopColor="#a78bfa" />
-            <stop offset="1" stopColor="#f0abfc" />
-          </linearGradient>
-        </defs>
         <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="12" />
         <motion.circle
           cx="100"
           cy="100"
           r="88"
           fill="none"
-          stroke="url(#dp-rep-ring)"
+          stroke={bandColor(value / 10)}
           strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={C}

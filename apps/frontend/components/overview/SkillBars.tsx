@@ -18,7 +18,6 @@ export const RUBRIC: { key: keyof Rubric; label: string; short: string; advice: 
 ];
 
 const TARGET = 8;
-const COLORS = ["#22c55e", "#4d7cff", "#a78bfa", "#2dd4bf"];
 
 export function weakestSkill(rubric: Rubric) {
   return [...RUBRIC].sort((a, b) => rubric[a.key] - rubric[b.key])[0]!;
@@ -39,7 +38,7 @@ export function SkillBars({ rubric }: { rubric: NonNullable<Insights["rubric"]> 
           {RUBRIC.map((r, i) => {
             const v = rubric[r.key];
             const isWeak = r.key === weakest.key;
-            const color = isWeak ? "#f59e0b" : COLORS[i]!;
+            const color = isWeak ? "#f59e0b" : "#4d7cff";
             return (
               <div key={r.key} className="fx-stripes relative flex items-end overflow-visible rounded-xl bg-white/[0.015]">
                 <motion.div
@@ -47,7 +46,7 @@ export function SkillBars({ rubric }: { rubric: NonNullable<Insights["rubric"]> 
                   animate={{ height: `${v * 10}%` }}
                   transition={{ duration: 1, delay: 0.1 + i * 0.08, ease }}
                   className="relative w-full rounded-xl"
-                  style={{ background: `linear-gradient(180deg, ${color}, ${color}cc)`, boxShadow: `0 10px 30px -12px ${color}` }}
+                  style={{ background: color }}
                 >
                   <span className="absolute bottom-2 left-2.5 text-[12px] font-semibold tabular-nums text-black/80">{v}</span>
                   {r.key === strongest.key && !isWeak ? (

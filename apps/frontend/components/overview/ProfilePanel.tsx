@@ -32,15 +32,10 @@ export function ProfilePanel({ account, insights }: { account: Account | null; i
         className="overflow-hidden rounded-2xl border border-white/[0.07] bg-card"
       >
         {/* banner */}
-        <div className="relative h-[92px] overflow-hidden bg-[#1a1530]">
-          <div className="absolute -left-6 -top-10 h-[140px] w-[180px] rounded-full bg-[#ffb3d1] opacity-80 blur-[40px]" />
-          <div className="absolute left-[30%] -top-6 h-[120px] w-[180px] rounded-full bg-[#b9a6ff] opacity-80 blur-[40px]" />
-          <div className="absolute -right-6 -top-8 h-[140px] w-[180px] rounded-full bg-[#8fd3ff] opacity-80 blur-[40px]" />
-          <div className="fx-grain absolute inset-0" />
-        </div>
+        <div className="fx-stripes h-[76px] border-b border-white/[0.06] bg-[#141416]" />
         <div className="px-4 pb-4">
           <Avatar className="-mt-9 size-[68px] rounded-full ring-4 ring-card">
-            <AvatarFallback className="rounded-full bg-[linear-gradient(135deg,#4d7cff,#a78bfa)] text-[20px] font-semibold text-white">{account?.initials ?? "·"}</AvatarFallback>
+            <AvatarFallback className="rounded-full bg-[#1f1f23] text-[20px] font-semibold text-white">{account?.initials ?? "·"}</AvatarFallback>
           </Avatar>
           <div className="mt-3 flex items-center gap-2">
             <h2 className="m-0 truncate text-[18px] font-semibold tracking-[-0.03em] text-white">{account?.name || "Your profile"}</h2>
@@ -86,7 +81,7 @@ export function ProfilePanel({ account, insights }: { account: Account | null; i
             </div>
             <div className="relative mt-2.5 h-1.5 rounded-full bg-white/[0.07]">
               <motion.div
-                className="h-full rounded-full bg-[linear-gradient(90deg,#f472b6,#a78bfa,#4d7cff)]"
+                className="h-full rounded-full bg-[#4d7cff]"
                 initial={{ width: 0 }}
                 animate={{ width: `${overall}%` }}
                 transition={{ duration: 1.2, ease }}
@@ -121,10 +116,7 @@ export function ProfilePanel({ account, insights }: { account: Account | null; i
           <ol className="m-0 mt-3 grid list-none gap-2 p-0">
             {nextSteps.items.map((item, i) => (
               <li key={item} className="flex gap-3 rounded-xl px-1 py-1.5">
-                <span
-                  className="grid size-8 shrink-0 place-items-center rounded-lg text-[12px] font-semibold"
-                  style={{ background: ["rgba(77,124,255,0.14)", "rgba(245,158,11,0.14)", "rgba(34,197,94,0.14)"][i], color: ["#8fb0ff", "#fcd34d", "#86efac"][i] }}
-                >
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-[12px] font-semibold text-white/70">
                   {i + 1}
                 </span>
                 <span className="text-[12.5px] leading-[1.5] text-white/75">{item}</span>
@@ -140,10 +132,8 @@ export function ProfilePanel({ account, insights }: { account: Account | null; i
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.22, ease }}
-        className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#121216] p-4"
+        className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-card p-4"
       >
-        <div aria-hidden className="absolute -right-10 -top-16 size-[180px] rounded-full bg-[#a78bfa]/25 blur-[60px]" />
-        <div aria-hidden className="absolute -bottom-20 left-0 size-[160px] rounded-full bg-[#4d7cff]/20 blur-[60px]" />
         <span className="relative grid size-8 place-items-center rounded-lg border border-white/10 bg-white/[0.06]">
           <Sparkles className="size-4 text-white" />
         </span>

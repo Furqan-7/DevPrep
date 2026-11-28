@@ -37,7 +37,7 @@ export function AppPage({
         <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div className="flex min-w-0 items-start gap-3.5">
             {Icon ? (
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/80">
                 <Icon className="size-[18px]" />
               </span>
             ) : null}

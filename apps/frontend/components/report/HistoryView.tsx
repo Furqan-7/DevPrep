@@ -191,8 +191,7 @@ function Row({ s }: { s: SessionSummary }) {
     <>
       <div className="flex min-w-0 items-center gap-3">
         <span
-          className="grid size-9 shrink-0 place-items-center rounded-xl text-[12px] font-semibold text-white"
-          style={{ background: `linear-gradient(135deg, ${roleColor(s.role)}, ${roleColor(s.role)}80)` }}
+          className="grid size-9 shrink-0 place-items-center rounded-xl border border-white/[0.07] bg-white/[0.04] text-[12px] font-semibold text-white/80"
         >
           {title
             .split(/[\s/&]+/)

@@ -13,7 +13,7 @@ export function DeliveryCard({ delivery }: { delivery: SessionDelivery }) {
   const stats = [
     {
       icon: Gauge,
-      tone: "bg-[#4d7cff]/12 text-[#8fb0ff]",
+      tone: "bg-white/[0.06] text-white/70",
       label: "Speaking pace",
       value: delivery.wpm !== null ? `${delivery.wpm}` : "—",
       unit: delivery.wpm !== null ? "wpm" : "",
@@ -23,7 +23,7 @@ export function DeliveryCard({ delivery }: { delivery: SessionDelivery }) {
     },
     {
       icon: AudioLines,
-      tone: "bg-[#fbbf24]/12 text-[#fcd34d]",
+      tone: "bg-white/[0.06] text-white/70",
       label: "Filler words",
       value: `${delivery.fillersPer100Words}`,
       unit: "per 100 words",
@@ -32,7 +32,7 @@ export function DeliveryCard({ delivery }: { delivery: SessionDelivery }) {
     },
     {
       icon: MessageSquareText,
-      tone: "bg-[#a78bfa]/12 text-[#c4b5fd]",
+      tone: "bg-white/[0.06] text-white/70",
       label: "Answer length",
       value: `${Math.round(delivery.words / delivery.answers)}`,
       unit: "words",

@@ -84,7 +84,7 @@ export default function HowItWorksPage() {
         <motion.section {...fade()} className={cn(panel, "p-5")}>
           <h2 className="m-0 text-[14px] font-semibold tracking-[-0.015em]">From role to report</h2>
           <ol className="relative m-0 mt-5 grid list-none gap-3 p-0 md:grid-cols-4">
-            <span aria-hidden className="absolute left-[10%] right-[10%] top-5 hidden h-px bg-[linear-gradient(90deg,#4d7cff,#a78bfa,#34d399)] opacity-40 md:block" />
+            <span aria-hidden className="absolute left-[10%] right-[10%] top-5 hidden h-px bg-white/[0.08] md:block" />
             {STEPS.map((s, i) => (
               <li key={s.title} className="relative">
                 <span className="relative z-10 mx-auto grid size-10 place-items-center rounded-xl border border-white/10 bg-[#141417] text-white shadow-[0_0_0_4px_#0f0f11] md:mx-0">
@@ -107,7 +107,7 @@ export default function HowItWorksPage() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {UNDER_THE_HOOD.map((f) => (
                 <div key={f.title} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                  <span className="grid size-8 place-items-center rounded-lg bg-[#4d7cff]/12 text-[#8fb0ff]">
+                  <span className="grid size-8 place-items-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-white/75">
                     <f.icon className="size-4" />
                   </span>
                   <h3 className="m-0 mt-3 text-[13.5px] font-semibold text-white">{f.title}</h3>
@@ -124,7 +124,7 @@ export default function HowItWorksPage() {
             <ul className="m-0 mt-4 grid list-none gap-2 p-0">
               {RUBRIC.map((r, i) => (
                 <li key={r.label} className="flex gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-md text-[11px] font-semibold" style={{ background: ["#22c55e22", "#4d7cff22", "#a78bfa22", "#2dd4bf22"][i], color: ["#6ee7b7", "#8fb0ff", "#c4b5fd", "#5eead4"][i] }}>
+                  <span className="grid size-6 shrink-0 place-items-center rounded-md bg-white/[0.06] text-[11px] font-semibold text-white/70">
                     {i + 1}
                   </span>
                   <span>
@@ -138,9 +138,8 @@ export default function HowItWorksPage() {
         </div>
 
         {/* tips + cta */}
-        <motion.section {...fade(0.1)} className={cn(panel, "fx-grain relative grid gap-5 overflow-hidden p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-6")}>
-          <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-[280px] rounded-full bg-[#a78bfa]/20 blur-[80px]" />
-          <div className="relative">
+        <motion.section {...fade(0.1)} className={cn(panel, "grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-6")}>
+          <div>
             <h2 className="m-0 text-[16px] font-semibold tracking-[-0.02em]">Before you start</h2>
             <ul className="m-0 mt-3 grid list-none gap-2 p-0 sm:grid-cols-3">
               {TIPS.map((t) => (
@@ -151,7 +150,7 @@ export default function HowItWorksPage() {
               ))}
             </ul>
           </div>
-          <Button asChild className="relative h-10 rounded-xl px-5 font-semibold">
+          <Button asChild className="h-10 rounded-xl px-5 font-semibold">
             <Link href="/dashboard/ai-interview">
               Choose a role <ArrowRight />
             </Link>

@@ -36,7 +36,8 @@ export function activeItem(pathname: string): NavItem | null {
 }
 
 /** Colour for a role's dot, by its place in the catalogue so it matches everywhere it appears. */
-const ROLE_COLORS = ["#4d7cff", "#f59e0b", "#22c55e", "#a78bfa", "#f472b6", "#2dd4bf"];
+// muted, distinguishable hues; no purple or pink
+const ROLE_COLORS = ["#7c9cff", "#d9b25c", "#5fb8a5", "#a1a1aa", "#e39a63", "#6fb3d9"];
 const ROLE_INDEX = new Map(ROLES.map((r, i) => [roleSlug(r.title), i]));
 export function roleColor(slug: string): string {
   const i = ROLE_INDEX.get(slug) ?? [...slug].reduce((h, c) => h + c.charCodeAt(0) * 7, 0);

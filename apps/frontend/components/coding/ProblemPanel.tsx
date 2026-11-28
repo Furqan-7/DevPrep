@@ -146,9 +146,9 @@ function Review({ submission }: { submission: Submission }) {
       <ReviewList title="What worked" items={review.strengths} good />
       <ReviewList title="To improve" items={review.improvements} />
 
-      <div className="mt-5 rounded-xl border border-[#a78bfa]/20 bg-[linear-gradient(135deg,rgba(77,124,255,0.06),rgba(167,139,250,0.06))] px-4 py-3.5">
+      <div className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3.5">
         <p className="m-0 flex items-center gap-1.5 text-[12px] font-medium text-white/55">
-          <MessageCircleQuestion className="size-3.5 text-[#c4b5fd]" /> The interviewer would ask next
+          <MessageCircleQuestion className="size-3.5 text-[#8fb0ff]" /> The interviewer would ask next
         </p>
         <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-white">{review.followUp}</p>
       </div>

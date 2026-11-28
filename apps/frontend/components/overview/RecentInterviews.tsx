@@ -8,7 +8,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate, levelLabel, roleTitle, type SessionSummary } from "@/lib/interview/report";
 import { cn } from "@/lib/utils";
-import { roleColor } from "@/components/dashboard/nav";
 import { Card, scoreColor } from "@/components/app/kit";
 
 type Filter = "all" | "scored" | "open";
@@ -34,8 +33,7 @@ export function SessionRow({ s }: { s: SessionSummary }) {
   return (
     <li className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.02]">
       <span
-        className="grid size-9 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-white"
-        style={{ background: `linear-gradient(135deg, ${roleColor(s.role)}, ${roleColor(s.role)}88)` }}
+        className="grid size-9 shrink-0 place-items-center rounded-full border border-white/[0.07] bg-white/[0.04] text-[12px] font-semibold text-white/80"
       >
         {initials(title)}
       </span>

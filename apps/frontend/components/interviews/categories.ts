@@ -2,11 +2,11 @@ import { Code, Database, MessagesSquare, PenTool, Target, type LucideIcon } from
 
 /** Icon and colour for each role category, shared by the role pages. */
 export const CATEGORY_META: Record<string, { icon: LucideIcon; color: string }> = {
-  Engineering: { icon: Code, color: "#4d7cff" },
-  Data: { icon: Database, color: "#2dd4bf" },
-  Design: { icon: PenTool, color: "#f472b6" },
-  Product: { icon: Target, color: "#f59e0b" },
-  Behavioral: { icon: MessagesSquare, color: "#a78bfa" },
+  Engineering: { icon: Code, color: "#7c9cff" },
+  Data: { icon: Database, color: "#5fb8a5" },
+  Design: { icon: PenTool, color: "#e39a63" },
+  Product: { icon: Target, color: "#d9b25c" },
+  Behavioral: { icon: MessagesSquare, color: "#a1a1aa" },
 };
 
 export const categoryMeta = (category: string) => CATEGORY_META[category] ?? { icon: Code, color: "#4d7cff" };

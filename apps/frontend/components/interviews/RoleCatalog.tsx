@@ -19,7 +19,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLES, ROLE_CATEGORIES, ROLE_DURATION_RANGE, roleSlug } from "@/data/roles";
 import { formatDate, listSessions, type SessionSummary } from "@/lib/interview/report";
 import { ease, useMotionMode } from "@/lib/motion";
-import { roleColor } from "@/components/dashboard/nav";
 import { categoryMeta } from "./categories";
 
 type Role = (typeof ROLES)[number];
@@ -105,9 +104,8 @@ export function RoleCatalog() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease }}
-          className="relative mb-6 flex flex-wrap items-center gap-4 overflow-hidden rounded-2xl border border-white/[0.07] bg-card p-4 sm:flex-nowrap"
+          className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-white/[0.07] bg-card p-4 sm:flex-nowrap"
         >
-          <div aria-hidden className="pointer-events-none absolute -left-20 -top-24 size-[260px] rounded-full bg-[#4d7cff]/15 blur-[70px]" />
           <Ring value={latest.overallScore!} size={48} stroke={4} color={scoreColor(latest.overallScore!)}>
             {latest.overallScore}
           </Ring>
@@ -218,17 +216,11 @@ export function RoleCatalog() {
 function RoleCard({ entry, lastScore, count }: { entry: Entry; lastScore?: number; count: number }) {
   const { role, slug } = entry;
   const href = `/dashboard/ai-interview/${slug}`;
-  const meta = { ...categoryMeta(role.category), color: roleColor(slug) };
+  const meta = categoryMeta(role.category);
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-card p-4 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-white/[0.14] hover:shadow-[0_20px_40px_-24px_rgba(0,0,0,0.9)]">
-      {/* category glow on hover */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-16 -top-16 size-[180px] rounded-full opacity-0 blur-[60px] transition-opacity duration-300 group-hover:opacity-40"
-        style={{ background: meta.color }}
-      />
       <div className="relative flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ background: `${meta.color}1f`, color: meta.color }}>
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[0.07] bg-white/[0.03]" style={{ color: meta.color }}>
           <meta.icon className="size-[18px]" />
         </span>
         <div className="min-w-0 flex-1">

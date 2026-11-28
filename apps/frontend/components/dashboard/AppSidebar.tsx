@@ -193,7 +193,7 @@ export function AppSidebar({
                 aria-label="Account menu"
               >
                 <Avatar className="size-7 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-[linear-gradient(135deg,#4d7cff,#a78bfa)] text-[11px] font-semibold text-white">{account.initials}</AvatarFallback>
+                  <AvatarFallback className="rounded-lg bg-[#1f1f23] text-[11px] font-semibold text-white">{account.initials}</AvatarFallback>
                 </Avatar>
                 {!collapsed && (
                   <>

@@ -17,7 +17,7 @@ import { getAdminStats, type AdminStats } from "@/lib/insights";
 import { formatDate, levelLabel, roleTitle } from "@/lib/interview/report";
 import { cn } from "@/lib/utils";
 
-const chartConfig = { count: { label: "Interviews", color: "#bec8ff" } } satisfies ChartConfig;
+const chartConfig = { count: { label: "Interviews", color: "#4d7cff" } } satisfies ChartConfig;
 const headRow = "border-white/[0.06] hover:bg-transparent [&>th]:text-[12.5px] [&>th]:font-normal [&>th]:text-muted-foreground";
 
 export function AdminView() {

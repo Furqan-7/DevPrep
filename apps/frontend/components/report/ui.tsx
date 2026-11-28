@@ -68,11 +68,7 @@ export function PageShell({ children, standalone = false }: { children: ReactNod
   const inner = <main className="mx-auto max-w-[1080px] px-4 pb-20 pt-6 sm:px-6 lg:px-8">{children}</main>;
   if (!standalone) return <div data-theme="dark">{inner}</div>;
   return (
-    <div data-theme="dark" data-app className="relative isolate min-h-dvh bg-[#050506] font-sans text-foreground">
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-40 -top-40 size-[560px] rounded-full bg-[#4d7cff]/[0.1] blur-[120px]" />
-        <div className="absolute -right-40 top-1/3 size-[520px] rounded-full bg-[#a78bfa]/[0.08] blur-[120px]" />
-      </div>
+    <div data-theme="dark" data-app className="min-h-dvh bg-[#050506] font-sans text-foreground">
       <header className="mx-auto flex h-16 max-w-[1080px] items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.02em] text-white">
           <LogoTile /> DevPrep
@@ -110,7 +106,7 @@ export function WithPlaceholders({ text }: { text: string }) {
     <>
       {parts.map((p, i) =>
         p.startsWith("[") && p.endsWith("]") ? (
-          <span key={i} className="rounded-[5px] bg-[#a78bfa]/15 px-1 py-px text-[#d8ccff] [box-decoration-break:clone]">
+          <span key={i} className="rounded-[5px] bg-[#4d7cff]/15 px-1 py-px text-[#c7d5ff] [box-decoration-break:clone]">
             {p}
           </span>
         ) : (

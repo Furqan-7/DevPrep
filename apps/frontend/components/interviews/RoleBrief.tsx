@@ -156,16 +156,12 @@ export function RoleBrief({ slug }: { slug: string }) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease }}
-        className="fx-grain relative mb-6 overflow-hidden rounded-3xl border border-white/[0.07] bg-card px-6 py-7 sm:px-8"
+        className="relative mb-6 overflow-hidden rounded-2xl border border-white/[0.07] bg-card px-6 py-7 sm:px-8"
       >
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="fx-grid absolute inset-0 opacity-60" />
-          <div className="absolute -right-24 -top-32 size-[380px] rounded-full opacity-30 blur-[100px]" style={{ background: meta.color }} />
-        </div>
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <span className="grid size-9 place-items-center rounded-xl" style={{ background: `${meta.color}22`, color: meta.color }}>
+              <span className="grid size-9 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.04]" style={{ color: meta.color }}>
                 <meta.icon className="size-[18px]" />
               </span>
               <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-white/50">
@@ -187,7 +183,7 @@ export function RoleBrief({ slug }: { slug: string }) {
           </div>
           {history.length > 0 && (
             <div className="flex gap-2">
-              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-black/30 px-4 py-3 backdrop-blur">
+              <div className="flex items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3">
                 <Ring value={best ?? 0} size={42} color={best !== null ? scoreColor(best) : "#71717a"}>
                   {best ?? "—"}
                 </Ring>
@@ -292,8 +288,7 @@ export function RoleBrief({ slug }: { slug: string }) {
 
         {/* ── setup panel ── */}
         <motion.aside initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease }} className="lg:sticky lg:top-[72px] lg:self-start">
-          <div className="relative isolate overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d0d10] p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,1)]">
-            <div aria-hidden className="pointer-events-none absolute -bottom-40 left-1/2 -z-10 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-[#4d7cff]/15 blur-[80px]" />
+          <div className="rounded-2xl border border-white/[0.08] bg-card p-5">
             <h2 className="m-0 text-[17px] font-semibold tracking-[-0.025em] text-white">Set up your interview</h2>
             <p className="m-0 mt-1 text-[12.5px] text-white/45">Choose a level, tailor it if you like, then start.</p>
 

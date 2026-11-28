@@ -156,7 +156,7 @@ export function VoiceRetry({
           </button>
           <div className="flex h-9 flex-1 items-center gap-[3px]" aria-hidden="true">
             {levels.map((l, i) => (
-              <i key={i} className="block flex-1 rounded-full bg-[linear-gradient(180deg,#8fb0ff,#4d7cff)]" style={{ height: `${Math.max(10, Math.min(100, l * 130))}%` }} />
+              <i key={i} className="block flex-1 rounded-full bg-[#4d7cff]" style={{ height: `${Math.max(10, Math.min(100, l * 130))}%` }} />
             ))}
           </div>
           <span className="flex w-14 items-center justify-end gap-1.5 text-[13px] font-medium tabular-nums text-white/70">

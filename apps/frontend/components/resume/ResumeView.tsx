@@ -179,7 +179,6 @@ function Dropzone({ uploading, onFile }: { uploading: boolean; onFile: (f: File 
         over ? "border-[#4d7cff]/60 bg-[#4d7cff]/[0.06]" : "border-white/[0.14] hover:border-white/30",
       )}
     >
-      <span aria-hidden className="pointer-events-none absolute -top-16 left-1/2 size-[200px] -translate-x-1/2 rounded-full bg-[#4d7cff]/15 blur-[60px]" />
       <span className="relative grid size-12 place-items-center rounded-2xl border border-white/10 bg-white/[0.05]">
         {uploading ? <Loader2 className="size-5 animate-spin text-white/70" /> : <Upload className="size-5 text-white/70" />}
       </span>
@@ -195,7 +194,7 @@ function SavedResume({ resume, uploading, onReplace, onRemove }: { resume: Resum
   return (
     <div>
       <div className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-        <span className="grid h-12 w-10 shrink-0 place-items-center rounded-lg bg-[linear-gradient(180deg,#f87171,#dc2626)] text-[9.5px] font-bold tracking-wide text-white shadow-[inset_0_-1px_0_rgba(0,0,0,0.25)]">
+        <span className="grid h-12 w-10 shrink-0 place-items-center rounded-lg border border-[#f87171]/25 bg-[#f87171]/10 text-[9.5px] font-bold tracking-wide text-[#fca5a5]">
           PDF
         </span>
         <div className="min-w-0">

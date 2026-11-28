@@ -260,7 +260,7 @@ function CardBody({ app, className }: { app: Application; className?: string }) 
   return (
     <div className={cn("rounded-xl border border-white/[0.07] bg-[#141417] p-3 transition-colors hover:border-white/[0.15]", className)}>
       <div className="flex items-start gap-2.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg text-[13px] font-semibold text-white" style={{ background: `linear-gradient(135deg, ${STAGE_COLOR[app.stage]}, ${STAGE_COLOR[app.stage]}66)` }}>
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-white/[0.07] bg-white/[0.05] text-[13px] font-semibold text-white/80">
           {initial}
         </span>
         <span className="min-w-0">

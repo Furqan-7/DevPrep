@@ -183,8 +183,8 @@ export function QuestionRow({
                     </div>
                   </div>
 
-                  <div className="relative mt-4 overflow-hidden rounded-xl border border-[#a78bfa]/20 bg-[linear-gradient(135deg,rgba(77,124,255,0.07),rgba(167,139,250,0.07))] p-4">
-                    <Label icon={<Sparkles className="size-3.5 text-[#c4b5fd]" />}>A stronger answer</Label>
+                  <div className="mt-4 rounded-xl border border-white/[0.07] border-l-2 border-l-[#4d7cff] bg-white/[0.02] p-4">
+                    <Label icon={<Sparkles className="size-3.5 text-[#8fb0ff]" />}>A stronger answer</Label>
                     <p className="m-0 text-[13.5px] leading-[1.7] text-white/85">
                       <WithPlaceholders text={evaluation.betterAnswer} />
                     </p>

@@ -45,12 +45,8 @@ function Shared({ report: r }: { report: SharedReport }) {
   const { report } = r;
   return (
     <div className="grid gap-4">
-      <section className={cn(card, "fx-grain relative isolate grid gap-6 overflow-hidden p-6 sm:grid-cols-[170px_1fr] sm:p-8")}>
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="fx-grid absolute inset-0 opacity-50" />
-          <div className="absolute -left-24 -top-32 size-[400px] rounded-full bg-[#4d7cff]/20 blur-[100px]" />
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 py-6 backdrop-blur">
+      <section className={cn(card, "grid gap-6 p-6 sm:grid-cols-[170px_1fr] sm:p-8")}>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.02] py-6">
           <b className="text-[58px] font-semibold leading-none tabular-nums tracking-[-0.05em]" style={{ color: bandColor(report.overallScore / 10) }}>
             {report.overallScore}
           </b>
@@ -65,7 +61,7 @@ function Shared({ report: r }: { report: SharedReport }) {
             ))}
           </div>
           <h1 className="m-0 mt-4 text-[28px] font-semibold leading-[1.1] tracking-[-0.04em] sm:text-[34px]">
-            {r.candidate ? `${r.candidate}'s` : "A"} mock <span className="fx-accent">interview</span>
+            {r.candidate ? `${r.candidate}'s` : "A"} mock interview
           </h1>
           {report.summary ? <p className="m-0 mt-3 max-w-[560px] text-[14.5px] leading-[1.6] text-white/60">{report.summary}</p> : null}
           <dl className="m-0 mt-5 grid gap-2.5 sm:grid-cols-3">
@@ -76,7 +72,7 @@ function Shared({ report: r }: { report: SharedReport }) {
                 ["Confidence", report.confidence],
               ] as const
             ).map(([label, v]) => (
-              <div key={label} className="rounded-xl border border-white/[0.06] bg-black/25 px-3.5 py-3">
+              <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3">
                 <div className="flex items-baseline justify-between text-[12.5px]">
                   <dt className="text-white/55">{label}</dt>
                   <dd className="m-0 text-[15px] font-semibold tabular-nums">{v}/10</dd>
