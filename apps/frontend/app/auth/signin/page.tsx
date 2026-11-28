@@ -10,7 +10,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import api from "@/lib/api";
-import { AuthShell, useReveal } from "@/components/auth/AuthShell";
+import { serif } from "@/lib/fonts";
+import { AuthLogo, AuthShell, useReveal } from "@/components/auth/AuthShell";
 import { AuthField, ErrorBanner, GoogleComingSoon, PasswordField, SubmitButton, readAxiosError, safeNext } from "@/components/auth/AuthFields";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,11 +23,16 @@ function Panel() {
   const reveal = useReveal();
   return (
     <>
-      <motion.h2 {...reveal(0.25)} className="m-0 max-w-[460px] text-[44px] font-semibold leading-[1.02] tracking-[-0.05em] text-white">
-        Pick up right where you left off.
+      <motion.h2 {...reveal(0.25)} className="m-0 text-[52px] font-medium leading-[1.04] tracking-[-0.05em]">
+        Pick up right
+        <br />
+        where you{" "}
+        <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+          left off.
+        </em>
       </motion.h2>
-      <motion.p {...reveal(0.35)} className="m-0 mt-4 max-w-[400px] text-[15.5px] leading-[1.55] text-white/60">
-        Your reports, retries and streak are waiting. Zara is ready for the next round.
+      <motion.p {...reveal(0.35)} className="mt-4 max-w-[380px] text-[15.5px] leading-[1.5] tracking-[-0.03em] text-white/56">
+        Zara and all 24 interview roles are waiting. Sign in and keep practicing.
       </motion.p>
     </>
   );
@@ -76,10 +82,16 @@ function SignInForm() {
 
   return (
     <AuthShell panel={<Panel />}>
-      <motion.h1 {...reveal(0.05)} className="m-0 text-[30px] font-semibold leading-[1.1] tracking-[-0.045em]">
-        Welcome back
+      <motion.div {...reveal(0)} className="mb-7 lg:hidden">
+        <AuthLogo />
+      </motion.div>
+      <motion.h1 {...reveal(0.05)} className="m-0 text-[32px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[34px]">
+        Welcome{" "}
+        <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+          back
+        </em>
       </motion.h1>
-      <motion.p {...reveal(0.11)} className="mb-8 mt-2 text-[14.5px] leading-[1.5] text-white/50">
+      <motion.p {...reveal(0.11)} className="mb-[30px] mt-2.5 text-[15px] leading-[1.5] tracking-[-0.03em] text-white/56">
         Sign in to continue your interview prep.
       </motion.p>
 
@@ -121,11 +133,11 @@ function SignInForm() {
         <GoogleComingSoon />
       </motion.div>
 
-      <motion.p {...reveal(0.41)} className="mt-6 text-center text-[13.5px] text-white/50">
+      <motion.p {...reveal(0.41)} className="mt-[22px] text-[13.5px] tracking-[-0.02em] text-white/50">
         New to DevPrep?{" "}
         <Link
           href={searchParams.get("next") ? `/auth/signup?next=${encodeURIComponent(safeNext(searchParams))}` : "/auth/signup"}
-          className="font-medium text-white underline decoration-white/25 underline-offset-4 transition-colors hover:decoration-white"
+          className="text-[#f0f0f0] underline decoration-[#bec8ff]/40 underline-offset-4 transition-colors hover:decoration-[#bec8ff]"
         >
           Create an account
         </Link>
@@ -136,7 +148,7 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-[#060607]" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-[#0a0a0a]" />}>
       <SignInForm />
     </Suspense>
   );
