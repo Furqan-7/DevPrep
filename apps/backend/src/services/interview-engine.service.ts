@@ -1,5 +1,7 @@
 import { prisma } from "@repo/database";
 import { streamGeminiContent } from "../lib/gemini";
+import { questionById } from "../data/question-bank";
+import { isPlannedQuestion, planProgress } from "../data/question-bank/planner";
 
 export const TOTAL_QUESTIONS = 10;
 // Keeps each turn's prompt short enough that Zara still answers quickly
@@ -30,6 +32,7 @@ interface CachedQuestion {
     order: number;
     question: string;
     answer: string | null;
+    bankId: string | null;
 }
 
 interface CachedSession {
@@ -43,6 +46,12 @@ interface CachedSession {
     status: string;
     currentQues: number;
     questions: CachedQuestion[];
+    /** Question bank ids planned for questions 1-10 (null: the model writes it); null without a blueprint. */
+    plan: (string | null)[] | null;
+    /** Index in `plan` of the next question to ask. */
+    planCursor: number;
+    /** The question awaiting an answer is a follow-up, so that answer gets no follow-up of its own. */
+    awaitingFollowUp: boolean;
     candidateName: string | null;
     touchedAt: number;
 }
@@ -85,6 +94,17 @@ async function loadSession(sessionId: number): Promise<CachedSession | null> {
         select: { username: true },
     });
 
+    const questions: CachedQuestion[] = session.questions.map((q: any) => ({
+        id: q.id,
+        order: q.order,
+        question: q.question,
+        answer: q.answer ?? null,
+        bankId: q.bankId ?? null,
+    }));
+    const plan = Array.isArray(session.plan) ? (session.plan as (string | null)[]) : null;
+    const asked = questions.filter((q) => q.order >= 1 && q.order <= session.currentQues);
+    const progress = planProgress(plan ?? [], asked.map((q) => q.bankId));
+
     const entry: CachedSession = {
         id: session.id,
         userId: session.userId,
@@ -95,12 +115,10 @@ async function loadSession(sessionId: number): Promise<CachedSession | null> {
         jobDescription: session.jobDescription,
         status: session.status,
         currentQues: session.currentQues,
-        questions: session.questions.map((q: any) => ({
-            id: q.id,
-            order: q.order,
-            question: q.question,
-            answer: q.answer ?? null,
-        })),
+        questions,
+        plan,
+        planCursor: progress.cursor,
+        awaitingFollowUp: progress.lastWasFollowUp,
         candidateName: candidateUser?.username ?? null,
         touchedAt: Date.now(),
     };
@@ -166,17 +184,31 @@ export async function processInterviewTurn(input: ProcessTurnInput): Promise<Tur
         session.introduction ? `Candidate's written introduction: "${session.introduction}"` : null,
     ].filter(Boolean).join("\n");
 
-    // Resume and target job, when the candidate asked for a tailored interview
-    const tailoring = [
+    const isIntroTurn = session.currentQues === 0;
+
+    // The question bank question to ask next; null when the model writes its own
+    // (a tailored slot, or a role without a blueprint)
+    const plannedId = isLastQuestion ? null : session.plan?.[session.planCursor];
+    const planned = plannedId ? questionById.get(plannedId) ?? null : null;
+    // A shallow answer to a planned question may get one follow-up, but a follow-up's answer may not
+    const mayFollowUp = planned !== null && !isIntroTurn && !session.awaitingFollowUp;
+
+    // Resume and target job, when the candidate asked for a tailored interview and the model writes the question
+    const resumeAsk = session.plan
+        ? "Make your question dig into something specific from the resume"
+        : "Ask about the real projects, roles and skills on it: at least 3 of the questions should dig into something specific from the resume";
+    const tailoring = planned ? "" : [
         session.resume
-            ? `Candidate's resume:\n"""${session.resume.slice(0, RESUME_PROMPT_CHARS)}"""\nAsk about the real projects, roles and skills on it: at least 3 of the questions should dig into something specific from the resume (why they made a choice, what they would change, how it scaled).`
+            ? `Candidate's resume:\n"""${session.resume.slice(0, RESUME_PROMPT_CHARS)}"""\n${resumeAsk} (why they made a choice, what they would change, how it scaled).`
             : null,
         session.jobDescription
             ? `Target job description:\n"""${session.jobDescription}"""\nSteer the questions toward the skills and responsibilities this job asks for.`
             : null,
     ].filter(Boolean).join("\n\n");
 
-    const isIntroTurn = session.currentQues === 0;
+    const askPlanned = planned
+        ? `- Then ask this question naturally, without numbering it: "${planned.question}" You may rephrase it lightly to connect with what the candidate said, but keep its meaning. Put the exact question you asked in NextQuestion.`
+        : "";
 
     // 4. Construct prompt for single unified streaming generation
     const prompt = `You are Zara, DevPrep's professional, supportive, and conversational AI technical interviewer conducting a LIVE interview for a "${session.role}" role at "${session.difficulty}" difficulty.
@@ -204,17 +236,29 @@ ${
     ? `- Address them by name (${candidateName}) in this response — this is the ONLY time you should use their name unprompted. Do NOT use their name in any subsequent question.`
     : "- If you naturally heard their name in their answer, you may use it once. Do not invent or guess a name."
 }
-- Immediately follow with the first technical interview question for the "${session.role}" role. Ask naturally without numbering it.
+${
+  askPlanned ||
+  `- Immediately follow with the first technical interview question for the "${session.role}" role. Ask naturally without numbering it.`
+}
 - Total spoken response: 2 to 3 sentences maximum.`
     : `You just asked: "${questionText}"
 Candidate's spoken answer: "${candidateAnswer}"
 
 RESPONSE INSTRUCTIONS:
-- In 1 to 2 sentences, naturally acknowledge and assess their answer.
 ${
   isLastQuestion
-    ? "- This was the FINAL interview question. Conclude the interview warmly, thanking the candidate and informing them their report is ready."
-    : `- Seamlessly transition and ask the NEXT relevant technical interview question for the ${session.role} role.`
+    ? `- In 1 to 2 sentences, naturally acknowledge and assess their answer.
+- This was the FINAL interview question. Conclude the interview warmly, thanking the candidate and informing them their report is ready.`
+    : planned
+      ? `- In 1 sentence, acknowledge their answer.
+${askPlanned}${
+  mayFollowUp
+    ? `
+- Exception: if their answer was clearly shallow or off-topic, do not ask that question yet. Ask ONE short follow-up on their answer instead, and put the follow-up in NextQuestion.`
+    : ""
+}`
+      : `- In 1 to 2 sentences, naturally acknowledge and assess their answer.
+- Seamlessly transition and ask the NEXT relevant technical interview question for the ${session.role} role.`
 }
 ${
   candidateName
@@ -378,6 +422,9 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
 
     const nextOrder = session.currentQues + 1;
     const finalNextQuestion = nextQuestion!;
+    // Did the model take its one follow-up instead of the planned question?
+    const followUp = Boolean(planned && mayFollowUp && !isPlannedQuestion(finalNextQuestion, planned.question));
+    const bankId = planned && !followUp ? planned.id : null;
 
     try {
         // Upsert avoids race conditions on duplicate turns
@@ -394,9 +441,11 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
                     sessionId: session.id,
                     order: nextOrder,
                     question: finalNextQuestion,
+                    bankId,
                 },
                 update: {
                     question: finalNextQuestion,
+                    bankId,
                 },
             }),
             prisma.interviewSession.update({
@@ -407,8 +456,11 @@ IsComplete: <${isLastQuestion ? "true" : "false"}>
 
         const upserted = results[answerUpdate.length] as { id: number };
         session.questions = session.questions.filter((q) => q.order !== nextOrder);
-        session.questions.push({ id: upserted.id, order: nextOrder, question: finalNextQuestion, answer: null });
+        session.questions.push({ id: upserted.id, order: nextOrder, question: finalNextQuestion, answer: null, bankId });
         session.currentQues = nextOrder;
+        // A follow-up leaves the planned question for the next turn
+        if (!followUp) session.planCursor++;
+        session.awaitingFollowUp = followUp;
     } catch (err) {
         // Never let the cache drift from the database
         sessionCache.delete(session.id);

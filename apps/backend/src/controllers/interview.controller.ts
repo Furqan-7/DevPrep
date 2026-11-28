@@ -1,84 +1,25 @@
 import { prisma } from "@repo/database";
 import { InterviewQuestions, InterviewSessionSchema } from "../types";
 import { processInterviewTurn, TOTAL_QUESTIONS } from "../services/interview-engine.service";
+import type { Level } from "../data/question-bank";
+import { planInterview } from "../data/question-bank/planner";
 import type { Request, Response } from "express";
 import dotenv from "dotenv";
 import path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../../../packages/database/.env") });
 
-/**
- * Curated initial interview question bank per role.
- * Instant lookup (<1ms) avoids blocking 3-7s LLM generation on start.
- */
-export const ROLE_FIRST_QUESTIONS: Record<string, string[]> = {
-    "frontend-engineer": [
-        "What best practices should be followed for maintaining scalable and maintainable CSS/JS codebases?",
-        "How do you ensure cross-browser compatibility and handle performance bottlenecks in complex front-end applications?",
-        "Can you explain the Virtual DOM in React and how reconciliation works under the hood?",
-    ],
-    "backend-engineer": [
-        "How do you design a scalable RESTful API, and what architectural considerations do you keep in mind?",
-        "What strategies do you use for database indexing and query optimization when handling high concurrency?",
-        "Can you explain the CAP theorem and its practical trade-offs in distributed systems?",
-    ],
-    "full-stack-developer": [
-        "How do you structure data flow and authentication across the frontend and backend in a modern web app?",
-        "What factors guide your decision when choosing server-side rendering (SSR) versus client-side rendering (CSR)?",
-        "How do you handle database migration and schema updates with zero downtime in production?",
-    ],
-    "data-structures-algorithms": [
-        "What is the difference between dynamic programming and recursion with memoization? Can you give an example?",
-        "How do you analyze the time and space complexity of sorting algorithms like QuickSort and MergeSort?",
-        "When would you choose a Hash Table over a Binary Search Tree, and what are the trade-offs?",
-    ],
-    "system-design": [
-        "How would you approach designing a high-throughput rate limiter for a global microservice architecture?",
-        "What strategies do you use for data partitioning and consistent hashing in distributed databases?",
-        "How do load balancers distribute traffic, and how do you handle single points of failure?",
-    ],
-    "machine-learning-engineer": [
-        "What is the bias-variance tradeoff, and how do you detect and mitigate overfitting in complex models?",
-        "Can you walk me through feature engineering techniques and how they impact model accuracy?",
-        "How do you approach model deployment, monitoring, and handling data drift in production?",
-    ],
-    "devops-engineer": [
-        "What are the core principles of continuous integration and continuous deployment (CI/CD) pipelines?",
-        "How does Kubernetes manage container orchestration, networking, and automatic pod scaling?",
-        "How do you enforce Infrastructure as Code (IaC) and manage environment secrets securely?",
-    ],
-    "android-developer": [
-        "How does the Android Activity lifecycle work, and how do you prevent memory leaks during config changes?",
-        "What are the key benefits of Jetpack Compose compared to the legacy XML layout view system?",
-        "How do Kotlin Coroutines simplify asynchronous processing and main thread safety in Android?",
-    ],
-    "ios-developer": [
-        "How does Automatic Reference Counting (ARC) work in Swift, and how do you avoid strong reference cycles?",
-        "What are the key differences between SwiftUI and UIKit, and when would you bridge the two?",
-        "How do you manage asynchronous network calls using Swift's async/await syntax?",
-    ],
-    "data-engineer": [
-        "What is the difference between ETL and ELT data pipelines, and when would you use each?",
-        "How does Apache Spark process large-scale datasets across distributed clusters?",
-        "How do you handle late-arriving data and state management in real-time streaming architectures?",
-    ],
-    "product-manager": [
-        "How do you evaluate and prioritize competing product features when resources are constrained?",
-        "Walk me through how you define key performance metrics (KPIs) for a newly launched feature?",
-        "How do you navigate technical debt trade-offs with engineering teams while meeting business goals?",
-    ],
-    "behavioral-round": [
-        "Tell me about a time you led a team through a complex technical challenge under strict deadlines.",
-        "How do you handle technical disagreements or architectural conflicts within your development team?",
-        "Describe a situation where a project didn't go as planned and what key lessons you took away.",
-    ],
-};
+// The levels the role page sends as "difficulty", as the question bank names them
+const BANK_LEVELS: Record<string, Level> = { fresher: "fresher", "mid-level": "mid", senior: "senior" };
+
+// Stored as question 1 when there is no planned question; the intro turn replaces it
+const FIRST_QUESTION_FALLBACK = "Can you walk me through your technical background and a recent project you built?";
 
 /**
  * Start a new interview session and initialize Question 1.
  */
 export const startInterview = async (req: Request, res: Response) => {
     try {
-        const userId = res.locals.userId;
+        const userId = parseInt(res.locals.userId, 10);
         const parseResult = InterviewSessionSchema.safeParse(req.body);
         if (!parseResult.success) {
             return res.status(400).json({
@@ -87,27 +28,43 @@ export const startInterview = async (req: Request, res: Response) => {
             });
         }
         const { role, difficulty, introduction, useResume, jobDescription } = parseResult.data;
+        const level = BANK_LEVELS[difficulty];
 
-        // Select authoritative Question 1 from curated role pool (<1ms execution)
-        const defaultFallback = "Can you walk me through your technical background and a recent project you built?";
-        const pool = ROLE_FIRST_QUESTIONS[role] ?? [defaultFallback];
-        const question: string = pool[Math.floor(Math.random() * pool.length)] ?? defaultFallback;
-
-        // Fetch candidate username (and resume, when asked for) for AI context
-        const candidateUser = await prisma.user.findUnique({
-            where: { id: parseInt(userId, 10) },
-            select: { username: true, resume: useResume ? { select: { text: true } } : false },
-        });
+        // Candidate username (and resume, when asked for) for AI context, and the bank
+        // questions they were asked in earlier interviews so this one does not repeat them
+        const [candidateUser, askedBefore] = await Promise.all([
+            prisma.user.findUnique({
+                where: { id: userId },
+                select: { username: true, resume: useResume ? { select: { text: true } } : false },
+            }),
+            level
+                ? prisma.interviewQuestion.findMany({
+                    where: { session: { userId }, bankId: { not: null } },
+                    select: { bankId: true },
+                })
+                : [],
+        ]);
         const candidateName = candidateUser?.username ?? null;
         if (useResume && !candidateUser?.resume) {
             return res.status(409).json({ success: false, message: "Upload your resume before starting a resume-based interview." });
         }
 
+        // Questions 1-10 from the question bank (in memory), or null for roles without a blueprint
+        const plan = level
+            ? planInterview({
+                role,
+                level,
+                seenIds: new Set(askedBefore.map((q) => q.bankId!)),
+                tailoring: Boolean(useResume || jobDescription),
+            })
+            : null;
+        const first = plan?.[0];
+
         // Atomically create session with intro (order 0) and first technical question (order 1).
         // currentQues starts at 0 so the intro is the authoritative first spoken question.
         const session = await prisma.interviewSession.create({
             data: {
-                userId: parseInt(userId, 10),
+                userId,
                 role,
                 difficulty,
                 introduction,
@@ -115,6 +72,7 @@ export const startInterview = async (req: Request, res: Response) => {
                 jobDescription: jobDescription ?? null,
                 status: "active",
                 currentQues: 0,
+                plan: plan ? plan.map((q) => q?.id ?? null) : undefined,
                 questions: {
                     create: [
                         {
@@ -125,7 +83,8 @@ export const startInterview = async (req: Request, res: Response) => {
                         },
                         {
                             order: 1,
-                            question: question,
+                            question: first?.question ?? FIRST_QUESTION_FALLBACK,
+                            bankId: first?.id ?? null,
                         },
                     ],
                 },

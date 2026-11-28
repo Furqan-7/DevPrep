@@ -55,6 +55,10 @@ model InterviewSession {
   resume         String? @db.Text
   jobDescription String? @db.Text
 
+  // Question bank ids planned for questions 1-10, null where the model writes a tailored question.
+  // Null for roles without a blueprint (apps/backend/src/data/question-bank)
+  plan Json?
+
   // Set while the candidate shares a read-only link to the report
   shareToken String? @unique
 
@@ -73,6 +77,8 @@ model InterviewQuestion {
   speakingMs Int?
   feedback   String?          @db.Text // Zara's spoken reply during the live turn
   order      Int // 0 = intro, 1-10 = actual questions
+  // Question bank id; null for the intro, follow-ups and questions the model wrote
+  bankId     String?
   createdAt  DateTime         @default(now())
 
   // Rubric evaluation written when the report is generated:
@@ -81,6 +87,7 @@ model InterviewQuestion {
   attempts   AnswerAttempt[]
 
   @@unique([sessionId, order])
+  @@index([bankId])
 }
 
 /// A retry of one interview question after the report, scored with the same rubric.
