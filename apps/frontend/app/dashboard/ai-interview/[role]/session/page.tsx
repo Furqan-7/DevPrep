@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, type MutableRefObject, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, type MutableRefObject } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Camera, CameraOff, Check, CircleAlert, CircleHelp, Headphones, Mic, MicOff, PhoneOff, RotateCcw, Timer, Volume2 } from "lucide-react";
+import { motion } from "motion/react";
+import { Camera, CameraOff, Check, ChevronDown, CircleAlert, Clock3, Mic, MicOff, RotateCcw } from "lucide-react";
 import type { RoleData } from "../../data";
 import { useRealtimeVoice, type TurnData } from "@/hooks/useRealtimeVoice";
 import Link from "next/link";
+import { serif } from "@/lib/fonts";
 import { levelLabel } from "@/lib/interview/report";
+import { SpaceBackdrop } from "@/components/interviews/SpaceBackdrop";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogoTile } from "@/components/brand/Logo";
-import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -65,6 +67,7 @@ export default function InterviewSessionPage() {
   }>({});
   const [micLevel, setMicLevel] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [stage, setStage] = useState<{ zoom: number; height: number; pad: number } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
@@ -203,6 +206,22 @@ export default function InterviewSessionPage() {
       totalQuestions: 10,
     });
   }, [slug]);
+
+  // Fit the desktop layout to the window (see STAGE_W). null on narrow screens = fluid layout.
+  useEffect(() => {
+    const fit = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (w < 1024) return setStage(null);
+      const zoom = Math.min(w / STAGE_W, h / STAGE_H, 1.6);
+      // keep the buttons just above the horizon, which SpaceBackdrop sizes from the real window
+      const horizon = Math.min(h * 0.145, 130);
+      setStage({ zoom, height: h / zoom, pad: horizon / zoom + 10 });
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
 
   // Session elapsed timer
   useEffect(() => {
@@ -401,57 +420,57 @@ export default function InterviewSessionPage() {
     else router.push(`/dashboard/ai-interview/${slug}`);
   };
 
-
+  const mono = { fontFamily: "var(--font-jbmono), ui-monospace, monospace" } as const;
   const levelText = data?.level ? levelLabel(data.level) : null;
   const rolePage = `/dashboard/ai-interview/${slug}`;
 
   if (!data) {
     return (
-      <Room>
-        <div className="flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center" role="status">
-          <ZaraOrb speaking size={96} />
-          <p className="m-0 text-[15px] font-medium text-white">Zara is preparing your first question…</p>
+      <div className="relative isolate flex min-h-dvh items-center justify-center font-sans text-[#f0f0f0]">
+        <SpaceBackdrop />
+        <div className="flex flex-col items-center gap-4 px-6 text-center" role="status">
+          <ZaraAvatar speaking />
+          <p className="m-0 text-[15px] font-medium">Zara is preparing your first question…</p>
         </div>
-      </Room>
+      </div>
     );
   }
 
-  // ── SETUP (READY CHECK) ──────────────────────────────────────────────────────
+  // -- SETUP (READY SCREEN) --------------------------------------------------
   if (phase === "setup") {
     const count = data.totalQuestions ?? totalQuestions;
     const micReady = microphonePermission === "done";
     const completed = [microphonePermission, cameraPermission].filter((s) => s === "done").length;
     const hint = micReady ? "Say something to check the level, then start" : microphonePermission === "blocked" ? "Fix microphone access to continue" : "Allow your microphone to continue";
     const cameraLiveSetup = cameraPermission === "done" && camOn && !camError;
-    const segments = 32;
+    const segments = 28;
     const lit = Math.round(micLevel * segments);
 
-    const row = (kind: PermissionKind, label: string, note: string) => {
+    const row = (kind: PermissionKind, step: string, label: string, note: string) => {
       const state = kind === "camera" ? cameraPermission : microphonePermission;
       const message = permissionMessage[kind];
-      const Icon = kind === "camera" ? Camera : Mic;
       return (
-        <li className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-3.5">
-          <div className="flex items-center gap-3">
-            <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", state === "done" ? "bg-[#34d399]/12 text-[#6ee7b7]" : state === "blocked" ? "bg-[#f87171]/12 text-[#fca5a5]" : "bg-white/[0.06] text-white/70")}>
-              <Icon className="size-[18px]" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="m-0 text-[14px] font-semibold tracking-[-0.015em] text-white">{label}</p>
-              <p className="m-0 mt-0.5 text-[12.5px] text-white/45">{note}</p>
-            </div>
-            {state === "done" ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#34d399]/10 px-2.5 py-1 text-[12px] font-medium text-[#6ee7b7]">
-                <Check className="size-3.5" aria-hidden="true" /> Allowed
-              </span>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => requestPermission(kind)} className="h-8 border-white/[0.12] bg-white/[0.03] text-[12.5px]">
-                {state === "blocked" ? "Try again" : `Allow ${kind}`}
-              </Button>
-            )}
+        <li className="grid grid-cols-[36px_1fr_auto] items-center gap-y-2 border-b border-white/[0.08] py-4">
+          <span className="text-[12px] tabular-nums text-white/30">{step}</span>
+          <div>
+            <p className="m-0 text-[15px] font-medium tracking-[-0.02em]">{label}</p>
+            <p className="m-0 mt-0.5 text-[12.5px] text-white/45">{note}</p>
           </div>
+          {state === "done" ? (
+            <span className="flex items-center gap-1.5 text-[13px] text-[#6ee7b7]">
+              <Check size={14} aria-hidden="true" /> Allowed
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => requestPermission(kind)}
+              className="h-[34px] cursor-pointer rounded-[9px] px-3.5 text-[13px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)] transition-shadow hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.32)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4d7cff]"
+            >
+              {state === "blocked" ? "Try again" : `Allow ${kind}`}
+            </button>
+          )}
           {state === "blocked" && message ? (
-            <p role="alert" className="m-0 mt-3 rounded-lg bg-[#f87171]/[0.07] px-3 py-2 text-[12.5px] text-[#fecaca]">
+            <p role="alert" className="col-start-2 col-end-4 m-0 text-[12.5px] text-[#fecaca]">
               {message}
             </p>
           ) : null}
@@ -460,79 +479,78 @@ export default function InterviewSessionPage() {
     };
 
     return (
-      <Room>
-        <RoomHeader>
-          <Link href={rolePage} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-white/55 transition-colors hover:bg-white/[0.05] hover:text-white">
-            <ArrowLeft className="size-3.5" /> Back to role
+      <div className="relative isolate min-h-dvh font-sans text-[#f0f0f0] antialiased selection:bg-[#4d7cff]/30">
+        <SpaceBackdrop fixed={false} />
+        <header className="mx-auto flex max-w-[1444px] items-center justify-between px-5 pt-7 sm:px-8">
+          <Logo />
+          <Link href={rolePage} className="text-[13.5px] text-white/55 transition-colors hover:text-[#f0f0f0]">
+            ← Back to role
           </Link>
-        </RoomHeader>
-        <main className="mx-auto grid w-full max-w-[1180px] gap-6 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10 lg:pt-14">
-          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
-            <div className="flex flex-wrap gap-1.5">
-              {[data.title, levelText, `Intro + ${count} questions`, `~${data.duration} min`].filter(Boolean).map((t) => (
-                <span key={t} className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[12px] text-white/60">
-                  {t}
-                </span>
-              ))}
-            </div>
-            <h1 className="m-0 mt-5 text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] text-white sm:text-[44px]">
-              Ready for your <span className="fx-accent">interview?</span>
+        </header>
+        <main className="mx-auto grid max-w-[1444px] gap-10 px-5 pb-[200px] pt-10 sm:px-8 lg:grid-cols-2 lg:gap-16 lg:pt-14">
+          <section>
+            <p className="m-0 flex flex-wrap gap-x-3.5 text-[12.5px] text-white/45">
+              <span>{data.title}</span>
+              <span>Intro + {count} questions</span>
+              <span>~{data.duration} min</span>
+              {levelText && <span>{levelText}</span>}
+            </p>
+            <h1 className="m-0 mt-3 text-[36px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[46px]">
+              Ready for your
+              <br />
+              <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+                interview?
+              </em>
             </h1>
-            <p className="m-0 mt-3 max-w-[440px] text-[15px] leading-[1.55] text-white/55">Check your microphone first. The camera is optional and only shown to you.</p>
-
-            <div className="mt-8 flex items-center justify-between text-[12.5px]">
-              <span className="font-medium text-white/60">Before you start</span>
-              <span className="tabular-nums text-white/40">{completed} of 2 ready</span>
+            <p className="m-0 mt-4 max-w-[440px] text-[15.5px] leading-[1.55] text-white/56">Check your microphone first. The camera is optional and only shown to you.</p>
+            <div className="mt-9">
+              <div className="flex justify-between border-b border-white/[0.08] pb-2.5 text-[12.5px] text-white/45">
+                <span>Before you start</span>
+                <span className="tabular-nums">{completed} of 2 ready</span>
+              </div>
+              <ul className="m-0 list-none p-0">
+                {row("microphone", "01", "Microphone", "Required. Zara listens and replies by voice.")}
+                {row("camera", "02", "Camera", "Optional. Never recorded or sent.")}
+              </ul>
             </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.06]">
-              <motion.div className="h-full rounded-full bg-[linear-gradient(90deg,#4d7cff,#a78bfa)]" animate={{ width: `${(completed / 2) * 100}%` }} transition={{ duration: 0.6, ease: EASE }} />
-            </div>
-            <ul className="m-0 mt-4 grid list-none gap-2.5 p-0">
-              {row("microphone", "Microphone", "Required. Zara listens and replies by voice.")}
-              {row("camera", "Camera", "Optional. Never recorded or sent.")}
-            </ul>
-
             <button
               type="button"
               disabled={!micReady}
               onClick={handleStartInterview}
-              className="mt-6 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white text-[14.5px] font-semibold tracking-[-0.02em] text-black shadow-[0_10px_30px_-12px_rgba(255,255,255,0.5)] transition-[background-color,transform] hover:bg-white/90 active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-white/35 disabled:shadow-none"
+              className="mt-6 flex h-[52px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#f0f0f0] text-[14px] font-bold uppercase tracking-[0.04em] text-[#0a0a0a] transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4d7cff] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-white/35"
+              style={mono}
             >
-              <Mic className="size-4" aria-hidden="true" /> Start interview
+              <Mic size={16} aria-hidden="true" /> Start interview
             </button>
             <p aria-live="polite" className="m-0 mt-2.5 text-center text-[12.5px] text-white/45">
               {hint}
             </p>
-          </motion.section>
+          </section>
 
-          <motion.aside initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.08, ease: EASE }} className="grid content-start gap-3">
-            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b0b0e]">
+          <aside>
+            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[16px] bg-[#0f0f11]/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
               <ViewfinderCorners />
               {cameraPermission === "done" && (
                 <video ref={videoRef} autoPlay muted playsInline className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover ${cameraLiveSetup ? "opacity-100" : "opacity-0"}`} />
               )}
               {!cameraLiveSetup && (
                 <div className="text-center text-[13.5px] text-white/45">
-                  <span className="mx-auto mb-3 grid size-14 place-items-center rounded-2xl bg-white/[0.04]">
-                    <Camera className="size-6 text-white/40" strokeWidth={1.5} aria-hidden="true" />
-                  </span>
+                  <Camera size={30} strokeWidth={1.5} className="mx-auto mb-2.5 text-white/35" aria-hidden="true" />
                   {cameraPermission === "blocked" ? "Camera blocked" : "Camera is off"}
                 </div>
               )}
-              <span className="absolute bottom-3.5 left-3.5 flex h-8 items-center gap-2 rounded-full bg-black/60 px-3 text-[12px] text-white/80 backdrop-blur">
-                <span className={`size-2 rounded-full ${cameraLiveSetup ? "bg-[#34d399]" : "bg-white/30"}`} />
+              <span className="absolute bottom-3.5 left-3.5 flex h-8 items-center gap-2 rounded-full bg-[#0f0f11]/80 px-3 text-[12.5px] text-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                <span className={`h-2 w-2 rounded-full ${cameraLiveSetup ? "bg-[#34d399]" : "bg-white/30"}`} />
                 Camera preview
               </span>
             </div>
-            <div className="rounded-2xl border border-white/[0.07] bg-[#0b0b0e] px-4 py-3.5">
-              <div className="mb-2.5 flex items-center justify-between text-[12.5px]">
-                <span className="flex items-center gap-1.5 font-medium text-white/60">
-                  <Mic className="size-3.5" /> Mic level
-                </span>
-                <span className="text-white/40">{micReady ? "Say hello" : "Off"}</span>
+            <div className="mt-3.5 rounded-[14px] bg-[#0f0f11]/80 px-4 py-3.5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]">
+              <div className="mb-2.5 flex justify-between text-[12.5px] text-white/45">
+                <span>Mic level</span>
+                <span>{micReady ? "Say hello" : "Off"}</span>
               </div>
               <div
-                className="grid h-5 grid-cols-[repeat(32,minmax(0,1fr))] gap-[3px]"
+                className="grid h-4 grid-cols-[repeat(28,minmax(0,1fr))] gap-[3px]"
                 role="meter"
                 aria-label="Microphone level"
                 aria-valuemin={0}
@@ -540,28 +558,14 @@ export default function InterviewSessionPage() {
                 aria-valuenow={Math.round(micLevel * 100)}
               >
                 {Array.from({ length: segments }, (_, i) => (
-                  <span
-                    key={i}
-                    className="rounded-[3px] transition-colors duration-75"
-                    style={{ background: micReady && i < lit ? (i > segments * 0.8 ? "#fbbf24" : i > segments * 0.5 ? "#a78bfa" : "#4d7cff") : "rgba(255,255,255,0.07)" }}
-                  />
+                  <span key={i} className={`rounded-[2px] ${micReady && i < lit ? "bg-[#4d7cff]" : "bg-white/[0.08]"}`} />
                 ))}
               </div>
             </div>
-            <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
-              {[
-                { icon: Headphones, text: "Headphones stop Zara's voice reaching your mic." },
-                { icon: Timer, text: "Pause for about a second when you finish an answer." },
-              ].map((tip) => (
-                <li key={tip.text} className="flex items-start gap-2.5 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-[12.5px] leading-[1.45] text-white/55">
-                  <tip.icon className="mt-0.5 size-3.5 shrink-0 text-white/45" />
-                  {tip.text}
-                </li>
-              ))}
-            </ul>
-          </motion.aside>
+            <p className="m-0 mt-3.5 text-[12.5px] text-white/42">Find a quiet space. Headphones stop Zara&rsquo;s voice from reaching your mic.</p>
+          </aside>
         </main>
-      </Room>
+      </div>
     );
   }
 
@@ -569,212 +573,144 @@ export default function InterviewSessionPage() {
   if (phase === "done") {
     const asked = data.questions.length;
     return (
-      <Room>
-        <RoomHeader>
-          <Link href="/dashboard/ai-interview" className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] text-white/55 transition-colors hover:bg-white/[0.05] hover:text-white">
+      <div className="relative isolate min-h-dvh font-sans text-[#f0f0f0] antialiased selection:bg-[#4d7cff]/30">
+        <SpaceBackdrop fixed={false} />
+        <header className="mx-auto flex max-w-[1444px] items-center justify-between px-5 pt-7 sm:px-8">
+          <Logo />
+          <Link href="/dashboard/ai-interview" className="text-[13.5px] text-white/55 transition-colors hover:text-[#f0f0f0]">
             Back to roles
           </Link>
-        </RoomHeader>
-        <main className="mx-auto w-full max-w-[720px] px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }} className="text-center">
-            <span className="relative mx-auto grid size-16 place-items-center rounded-2xl bg-[#34d399]/12 text-[#6ee7b7] shadow-[0_0_60px_-10px_rgba(52,211,153,0.6)]">
-              <Check className="size-7" />
-            </span>
-            <p className="m-0 mt-6 text-[12.5px] text-white/45">
-              {data.title}
-              {levelText ? ` · ${levelText}` : ""} · Today
-            </p>
-            <h1 className="m-0 mt-2 text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] text-white sm:text-[44px]">
-              Interview <span className="fx-accent">complete</span>
-            </h1>
-            <p className="mx-auto mt-3 max-w-[480px] text-[15px] leading-[1.55] text-white/55">Open your report for a score on every answer, what was missing, and a stronger version you can retry.</p>
-          </motion.div>
-
-          <motion.dl initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.08, ease: EASE }} className="m-0 mt-9 grid grid-cols-3 gap-2.5">
+        </header>
+        <main className="mx-auto max-w-[720px] px-5 pb-[220px] pt-14 sm:px-8 sm:pt-20">
+          <p className="m-0 flex flex-wrap gap-x-3.5 text-[12.5px] text-white/45">
+            <span>{data.title}</span>
+            {levelText && <span>{levelText}</span>}
+            <span>Today</span>
+          </p>
+          <h1 className="m-0 mt-3 text-[36px] font-medium leading-[1.05] tracking-[-0.05em] sm:text-[48px]">
+            Interview{" "}
+            <em className={`${serif.className} font-normal tracking-normal`} style={{ fontStyle: "italic" }}>
+              complete.
+            </em>
+          </h1>
+          <p className="m-0 mt-4 max-w-[520px] text-[15.5px] leading-[1.55] text-white/56">Open your report for a score on every answer, what was missing, and a stronger version you can retry.</p>
+          <dl className="m-0 mt-9 grid grid-cols-3 border-y border-white/[0.08]">
             {[
-              [`${answered.size}/${asked}`, "Answered"],
-              [formatTime(elapsed), "Time"],
-              [levelText ?? "—", "Level"],
-            ].map(([v, l]) => (
-              <div key={l} className="flex flex-col-reverse rounded-2xl border border-white/[0.07] bg-card px-4 py-3.5">
-                <dt className="text-[12px] text-white/45">{l}</dt>
-                <dd className="m-0 text-[22px] font-semibold tracking-[-0.04em] tabular-nums text-white">{v}</dd>
+              [`${answered.size} / ${asked}`, "questions answered"],
+              [formatTime(elapsed), "time"],
+              [levelText ?? "—", "level"],
+            ].map(([v, l], i) => (
+              <div key={l} className={`flex flex-col-reverse py-4 ${i ? "border-l border-white/[0.08] pl-5" : ""}`}>
+                <dt className="text-[12.5px] text-white/45">{l}</dt>
+                <dd className="m-0 text-[24px] font-medium tracking-[-0.04em] tabular-nums">{v}</dd>
               </div>
             ))}
-          </motion.dl>
-
-          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.14, ease: EASE }} className="mt-4 overflow-hidden rounded-2xl border border-white/[0.07] bg-card">
-            <h2 className="m-0 border-b border-white/[0.06] px-5 py-3.5 text-[14px] font-semibold tracking-[-0.015em] text-white">Questions covered</h2>
-            <ol className="m-0 list-none divide-y divide-white/[0.05] p-0">
+          </dl>
+          <div className="mt-9">
+            <h2 className="m-0 border-b border-white/[0.08] pb-2.5 text-[12.5px] font-normal text-white/45">Questions covered</h2>
+            <ol className="m-0 list-none p-0">
               {data.questions.map((q, i) => (
-                <li key={i} className="flex items-start gap-3 px-5 py-3 text-[13.5px] leading-[1.5] text-white/80">
-                  <span className="mt-0.5 grid h-5 min-w-7 place-items-center rounded-md bg-white/[0.05] px-1 text-[11px] font-medium tabular-nums text-white/50">{i ? `Q${i}` : "Intro"}</span>
-                  <span className="flex-1">{q}</span>
-                  {answered.has(i) ? <Check className="mt-1 size-3.5 shrink-0 text-[#6ee7b7]" aria-label="Answered" /> : <span className="shrink-0 text-[12px] text-white/30">Skipped</span>}
+                <li key={i} className="grid grid-cols-[36px_1fr_auto] items-start border-b border-white/[0.08] py-3 text-[14.5px] text-white/80">
+                  <span className="pt-0.5 text-[12px] tabular-nums text-white/30">{i ? String(i).padStart(2, "0") : "In"}</span>
+                  <span>{q}</span>
+                  {answered.has(i) ? <Check size={14} className="mt-1 text-[#6ee7b7]" aria-label="Answered" /> : <span className="text-[12px] text-white/30">Skipped</span>}
                 </li>
               ))}
             </ol>
-          </motion.section>
-
-          <div className="mt-6 flex flex-wrap justify-center gap-2.5">
+          </div>
+          <div className="mt-8 flex flex-wrap items-center gap-2.5">
             <Link
               href={data.sessionId ? `/dashboard/reports/${data.sessionId}` : "/dashboard/reports"}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-[14px] font-semibold text-black transition-colors hover:bg-white/90"
+              className="inline-flex h-12 items-center rounded-full bg-[#f0f0f0] px-6 text-[14px] font-bold uppercase tracking-[0.04em] text-[#0a0a0a] transition-colors hover:bg-white"
+              style={mono}
             >
-              View your report <ArrowRight className="size-4" />
+              View your report →
             </Link>
-            <Link href={rolePage} className="inline-flex h-11 items-center rounded-xl border border-white/[0.12] bg-white/[0.03] px-5 text-[14px] font-medium text-white transition-colors hover:bg-white/[0.07]">
+            <Link
+              href={rolePage}
+              className="inline-flex h-12 items-center rounded-full px-6 text-[14px] font-bold uppercase tracking-[0.04em] text-[#f0f0f0] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)] transition-shadow hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]"
+              style={mono}
+            >
               Start a new interview
             </Link>
           </div>
         </main>
-      </Room>
+      </div>
     );
   }
 
   // ── ACTIVE INTERVIEW ──────────────────────────────────────────────────────────
+  // The interview covers these skills; the underline marks them, it is not a progress meter.
+  const topicTabs = data.skills.slice(0, 3);
   const currentQuestionText = data.questions[currentQ] ?? data.firstQuestion ?? "Can you walk me through your technical background and a recent project you built?";
   const isThinking = vadState === "processing";
-  const status = aiSpeaking
-    ? { label: "Zara is speaking", tone: "text-[#c4b5fd]", dot: "bg-[#a78bfa]" }
-    : isThinking
-      ? { label: "Thinking…", tone: "text-[#fcd34d]", dot: "bg-[#fbbf24]" }
-      : userIsSpeaking
-        ? { label: "Listening to you", tone: "text-[#6ee7b7]", dot: "bg-[#34d399]" }
-        : { label: "Your turn, go ahead", tone: "text-white/70", dot: "bg-white/50" };
+  const statusText = aiSpeaking ? "Speaking to you…" : isThinking ? "Thinking…" : userIsSpeaking ? "Listening to you…" : "Your turn — go ahead";
   const cameraLive = camOn && !camError && !camLoading && cameraPermission === "done";
-  const level = isMuted ? 0 : userIsSpeaking ? Math.max(0.35, speechEnergy) : 0.12;
-  const steps = totalQuestions + 1; // intro + questions
-  const cameraNote = cameraPermission !== "done" ? "Camera off" : camError ? "Audio only" : camLoading ? "Starting…" : "Camera off";
+  // Five ascending bars light up with your voice level (one stays lit while idle).
+  const level = isMuted ? 0 : userIsSpeaking ? Math.max(0.4, speechEnergy) : 0.2;
+  const litBars = Math.max(isMuted ? 0 : 1, Math.ceil(level * 5));
+  const cameraNote = cameraPermission !== "done" ? "Camera preview will appear here" : camError ? "Camera unavailable, audio only" : camLoading ? "Starting camera…" : "Camera is off";
   const switchCamera = () => {
     if (cameraPermission === "done") toggleCam();
     else void requestPermission("camera");
   };
 
+  // Menus render in a portal outside the zoomed stage, so they get the same zoom.
+  const portalZoom = stage ? { zoom: stage.zoom } : undefined;
+
   return (
     <TooltipProvider>
-      <Room className="h-[100dvh] overflow-hidden">
-        <div className="flex h-full flex-col">
+      <div className="relative isolate h-[100dvh] overflow-hidden font-sans text-[#f0f0f0] antialiased selection:bg-[#4d7cff]/30" data-theme="dark">
+        <SpaceBackdrop />
+
+        {/* The desktop layout is drawn at the reference size (1855×848) and zoomed to fit the window,
+          so it keeps the same proportions on every screen. Below lg it falls back to a fluid layout. */}
+        <div className="mx-auto flex h-full flex-col" style={stage ? { zoom: stage.zoom, width: STAGE_W, height: stage.height } : undefined}>
           {/* ── TOP BAR ── */}
-          <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-black/20 px-3 backdrop-blur-xl sm:px-5">
-            <LogoTile />
-            <div className="min-w-0">
-              <p className="m-0 truncate text-[13.5px] font-semibold tracking-[-0.015em] text-white">{data.title}</p>
-              <p className="m-0 truncate text-[11.5px] text-white/40">{[levelText, "Voice interview"].filter(Boolean).join(" · ")}</p>
-            </div>
-
-            <div className="mx-auto hidden min-w-0 flex-1 flex-col items-center gap-1.5 px-6 md:flex" aria-label="Progress">
-              <span className="text-[12px] text-white/55">{currentQ === 0 ? "Introduction" : `Question ${Math.min(currentQ, totalQuestions)} of ${totalQuestions}`}</span>
-              <div className="flex w-full max-w-[360px] gap-1">
-                {Array.from({ length: steps }, (_, i) => (
-                  <span
-                    key={i}
-                    className={cn(
-                      "h-1 flex-1 rounded-full transition-colors duration-500",
-                      answered.has(i) ? "bg-[#4d7cff]" : i === currentQ ? "bg-white/60" : "bg-white/[0.1]",
-                    )}
-                  />
+          <header className="mx-auto w-full max-w-[1444px] flex-shrink-0 px-5 pt-5 sm:px-8 lg:pt-7">
+            <Logo />
+            <div className="mt-5 flex items-center justify-between gap-6 lg:mt-9">
+              <div className="flex min-w-0 items-center gap-3 lg:w-[280px] lg:shrink-0 lg:justify-between">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#34d399]" />
+                  <span className="truncate text-[15px]">{data.title}</span>
+                </span>
+                <span aria-hidden="true" className="hidden h-5 w-px bg-white/20 lg:block" />
+              </div>
+              <nav aria-label="Skills covered" className="hidden flex-1 justify-center gap-[66px] lg:flex">
+                {topicTabs.map((item) => (
+                  <div key={item} className="w-[166px] text-center">
+                    <p className="m-0 truncate text-[15px] text-[#f0f0f0]">{item}</p>
+                    <span aria-hidden="true" className="mt-2.5 block h-[5px] rounded-full bg-[#4d7cff]" />
+                  </div>
                 ))}
+              </nav>
+              <div className="flex shrink-0 items-center justify-between lg:w-[254px] lg:pr-[22px]">
+                <span aria-hidden="true" className="hidden h-5 w-px bg-white/20 lg:block" />
+                <div className="flex h-12 shrink-0 items-center gap-3 rounded-full bg-[#141416] px-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]" role="timer" aria-label="Elapsed time">
+                  <Clock3 size={20} aria-hidden="true" />
+                  <span className="text-[18px] font-semibold tabular-nums tracking-[0.02em]">{formatTime(elapsed)}</span>
+                </div>
               </div>
             </div>
-
-            <div className="ml-auto flex items-center gap-2 md:ml-0">
-              <div className="flex h-8 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5" role="timer" aria-label="Elapsed time">
-                <span className="size-1.5 animate-pulse rounded-full bg-[#f87171]" />
-                <span className="text-[13px] font-semibold tabular-nums text-white">{formatTime(elapsed)}</span>
-              </div>
-              <Popover open={helpOpen} onOpenChange={setHelpOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-white/65">
-                    <CircleHelp /> <span className="hidden sm:inline">Having a problem?</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent side="bottom" align="end" className="w-[320px] rounded-2xl border-white/10 bg-popover p-4">
-                  <p className="m-0 mb-2.5 text-[13.5px] font-semibold text-white">Troubleshooting</p>
-                  <ul className="m-0 grid list-none gap-2 p-0 text-[12.5px] leading-[1.5] text-white/70">
-                    <li className="flex gap-2">
-                      <Mic className="mt-0.5 size-3.5 shrink-0 text-white/40" /> Allow microphone access from the lock icon in your address bar.
-                    </li>
-                    <li className="flex gap-2">
-                      <Timer className="mt-0.5 size-3.5 shrink-0 text-white/40" /> Pause for about a second when you finish. Zara replies once you stop speaking.
-                    </li>
-                    <li className="flex gap-2">
-                      <Headphones className="mt-0.5 size-3.5 shrink-0 text-white/40" /> Use headphones if Zara&apos;s voice is being picked up by your mic.
-                    </li>
-                  </ul>
-                  <Button variant="outline" size="sm" className="mt-3.5 h-8 w-full border-white/10 text-[12.5px]" onClick={() => window.location.reload()}>
-                    <RotateCcw className="size-3.5" /> Reload session
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            </div>
+            <nav aria-label="Skills covered" className="mt-4 flex gap-5 overflow-x-auto [scrollbar-width:none] lg:hidden">
+              {topicTabs.map((item) => (
+                <div key={item} className="shrink-0">
+                  <p className="m-0 whitespace-nowrap text-[13px] text-white/85">{item}</p>
+                  <span aria-hidden="true" className="mt-1.5 block h-1 rounded-full bg-[#4d7cff]" />
+                </div>
+              ))}
+            </nav>
           </header>
 
           {/* ── MAIN ── */}
-          <main className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.15fr)_minmax(0,1fr)] gap-3 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:grid-rows-1">
-            {/* STAGE */}
-            <section aria-label="Zara" className="fx-grain relative flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/[0.07] bg-[#09090c]">
-              <div aria-hidden className="pointer-events-none absolute inset-0">
-                <div className="fx-grid absolute inset-0 opacity-50" />
-                <motion.div
-                  className="absolute left-1/2 top-[42%] size-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[110px]"
-                  animate={{ opacity: aiSpeaking ? 0.55 : userIsSpeaking ? 0.35 : 0.22, background: userIsSpeaking ? "#34d399" : "#6b5cff" }}
-                  transition={{ duration: 0.8 }}
-                />
-              </div>
-
-              <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6 pt-6">
-                <ZaraOrb speaking={aiSpeaking} thinking={isThinking} size={136} />
-                <div className="flex flex-col items-center gap-2">
-                  <p className="m-0 text-[14px] font-semibold text-white">Zara · AI interviewer</p>
-                  <span aria-live="polite" className={cn("inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/40 px-3 py-1 text-[12.5px] font-medium backdrop-blur", status.tone)}>
-                    <span className={cn("size-1.5 rounded-full", status.dot, (aiSpeaking || userIsSpeaking) && "animate-pulse")} />
-                    {status.label}
-                  </span>
-                </div>
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={currentQuestionText}
-                    initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: -6, filter: "blur(6px)" }}
-                    transition={{ duration: 0.5, ease: EASE }}
-                    className="m-0 hidden max-w-[640px] text-center text-[18px] font-medium leading-[1.45] tracking-[-0.02em] text-white/90 sm:block lg:text-[21px]"
-                  >
-                    {currentQuestionText}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
-
-              {/* camera + controls */}
-              <div className="relative flex items-end justify-between gap-3 p-3 sm:p-4">
-                <div className="relative h-[96px] w-[150px] shrink-0 overflow-hidden rounded-2xl border border-white/[0.1] bg-[#111114] sm:h-[128px] sm:w-[200px]">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={`absolute inset-0 h-full w-full scale-x-[-1] object-cover transition-opacity duration-300 ${cameraLive ? "opacity-100" : "opacity-0"}`}
-                  />
-                  {!cameraLive && (
-                    <div className="absolute inset-0 grid place-items-center text-center text-[11.5px] text-white/40">
-                      <span>
-                        <CameraOff className="mx-auto mb-1.5 size-5" strokeWidth={1.5} />
-                        {cameraNote}
-                      </span>
-                    </div>
-                  )}
-                  <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10.5px] text-white/85 backdrop-blur">
-                    You
-                    <span className="flex h-2.5 items-end gap-[2px]" aria-hidden>
-                      {[0.25, 0.5, 0.75, 1].map((t) => (
-                        <span key={t} className={cn("w-[2px] rounded-full", level >= t * 0.9 ? "bg-[#34d399]" : "bg-white/25")} style={{ height: `${t * 100}%` }} />
-                      ))}
-                    </span>
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-black/50 p-1.5 backdrop-blur-xl">
+          <main className="mx-auto grid min-h-0 w-full max-w-[1444px] flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 px-5 pt-5 sm:px-8 lg:grid-cols-[590px_minmax(0,1fr)] lg:grid-rows-1 lg:gap-[104px] lg:pt-12">
+            {/* LEFT – mic + camera */}
+            <section aria-label="Your microphone and camera" className="flex min-h-0 flex-col">
+              <div className="flex items-center gap-3">
+                {isMuted ? <MicOff size={20} className="text-[#f87171]" aria-hidden="true" /> : <Mic size={20} className="text-[#f87171]" aria-hidden="true" />}
+                <p className="m-0 text-[15px]">{isMuted ? "Mic muted" : "Mic active"}</p>
+                <div className="ml-auto flex items-center gap-4">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -782,41 +718,78 @@ export default function InterviewSessionPage() {
                         size="icon"
                         onClick={toggleMute}
                         aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
-                        className={cn("size-10 rounded-xl", isMuted ? "bg-[#f87171]/15 text-[#fca5a5] hover:bg-[#f87171]/25" : "bg-white/[0.06] hover:bg-white/[0.12]")}
+                        className="rounded-full hover:bg-white/[0.06] [&_svg:not([class*='size-'])]:size-[19px]"
                       >
                         {isMuted ? <MicOff /> : <Mic />}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
+                    <TooltipContent data-theme="dark" style={portalZoom}>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={switchCamera} aria-label={cameraLive ? "Turn camera off" : "Turn camera on"} className="size-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.12]">
-                        {cameraLive ? <Camera /> : <CameraOff />}
+                  <div className="flex h-[22px] items-end gap-[3px]" aria-hidden="true">
+                    {[9, 12, 15, 18, 22].map((h, i) => (
+                      <span key={i} style={{ height: h }} className={`w-[5px] rounded-full transition-colors duration-150 ${i < litBars ? "bg-[#4d7cff]" : "bg-[#4d7cff]/20"}`} />
+                    ))}
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Camera options"
+                        className="group rounded-full hover:bg-white/[0.06] data-[state=open]:bg-white/[0.06] [&_svg:not([class*='size-'])]:size-[19px]"
+                      >
+                        <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{cameraLive ? "Turn camera off" : "Turn camera on"}</TooltipContent>
-                  </Tooltip>
-                  <Button onClick={endInterview} className="h-10 rounded-xl bg-[#ef4444] px-4 text-[13px] font-semibold text-white hover:bg-[#dc2626] active:scale-[0.97]">
-                    <PhoneOff /> <span className="hidden sm:inline">End interview</span>
-                  </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent data-theme="dark" style={portalZoom} align="end" className="w-[200px] border-white/10 font-sans">
+                      <DropdownMenuItem onSelect={switchCamera}>
+                        {cameraLive ? <CameraOff /> : <Camera />}
+                        {cameraLive ? "Turn camera off" : "Turn camera on"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <span className="hidden w-[200px] sm:block" aria-hidden />
+              </div>
+
+              <span className="mt-5 hidden w-fit items-center gap-2.5 rounded-full bg-[#0f0f11] px-4 py-2 text-[15px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] lg:mt-7 lg:flex">
+                <span className={`h-2.5 w-2.5 rounded-full ${cameraLive ? "bg-[#34d399]" : "bg-white/30"}`} />
+                Camera preview
+              </span>
+
+              <div className="relative mt-3 flex h-[150px] items-center justify-center overflow-hidden rounded-[16px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] sm:h-[200px] lg:mt-4 lg:aspect-video lg:h-auto lg:shadow-none">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className={`absolute inset-0 h-full w-full scale-x-[-1] rounded-[16px] object-cover transition-opacity duration-300 ${cameraLive ? "opacity-100" : "opacity-0"}`}
+                />
+                {!cameraLive && (
+                  <div className="flex flex-col items-center gap-4 p-6 text-center">
+                    <Camera size={52} strokeWidth={1.4} className="text-[#f0f0f0]/90" aria-hidden="true" />
+                    <p className="m-0 text-[15px] text-[#f0f0f0]/90 lg:text-[19px]">{cameraNote}</p>
+                  </div>
+                )}
               </div>
             </section>
 
-            {/* TRANSCRIPT */}
-            <section aria-label="Conversation with Zara" className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-white/[0.07] bg-card">
-              <div className="flex h-12 shrink-0 items-center justify-between border-b border-white/[0.06] px-4">
-                <span className="text-[13.5px] font-semibold tracking-[-0.015em] text-white">Transcript</span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f87171]/10 px-2 py-0.5 text-[11px] font-medium text-[#fca5a5]">
-                  <span className="size-1.5 animate-pulse rounded-full bg-[#f87171]" /> Live
-                </span>
+            {/* RIGHT – conversation */}
+            <section aria-label="Conversation with Zara" className="flex min-h-0 flex-col">
+              <div className="flex flex-shrink-0 items-center gap-4 pb-3">
+                <ZaraAvatar speaking={aiSpeaking} />
+                <div>
+                  <p className="m-0 text-[15.5px] font-semibold">DevPrep Interviewer</p>
+                  <p aria-live="polite" className="m-0 text-[14.5px] text-[#8fb0ff]">
+                    {statusText}
+                  </p>
+                </div>
               </div>
+
               <div
                 ref={chatScrollRef}
                 onScroll={handleChatScroll}
-                className="min-h-0 flex-1 space-y-3.5 overflow-y-auto px-4 py-4 [mask-image:linear-gradient(to_bottom,transparent,#000_12px,#000_94%,transparent)]"
+                className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-5 pt-3 [mask-image:linear-gradient(to_bottom,transparent,#000_16px,#000_92%,transparent)] lg:pl-[28px]"
+                style={{ scrollbarWidth: "none" }}
               >
                 {chatMessages.length === 0 && <AiMessage text={currentQuestionText} timestamp={getTimestamp()} />}
                 {chatMessages.map((message) =>
@@ -828,124 +801,134 @@ export default function InterviewSessionPage() {
                 )}
                 {userIsSpeaking && !transcript && (
                   <div className="flex justify-end">
-                    <div className="flex items-center gap-[3px] rounded-2xl rounded-br-md bg-[#4d7cff] px-4 py-3" aria-label="You are speaking">
-                      {Array.from({ length: 9 }, (_, i) => (
-                        <span key={i} className="w-[3px] origin-center rounded-full bg-white" style={{ height: 14, animation: `fx-wave ${0.6 + (i % 4) * 0.12}s ease-in-out ${-i * 0.08}s infinite` }} />
+                    <div className="flex items-center gap-1.5 rounded-[16px] bg-[#3d6bf0] px-5 py-4" aria-label="You are speaking">
+                      {[0, 1, 2].map((dot) => (
+                        <motion.span
+                          key={dot}
+                          animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                          transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
+                          className="h-1.5 w-1.5 rounded-full bg-white"
+                        />
                       ))}
                     </div>
                   </div>
                 )}
                 {isThinking && (
-                  <div className="flex items-center gap-2 text-[12px] text-white/45" aria-label="Zara is thinking">
-                    <ZaraDot />
-                    <span className="flex gap-1">
-                      {[0, 1, 2].map((dot) => (
-                        <motion.span key={dot} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }} className="size-1.5 rounded-full bg-[#c4b5fd]" />
-                      ))}
-                    </span>
+                  <div className="flex items-center gap-1.5 py-2" aria-label="Zara is thinking">
+                    {[0, 1, 2].map((dot) => (
+                      <motion.span
+                        key={dot}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ repeat: Infinity, duration: 0.9, delay: dot * 0.15 }}
+                        className="h-1.5 w-1.5 rounded-full bg-[#8fb0ff]"
+                      />
+                    ))}
                   </div>
                 )}
               </div>
 
               {(error || realtimeError) && (
-                <Alert variant="destructive" className="m-3 mt-0 w-auto shrink-0 rounded-xl border-[#f87171]/25 bg-[#f87171]/[0.07] py-2.5 text-[12.5px]">
+                <Alert variant="destructive" className="mb-3 flex-shrink-0 rounded-[12px] border-[rgba(248,113,113,0.25)] bg-[rgba(248,113,113,0.08)] py-3 text-[13px]">
                   <CircleAlert />
                   <AlertDescription className="text-[#fecaca]">{error || realtimeError}</AlertDescription>
                 </Alert>
               )}
-              <div className="flex shrink-0 items-center gap-2 border-t border-white/[0.06] px-4 py-2.5 text-[11.5px] text-white/40">
-                <Volume2 className="size-3.5" /> Hands-free: Zara replies when you pause for about a second.
+
+              {/* ── CONTROLS ── */}
+              <div className="flex flex-shrink-0 justify-end gap-3.5 pb-6 pt-2 sm:gap-4" style={stage ? { paddingBottom: stage.pad } : undefined}>
+                <Button onClick={endInterview} className={`${PILL} bg-[#fcfbfc] text-black hover:bg-white active:scale-[0.97]`} style={mono}>
+                  End interview
+                </Button>
+                <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={`${PILL} border-white/[0.22] bg-[#08080a]/60 text-[#f0f0f0] hover:border-white/40 hover:bg-[#08080a]/60`} style={mono}>
+                      Having problem
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent data-theme="dark" style={portalZoom} side="top" align="end" className="w-[340px] rounded-[16px] border-white/10 bg-[#141416] p-5 font-sans">
+                    <p className="m-0 mb-3 text-[13px] font-medium">Troubleshooting</p>
+                    <ul className="m-0 list-disc space-y-2 pl-4 text-[13px] leading-relaxed text-white/80">
+                      <li>Allow microphone access from the lock icon in your address bar.</li>
+                      <li>Pause for about a second when you finish. Zara replies once you stop speaking.</li>
+                      <li>Use headphones if Zara&apos;s voice is being picked up by your mic.</li>
+                    </ul>
+                    <Button variant="link" size="sm" className="mt-4 h-auto p-0 text-[13px] text-[#8fb0ff] has-[>svg]:px-0" onClick={() => window.location.reload()}>
+                      <RotateCcw className="size-[13px]" /> Reload session
+                    </Button>
+                  </PopoverContent>
+                </Popover>
               </div>
             </section>
           </main>
         </div>
-      </Room>
+      </div>
     </TooltipProvider>
   );
 }
 
-const EASE = [0.16, 1, 0.3, 1] as const;
+/** Reference frame the desktop interview layout is designed at. */
+const STAGE_W = 1855;
+const STAGE_H = 848;
+const PILL = "h-12 flex-1 rounded-full px-7 text-[13px] font-bold uppercase tracking-[0.04em] sm:flex-none sm:text-[14px]";
 
-/** Full-screen dark canvas with a soft aurora, shared by every phase of the room. */
-function Room({ children, className }: { children: ReactNode; className?: string }) {
+const LOGO_PATH =
+  "M440 142H814A338.5 338.5 0 0 1 814 819H632Q597 819 597 784V672H814A190.5 190.5 0 0 0 814 291H452Q415 291 415 254V167Q415 142 440 142ZM440 502H557Q597 502 597 542V672H452Q415 672 415 635V527Q415 502 440 502Z";
+
+function Logo() {
   return (
-    <div data-theme="dark" data-app className={cn("relative isolate min-h-dvh bg-[#050506] font-sans text-foreground antialiased", className)}>
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-40 -top-40 size-[560px] rounded-full bg-[#4d7cff]/[0.12] blur-[120px]" />
-        <div className="absolute -right-40 top-1/3 size-[520px] rounded-full bg-[#a78bfa]/[0.1] blur-[120px]" />
-      </div>
-      {children}
-    </div>
+    <Link href="/dashboard/ai-interview" aria-label="DevPrep interviews" className="inline-flex items-center gap-2.5 text-[22px] font-semibold tracking-[-0.04em] text-[#f0f0f0]">
+      <svg viewBox="415 142 738 677" aria-hidden="true" className="h-[21px] w-[23px]" fill="currentColor">
+        <path d={LOGO_PATH} />
+      </svg>
+      DevPrep
+    </Link>
   );
 }
 
-function RoomHeader({ children }: { children: ReactNode }) {
+function ZaraAvatar({ speaking = false }: { speaking?: boolean }) {
   return (
-    <header className="mx-auto flex h-16 w-full max-w-[1180px] items-center justify-between px-4 sm:px-6">
-      <Link href="/dashboard" aria-label="DevPrep overview" className="flex items-center gap-2.5 text-[15px] font-semibold tracking-[-0.02em] text-white">
-        <LogoTile /> DevPrep
-      </Link>
-      {children}
-    </header>
+    <motion.div
+      animate={speaking ? { boxShadow: ["0 0 0 0 rgba(77,124,255,0)", "0 0 0 6px rgba(77,124,255,0.25)", "0 0 0 0 rgba(77,124,255,0)"] } : { boxShadow: "0 0 0 0 rgba(77,124,255,0)" }}
+      transition={{ repeat: speaking ? Infinity : 0, duration: 1.6 }}
+      className="shrink-0 rounded-full motion-reduce:!shadow-none"
+    >
+      <Avatar className="size-[52px]">
+        <AvatarFallback className="bg-[#1c1c1f] text-[22px] font-bold leading-none text-[#f0f0f0]">
+          D<span className="text-[#4d7cff]">.</span>
+        </AvatarFallback>
+      </Avatar>
+    </motion.div>
   );
-}
-
-/** Zara's presence: a glossy orb that pulses while she speaks and spins a ring while thinking. */
-function ZaraOrb({ speaking = false, thinking = false, size = 120 }: { speaking?: boolean; thinking?: boolean; size?: number }) {
-  return (
-    <div className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
-      {speaking &&
-        [0, 1].map((i) => (
-          <span key={i} className="absolute inset-0 rounded-full border border-[#a5b4fc]/40" style={{ animation: `fx-pulse-ring 2.2s cubic-bezier(0.16,1,0.3,1) ${i * 1.1}s infinite` }} />
-        ))}
-      {thinking && (
-        <span
-          className="absolute inset-[-8px] rounded-full border-2 border-transparent border-t-[#c4b5fd]/70"
-          style={{ animation: "fx-spin-slow 1.2s linear infinite" }}
-        />
-      )}
-      <motion.span
-        className="relative size-full rounded-full bg-[radial-gradient(circle_at_32%_28%,#ffffff_0%,#c9d6ff_14%,#7f8cff_38%,#6a3dd8_68%,#1b0f3a_100%)] shadow-[inset_0_-14px_34px_rgba(10,0,40,0.6),0_24px_70px_-12px_rgba(110,90,255,0.7)]"
-        animate={speaking ? { scale: [1, 1.04, 1] } : { scale: 1 }}
-        transition={speaking ? { duration: 1.4, repeat: Infinity, ease: "easeInOut" } : { duration: 0.4 }}
-      />
-    </div>
-  );
-}
-
-function ZaraDot() {
-  return <span className="size-5 shrink-0 rounded-full bg-[radial-gradient(circle_at_32%_28%,#fff,#c9d6ff_16%,#7f8cff_42%,#6a3dd8_75%)]" />;
 }
 
 function ViewfinderCorners() {
-  const c = "absolute h-[18px] w-[18px] border-white/30";
+  const c = "absolute h-[18px] w-[18px] border-white/35";
   return (
     <span aria-hidden="true">
-      <span className={`${c} left-4 top-4 rounded-tl-md border-l border-t`} />
-      <span className={`${c} right-4 top-4 rounded-tr-md border-r border-t`} />
-      <span className={`${c} bottom-4 left-4 rounded-bl-md border-b border-l`} />
-      <span className={`${c} bottom-4 right-4 rounded-br-md border-b border-r`} />
+      <span className={`${c} left-3.5 top-3.5 border-l border-t`} />
+      <span className={`${c} right-3.5 top-3.5 border-r border-t`} />
+      <span className={`${c} bottom-3.5 left-3.5 border-b border-l`} />
+      <span className={`${c} bottom-3.5 right-3.5 border-b border-r`} />
     </span>
   );
 }
 
 function AiMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
-    <div className="flex max-w-[92%] gap-2.5">
-      <ZaraDot />
-      <div className="min-w-0">
-        <div className="rounded-2xl rounded-tl-md bg-white/[0.05] px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-white/90">{text}</div>
-        <p className="m-0 mt-1 pl-1 text-[11px] text-white/35">Zara · {timestamp}</p>
-      </div>
+    <div className="max-w-[92%] lg:max-w-[480px]">
+      <p className="m-0 text-[15px] leading-[1.36] text-[#ededed]">{text}</p>
+      <p className="m-0 mt-1.5 text-[13px] text-white/80">{timestamp}</p>
     </div>
   );
 }
 
 function UserMessage({ text, timestamp }: { text: string; timestamp: string }) {
   return (
-    <div className="flex flex-col items-end">
-      <div className="max-w-[88%] rounded-2xl rounded-br-md bg-[#4d7cff] px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-white">{text}</div>
-      <p className="m-0 mt-1 pr-1 text-[11px] text-white/35">You · {timestamp}</p>
+    <div className="flex justify-end">
+      <div className="max-w-[85%] rounded-[16px] bg-[#3d6bf0] px-[18px] py-3 text-white">
+        <p className="m-0 text-[14px] leading-[1.45]">{text}</p>
+        <p className="m-0 mt-1 text-[13px] text-white/85">{timestamp}</p>
+      </div>
     </div>
   );
 }
