@@ -20,7 +20,7 @@ import { getInsights, type Insights } from "@/lib/insights";
 import { listSessions, type SessionSummary } from "@/lib/interview/report";
 import { cn } from "@/lib/utils";
 import { ActivityHeatmap } from "./ActivityHeatmap";
-import { Card, Chip } from "./parts";
+import { Card, Chip } from "@/components/app/kit";
 import { ProfilePanel } from "./ProfilePanel";
 import { ReadinessStrip } from "./Readiness";
 import { RecentInterviews } from "./RecentInterviews";

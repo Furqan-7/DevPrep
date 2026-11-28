@@ -65,6 +65,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     };
   }, [account?.signedIn, pathname]);
 
+  // The root layout paints the body white for the landing page; inside the app it should
+  // stay dark even when the page overscrolls.
+  useEffect(() => {
+    const body = document.body;
+    const previous = body.style.backgroundColor;
+    body.style.backgroundColor = "#050506";
+    return () => {
+      body.style.backgroundColor = previous;
+    };
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -83,7 +94,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div data-theme="dark" className="min-h-dvh bg-[#050506] font-sans text-foreground lg:flex">
+      <div data-theme="dark" data-app className="min-h-dvh bg-[#050506] font-sans text-foreground lg:flex">
         <aside
           className={cn(
             "sticky top-0 hidden h-dvh shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:block",

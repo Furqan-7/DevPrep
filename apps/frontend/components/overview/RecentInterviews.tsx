@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate, levelLabel, roleTitle, type SessionSummary } from "@/lib/interview/report";
 import { cn } from "@/lib/utils";
 import { roleColor } from "@/components/dashboard/nav";
-import { Card, scoreColor } from "./parts";
+import { Card, scoreColor } from "@/components/app/kit";
 
 type Filter = "all" | "scored" | "open";
 

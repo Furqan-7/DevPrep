@@ -2,10 +2,11 @@
 
 /** Left side of the coding workspace: the problem statement, the latest review and past submissions. */
 
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Check, Clock3, HardDrive, MessageCircleQuestion } from "lucide-react";
+import { Ring } from "@/components/app/kit";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate } from "@/lib/interview/report";
-import { DIFFICULTY_TONE, type CodingProblem, type Submission } from "@/lib/practice";
+import { DIFFICULTY_CHIP, type CodingProblem, type Submission } from "@/lib/practice";
 import { cn } from "@/lib/utils";
 
 /** Parameter names from the starter code's signature, for "nums = [2,7,11,15]" style examples. */
@@ -32,8 +33,8 @@ export function ProblemPanel({
 
   return (
     <Tabs value={tab} onValueChange={onTab} className="flex min-h-0 flex-col gap-0">
-      <div className="border-b border-white/[0.06] px-4 py-2">
-        <TabsList className="bg-white/[0.04]">
+      <div className="border-b border-white/[0.06] px-3 py-2">
+        <TabsList className="h-8 bg-white/[0.04] p-0.5 [&>button]:h-7 [&>button]:px-2.5 [&>button]:text-[12.5px]">
           <TabsTrigger value="problem">Problem</TabsTrigger>
           <TabsTrigger value="review" disabled={!latest}>
             Review
@@ -45,10 +46,10 @@ export function ProblemPanel({
       </div>
 
       <TabsContent value="problem" className="min-h-0 overflow-y-auto px-5 py-5">
-        <h1 className="m-0 text-[22px] font-medium tracking-[-0.03em]">{problem.title}</h1>
-        <p className="m-0 mt-1.5 text-[13px]">
-          <span className={DIFFICULTY_TONE[problem.difficulty]}>{problem.difficulty}</span>
-          <span className="text-muted-foreground"> · {problem.topic}</span>
+        <h2 className="m-0 text-[20px] font-semibold tracking-[-0.03em]">{problem.title}</h2>
+        <p className="m-0 mt-2 flex items-center gap-2 text-[12.5px]">
+          <span className={cn("rounded-md px-2 py-0.5 text-[11.5px] font-semibold ring-1 ring-inset", DIFFICULTY_CHIP[problem.difficulty])}>{problem.difficulty}</span>
+          <span className="rounded-md bg-white/[0.05] px-2 py-0.5 text-white/55">{problem.topic}</span>
         </p>
         <div className="mt-5 grid gap-3 text-[14px] leading-[1.6] text-white/80">
           {problem.statement.map((p) => (
@@ -60,8 +61,8 @@ export function ProblemPanel({
 
         {problem.tests.slice(0, problem.exampleCount).map((t, i) => (
           <div key={i} className="mt-5">
-            <h2 className="m-0 text-[13px] font-medium">Example {i + 1}</h2>
-            <pre className="m-0 mt-2 overflow-x-auto rounded-lg bg-white/[0.03] px-3.5 py-3 font-mono text-[12.5px] leading-[1.6] text-white/80">
+            <h3 className="m-0 text-[12.5px] font-semibold text-white/80">Example {i + 1}</h3>
+            <pre className="m-0 mt-2 overflow-x-auto rounded-xl border border-white/[0.05] bg-black/30 px-3.5 py-3 font-mono text-[12.5px] leading-[1.6] text-white/80">
               <span className="text-muted-foreground">Input: </span>
               {t.args.map((a, j) => `${names[j] ?? `arg${j + 1}`} = ${json(a)}`).join(", ")}
               {"\n"}
@@ -71,10 +72,12 @@ export function ProblemPanel({
           </div>
         ))}
 
-        <h2 className="m-0 mt-6 text-[13px] font-medium">Constraints</h2>
-        <ul className="m-0 mt-2 grid list-disc gap-1 pl-5 font-mono text-[12.5px] text-white/70">
+        <h3 className="m-0 mt-6 text-[12.5px] font-semibold text-white/80">Constraints</h3>
+        <ul className="m-0 mt-2 grid list-none gap-1.5 p-0 font-mono text-[12px] text-white/65">
           {problem.constraints.map((c) => (
-            <li key={c}>{c}</li>
+            <li key={c} className="w-fit rounded-md bg-white/[0.04] px-2 py-1">
+              {c}
+            </li>
           ))}
         </ul>
       </TabsContent>
@@ -86,12 +89,13 @@ export function ProblemPanel({
       <TabsContent value="submissions" className="min-h-0 overflow-y-auto">
         <ul className="m-0 list-none p-0">
           {submissions.map((s) => (
-            <li key={s.id} className="border-b border-white/[0.06] px-5 py-3.5">
-              <div className="flex items-center justify-between gap-3 text-[13.5px]">
-                <span className={s.passed === s.total ? "text-[#7ee2a8]" : "text-[#ffc7a6]"}>
+            <li key={s.id} className="border-b border-white/[0.05] px-5 py-3.5">
+              <div className="flex items-center justify-between gap-3 text-[13px]">
+                <span className={cn("flex items-center gap-2 font-medium", s.passed === s.total ? "text-[#6ee7b7]" : "text-[#fcd34d]")}>
+                  <span className={cn("size-1.5 rounded-full", s.passed === s.total ? "bg-[#34d399]" : "bg-[#fbbf24]")} />
                   {s.passed}/{s.total} tests passed
                 </span>
-                <span className="tabular-nums">{s.score}/10</span>
+                <span className="font-semibold tabular-nums text-white">{s.score}/10</span>
               </div>
               <p className="m-0 mt-1 text-[12.5px] text-muted-foreground">
                 {formatDate(s.createdAt)} · {s.review.verdict}
@@ -107,53 +111,64 @@ export function ProblemPanel({
 function Review({ submission }: { submission: Submission }) {
   const { review } = submission;
   const allPassed = submission.passed === submission.total;
+  const color = review.score >= 8 ? "#34d399" : review.score >= 5 ? "#4d7cff" : "#fbbf24";
   return (
     <div>
-      <div className="flex items-center gap-4">
-        <span className="text-[40px] font-medium leading-none tabular-nums tracking-[-0.04em]">
-          {review.score}
-          <span className="text-[18px] text-muted-foreground">/10</span>
-        </span>
-        <div>
-          <Badge variant="outline" className={cn("border-white/12", allPassed ? "text-[#7ee2a8]" : "text-[#ffc7a6]")}>
+      <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <Ring value={review.score * 10} size={60} stroke={5} color={color}>
+          <span className="text-[16px]">{review.score}</span>
+        </Ring>
+        <div className="min-w-0">
+          <span className={cn("inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11.5px] font-semibold", allPassed ? "bg-[#34d399]/10 text-[#6ee7b7]" : "bg-[#fbbf24]/10 text-[#fcd34d]")}>
             {submission.passed}/{submission.total} tests passed
-          </Badge>
-          <p className="m-0 mt-1.5 text-[14px] leading-[1.5]">{review.verdict}</p>
+          </span>
+          <p className="m-0 mt-1.5 text-[14px] font-medium leading-[1.5] text-white">{review.verdict}</p>
         </div>
       </div>
-      {!allPassed ? <p className="m-0 mt-3 text-[12.5px] text-muted-foreground">Solutions that fail a test are capped at 5/10.</p> : null}
+      {!allPassed ? <p className="m-0 mt-2.5 text-[12px] text-muted-foreground">Solutions that fail a test are capped at 5/10.</p> : null}
 
-      <dl className="m-0 mt-6 grid grid-cols-2 gap-3">
-        {[
-          ["Time", review.timeComplexity],
-          ["Space", review.spaceComplexity],
-        ].map(([k, v]) => (
-          <div key={k} className="rounded-lg bg-white/[0.03] px-3.5 py-3">
-            <dt className="text-[12px] text-muted-foreground">{k}</dt>
-            <dd className="m-0 mt-1 text-[13.5px]">{v}</dd>
+      <dl className="m-0 mt-4 grid grid-cols-2 gap-2.5">
+        {(
+          [
+            ["Time", review.timeComplexity, Clock3],
+            ["Space", review.spaceComplexity, HardDrive],
+          ] as const
+        ).map(([k, v, Icon]) => (
+          <div key={k} className="rounded-xl border border-white/[0.05] bg-white/[0.02] px-3.5 py-3">
+            <dt className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+              <Icon className="size-3.5" /> {k}
+            </dt>
+            <dd className="m-0 mt-1 font-mono text-[13px] text-white">{v}</dd>
           </div>
         ))}
       </dl>
 
-      <ReviewList title="What worked" items={review.strengths} />
+      <ReviewList title="What worked" items={review.strengths} good />
       <ReviewList title="To improve" items={review.improvements} />
 
-      <div className="mt-6 rounded-lg border border-white/[0.08] px-4 py-3.5">
-        <p className="m-0 text-[12px] text-muted-foreground">The interviewer would ask next</p>
-        <p className="m-0 mt-1.5 text-[14px] leading-[1.5]">{review.followUp}</p>
+      <div className="mt-5 rounded-xl border border-[#a78bfa]/20 bg-[linear-gradient(135deg,rgba(77,124,255,0.06),rgba(167,139,250,0.06))] px-4 py-3.5">
+        <p className="m-0 flex items-center gap-1.5 text-[12px] font-medium text-white/55">
+          <MessageCircleQuestion className="size-3.5 text-[#c4b5fd]" /> The interviewer would ask next
+        </p>
+        <p className="m-0 mt-1.5 text-[14px] leading-[1.5] text-white">{review.followUp}</p>
       </div>
     </div>
   );
 }
 
-function ReviewList({ title, items }: { title: string; items: string[] }) {
+function ReviewList({ title, items, good = false }: { title: string; items: string[]; good?: boolean }) {
   if (!items.length) return null;
   return (
     <>
-      <h2 className="m-0 mt-6 text-[13px] font-medium">{title}</h2>
-      <ul className="m-0 mt-2 grid list-disc gap-1.5 pl-5 text-[13.5px] leading-[1.55] text-white/80">
+      <h3 className="m-0 mt-5 text-[12.5px] font-semibold text-white/80">{title}</h3>
+      <ul className="m-0 mt-2 grid list-none gap-2 p-0 text-[13px] leading-[1.55] text-white/75">
         {items.map((s) => (
-          <li key={s}>{s}</li>
+          <li key={s} className="flex gap-2.5">
+            <span className={cn("mt-0.5 grid size-4 shrink-0 place-items-center rounded-full", good ? "bg-[#34d399]/15 text-[#6ee7b7]" : "bg-[#fbbf24]/15 text-[#fcd34d]")}>
+              {good ? <Check className="size-2.5" /> : <ArrowRight className="size-2.5" />}
+            </span>
+            {s}
+          </li>
         ))}
       </ul>
     </>

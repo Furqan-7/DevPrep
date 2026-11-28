@@ -7,7 +7,7 @@ import type { Insights } from "@/lib/insights";
 import { formatDate, roleTitle } from "@/lib/interview/report";
 import { cn } from "@/lib/utils";
 import { roleColor } from "@/components/dashboard/nav";
-import { Card, Chip, Ring, scoreColor } from "./parts";
+import { Card, Chip, Ring, scoreColor } from "@/components/app/kit";
 
 // columns per number of roles, so the gap-px grid never shows an empty cell
 const COLS: Record<number, string> = { 1: "grid-cols-1", 2: "sm:grid-cols-2", 3: "sm:grid-cols-3", 4: "sm:grid-cols-2 min-[1600px]:grid-cols-4" };

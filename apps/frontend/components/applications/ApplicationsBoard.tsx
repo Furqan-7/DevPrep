@@ -20,7 +20,7 @@ import {
   type DragEndEvent,
   type KeyboardCoordinateGetter,
 } from "@dnd-kit/core";
-import { Plus } from "lucide-react";
+import { CalendarDays, MapPin, Plus, SquareKanban } from "lucide-react";
 import { toast } from "sonner";
 import { AppPage, EmptyState, panel } from "@/components/app/AppPage";
 import { Button } from "@/components/ui/button";
@@ -34,12 +34,12 @@ import { ApplicationDialog } from "./ApplicationDialog";
 
 const HERE = "/dashboard/applications";
 
-const STAGE_DOT: Record<Stage, string> = {
-  SAVED: "bg-white/40",
-  APPLIED: "bg-[#bec8ff]",
-  INTERVIEWING: "bg-[#f5c46b]",
-  OFFER: "bg-[#7ee2a8]",
-  REJECTED: "bg-[#ff8f8f]",
+const STAGE_COLOR: Record<Stage, string> = {
+  SAVED: "#a1a1aa",
+  APPLIED: "#4d7cff",
+  INTERVIEWING: "#fbbf24",
+  OFFER: "#34d399",
+  REJECTED: "#f87171",
 };
 
 /** Left and right arrows jump a picked-up card to the neighbouring column. */
@@ -139,23 +139,44 @@ export function ApplicationsBoard() {
 
   return (
     <AppPage
+      icon={SquareKanban}
       title="Applications"
       description={apps ? `${apps.length} tracked · ${active} in progress. Drag a card to change its stage.` : "Every job you're following, from saved to offer."}
       actions={
-        <Button onClick={() => setDialog({ open: true, app: null, stage: "SAVED" })}>
+        <Button size="sm" className="h-8 font-semibold" onClick={() => setDialog({ open: true, app: null, stage: "SAVED" })}>
           <Plus /> Add application
         </Button>
       }
+      className="max-w-[1480px]"
     >
       <Toaster position="bottom-center" />
       {!apps ? (
         <div className="grid gap-3 md:grid-cols-5">
           {STAGES.map((s) => (
-            <Skeleton key={s} className="h-[320px] rounded-xl" />
+            <Skeleton key={s} className="h-[320px] rounded-2xl bg-white/[0.04]" />
           ))}
         </div>
       ) : (
         <>
+          {apps.length > 0 ? (
+            <section aria-label="Pipeline" className={cn(panel, "mb-4 p-4")}>
+              <div className="flex h-2 gap-1 overflow-hidden rounded-full">
+                {STAGES.map((stage) => {
+                  const n = apps.filter((a) => a.stage === stage).length;
+                  return n ? <span key={stage} className="h-full rounded-full transition-[flex-grow] duration-500" style={{ flexGrow: n, background: STAGE_COLOR[stage] }} /> : null;
+                })}
+              </div>
+              <dl className="m-0 mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-5">
+                {STAGES.map((stage) => (
+                  <div key={stage} className="flex items-center gap-2 text-[12.5px]">
+                    <span className="size-2 rounded-full" style={{ background: STAGE_COLOR[stage] }} />
+                    <dt className="text-white/50">{STAGE_LABELS[stage]}</dt>
+                    <dd className="m-0 ml-auto font-semibold tabular-nums text-white sm:ml-0">{apps.filter((a) => a.stage === stage).length}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
           {apps.length === 0 ? (
             <div className={cn(panel, "mb-4")}>
               <EmptyState title="Nothing tracked yet" body="Add a job you're applying to and move it through each stage.">
@@ -166,7 +187,7 @@ export function ApplicationsBoard() {
             </div>
           ) : null}
           <DndContext sensors={sensors} onDragStart={(e) => setDragging(apps.find((a) => a.id === e.active.id) ?? null)} onDragCancel={() => setDragging(null)} onDragEnd={onDragEnd}>
-            <div className="grid snap-x grid-flow-col auto-cols-[minmax(220px,1fr)] gap-3 overflow-x-auto pb-2">
+            <div className="grid snap-x grid-flow-col auto-cols-[minmax(200px,1fr)] gap-3 overflow-x-auto pb-2">
               {STAGES.map((stage) => (
                 <Column key={stage} stage={stage} apps={apps.filter((a) => a.stage === stage)} onOpen={(app) => setDialog({ open: true, app, stage: app.stage })} onAdd={() => setDialog({ open: true, app: null, stage })} />
               ))}
@@ -186,22 +207,29 @@ function Column({ stage, apps, onOpen, onAdd }: { stage: Stage; apps: Applicatio
     <section
       ref={setNodeRef}
       aria-label={STAGE_LABELS[stage]}
-      className={cn("flex min-h-[360px] snap-start flex-col rounded-xl border bg-[#0d0d0f] transition-colors", isOver ? "border-white/25 bg-white/[0.03]" : "border-white/[0.07]")}
+      className={cn(
+        "relative flex min-h-[420px] snap-start flex-col overflow-hidden rounded-2xl border bg-card transition-colors",
+        isOver ? "border-white/25 bg-white/[0.03]" : "border-white/[0.07]",
+      )}
     >
-      <header className="flex items-center justify-between px-3.5 py-3">
-        <h2 className="m-0 flex items-center gap-2 text-[13px] font-medium">
-          <span className={cn("size-2 rounded-full", STAGE_DOT[stage])} aria-hidden="true" />
+      <span aria-hidden className="absolute inset-x-0 top-0 h-0.5" style={{ background: STAGE_COLOR[stage] }} />
+      <header className="flex items-center justify-between px-3.5 pb-2.5 pt-3.5">
+        <h2 className="m-0 flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em]">
+          <span className="size-2 rounded-full" style={{ background: STAGE_COLOR[stage] }} aria-hidden="true" />
           {STAGE_LABELS[stage]}
-          <span className="tabular-nums text-muted-foreground">{apps.length}</span>
+          <span className="rounded-md bg-white/[0.06] px-1.5 text-[11.5px] font-medium tabular-nums text-white/55">{apps.length}</span>
         </h2>
         <Button variant="ghost" size="icon-sm" onClick={onAdd} aria-label={`Add to ${STAGE_LABELS[stage]}`} className="size-7 text-muted-foreground">
           <Plus className="size-4" />
         </Button>
       </header>
-      <ul className="m-0 grid list-none content-start gap-2 px-2 pb-2">
+      <ul className="m-0 grid flex-1 list-none content-start gap-2 px-2 pb-2">
         {apps.map((a) => (
           <DraggableCard key={a.id} app={a} onOpen={() => onOpen(a)} />
         ))}
+        {apps.length === 0 ? (
+          <li className="grid h-24 place-items-center rounded-xl border border-dashed border-white/[0.08] text-[12px] text-white/30">{isOver ? "Drop here" : "No jobs here"}</li>
+        ) : null}
       </ul>
     </section>
   );
@@ -220,7 +248,7 @@ function DraggableCard({ app, onOpen }: { app: Application; onOpen: () => void }
         listeners?.onKeyDown?.(e);
         if (e.key === "Enter" && !isDragging) onOpen();
       }}
-      className={cn("cursor-grab rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing", isDragging && "opacity-30")}
+      className={cn("cursor-grab rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing", isDragging && "opacity-30")}
     >
       <CardBody app={app} />
     </li>
@@ -228,15 +256,29 @@ function DraggableCard({ app, onOpen }: { app: Application; onOpen: () => void }
 }
 
 function CardBody({ app, className }: { app: Application; className?: string }) {
+  const initial = app.company.trim().charAt(0).toUpperCase() || "·";
   return (
-    <div className={cn("rounded-lg border border-white/[0.08] bg-[#151518] px-3 py-2.5 transition-colors hover:border-white/15", className)}>
-      <span className="block truncate text-[13.5px] font-medium">{app.title}</span>
-      <span className="mt-0.5 block truncate text-[12.5px] text-muted-foreground">
-        {app.company}
-        {app.location ? ` · ${app.location}` : ""}
+    <div className={cn("rounded-xl border border-white/[0.07] bg-[#141417] p-3 transition-colors hover:border-white/[0.15]", className)}>
+      <div className="flex items-start gap-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg text-[13px] font-semibold text-white" style={{ background: `linear-gradient(135deg, ${STAGE_COLOR[app.stage]}, ${STAGE_COLOR[app.stage]}66)` }}>
+          {initial}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[13.5px] font-semibold text-white">{app.title}</span>
+          <span className="mt-0.5 block truncate text-[12.5px] text-white/50">{app.company}</span>
+        </span>
+      </div>
+      {app.notes ? <span className="mt-2.5 line-clamp-2 block text-[12px] leading-[1.45] text-white/50">{app.notes}</span> : null}
+      <span className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-white/40">
+        {app.location ? (
+          <span className="flex items-center gap-1">
+            <MapPin className="size-3" /> {app.location}
+          </span>
+        ) : null}
+        <span className="flex items-center gap-1">
+          <CalendarDays className="size-3" /> {new Date(app.updatedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+        </span>
       </span>
-      {app.notes ? <span className="mt-1.5 line-clamp-2 block text-[12px] leading-[1.45] text-white/55">{app.notes}</span> : null}
-      <span className="mt-2 block text-[11.5px] text-muted-foreground">Updated {new Date(app.updatedAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span>
     </div>
   );
 }

@@ -46,11 +46,11 @@ export function ShareReport({ sessionId, initialToken }: { sessionId: number; in
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="border-white/12 bg-transparent text-white/80">
+        <Button variant="outline" size="sm" className="h-9 rounded-lg border-white/[0.1] bg-white/[0.03] text-white/85">
           <Link2 /> {token ? "Shared" : "Share"}
         </Button>
       </DialogTrigger>
-      <DialogContent data-theme="dark" className="border-white/10 text-foreground sm:max-w-[460px]">
+      <DialogContent className="rounded-2xl border-white/10 bg-popover text-foreground sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle>Share this report</DialogTitle>
           <DialogDescription>
@@ -66,7 +66,7 @@ export function ShareReport({ sessionId, initialToken }: { sessionId: number; in
           </div>
         ) : null}
         {error ? (
-          <p role="alert" className="m-0 text-[13px] text-[#ffb4b4]">
+          <p role="alert" className="m-0 text-[13px] text-[#fecaca]">
             {error}
           </p>
         ) : null}

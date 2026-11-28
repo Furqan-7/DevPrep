@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import type { Account } from "@/hooks/useAccount";
 import type { Insights } from "@/lib/insights";
 import { AnimatedNumber } from "@/components/app/AnimatedNumber";
-import { ease } from "./parts";
+import { ease } from "@/components/app/kit";
 import { weakestSkill } from "./SkillBars";
 
 const tile = "rounded-xl border border-white/[0.06] bg-white/[0.025] px-3.5 py-3";

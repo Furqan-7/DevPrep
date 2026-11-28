@@ -65,7 +65,7 @@ export function ApplicationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-theme="dark" className="border-white/10 text-foreground sm:max-w-[480px]">
+      <DialogContent className="rounded-2xl border-white/10 bg-popover text-foreground sm:max-w-[480px]">
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
             <DialogTitle>{application ? "Edit application" : "Add an application"}</DialogTitle>
@@ -114,7 +114,7 @@ export function ApplicationDialog({
           </Field>
           <DialogFooter className="items-center sm:justify-between">
             {application ? (
-              <Button type="button" variant="ghost" onClick={remove} disabled={!!busy} className="text-[#ff8f8f] hover:text-[#ffb4b4]">
+              <Button type="button" variant="ghost" onClick={remove} disabled={!!busy} className="text-[#fca5a5] hover:bg-[#f87171]/10 hover:text-[#fecaca]">
                 {busy === "delete" ? <Loader2 className="animate-spin" /> : <Trash2 />} Delete
               </Button>
             ) : (

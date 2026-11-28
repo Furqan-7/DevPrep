@@ -23,6 +23,7 @@ function PopoverContent({
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Content
         data-slot="popover-content"
+        data-theme="dark"
         align={align}
         sideOffset={sideOffset}
         className={cn(

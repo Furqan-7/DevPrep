@@ -1,229 +1,163 @@
 "use client";
 
 /**
- * DevPrep — How It Works (dashboard)
- *
- * In-app explainer of the AI interview session flow, styled to match the
- * live interview room (ember glow, pill controls, light/dark tokens).
+ * In-app explainer of an interview: the four steps from picking a role to retrying
+ * answers, what happens under the hood, how answers are scored, and tips for a session.
  */
 
-import { motion } from "motion/react";
 import Link from "next/link";
-import { ArrowRight, Mic2, Zap, Target, FileText, AudioLines, Clock3 } from "lucide-react";
-
-const EASE = [0.25, 0.8, 0.25, 1] as const;
+import { motion } from "motion/react";
+import { ArrowRight, AudioLines, CircleHelp, FileChartColumn, Headphones, Link2, Mic, MousePointerClick, RotateCcw, ScrollText, Settings2, Timer, Volume2 } from "lucide-react";
+import { AppPage, panel } from "@/components/app/AppPage";
+import { ease } from "@/components/app/kit";
+import { Button } from "@/components/ui/button";
+import { ROLES } from "@/data/roles";
+import { MAX_ATTEMPTS } from "@/lib/interview/report";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   {
-    num: "01",
-    icon: Target,
-    title: "Pick your role",
-    body: "Choose from roles across Engineering, Data, Design, and Product. Every question set is curated for what that role actually tests.",
+    icon: MousePointerClick,
+    title: "Pick a role and a level",
+    body: `Choose from ${ROLES.length} roles at Fresher, Mid-level or Senior. Optionally tailor the questions to your resume or a job description.`,
   },
   {
-    num: "02",
-    icon: FileText,
-    title: "Review what to expect",
-    body: "See the top questions for your role before you start. Know what's coming so you can walk in with a plan — not a guess.",
+    icon: Settings2,
+    title: "Check your mic",
+    body: "Allow your microphone (the camera is optional and never recorded), say a few words to check the level, then start.",
   },
   {
-    num: "03",
-    icon: Mic2,
-    title: "Talk to Zara",
-    body: "Answer naturally by voice. Zara listens, follows up on what you said, and moves through the interview like a real interviewer.",
+    icon: Mic,
+    title: "Talk it through with Zara",
+    body: "She opens with “Tell me about yourself”, then asks ten questions out loud and follows up on what you actually said.",
   },
-] as const;
+  {
+    icon: FileChartColumn,
+    title: "Read your report and retry",
+    body: `Every answer is scored with what was strong, what was missing and a stronger version. Retry any question by voice, up to ${MAX_ATTEMPTS} times.`,
+  },
+];
 
-const FEATURES = [
-  {
-    icon: AudioLines,
-    title: "Voice-first, real-time",
-    body: "Your answer streams to Zara while you speak, so replies start moments after you pause — no typing, no scripted prompts.",
-  },
-  {
-    icon: Zap,
-    title: "Instant feedback",
-    body: "Every answer is scored as you go. Finish the session and get a breakdown of what you nailed and what to sharpen.",
-  },
-  {
-    icon: Clock3,
-    title: "Track your progress",
-    body: "Scores, recurring gaps and practice frequency live in your feedback dashboard so you always know what to practice next.",
-  },
-] as const;
+const UNDER_THE_HOOD = [
+  { icon: AudioLines, title: "Hands-free turn taking", body: "Voice detection runs in your browser and notices when you stop talking, so there's no button to hold." },
+  { icon: Volume2, title: "Speaks as she writes", body: "Zara's reply goes to her voice a sentence at a time, and transcription starts while you pause, so replies feel natural." },
+  { icon: ScrollText, title: "Live transcript", body: "Everything you and Zara say shows up in the transcript beside her as the conversation happens." },
+  { icon: Link2, title: "Share a report", body: "Create a read-only link with your scores and feedback. Your answers stay private, and you can turn the link off any time." },
+];
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="dp-mono inline-flex items-center gap-2 rounded-full border border-dp-ln bg-dp-pill px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.1em] text-dp-ink/80">
-      <span className="h-1.5 w-1.5 rounded-full bg-dp-ac" />
-      {children}
-    </span>
-  );
-}
+const RUBRIC = [
+  { label: "Answering the question", body: "Did you answer what was asked, first, before adding context?" },
+  { label: "Technical depth", body: "Do you explain why it works and the trade-offs, not just what it is?" },
+  { label: "Clarity", body: "Is the answer structured: a short answer, the explanation, an example?" },
+  { label: "Concrete examples", body: "Is it backed by a project, a number or an incident from your own work?" },
+];
+
+const TIPS = [
+  { icon: Headphones, text: "Wear headphones so Zara's voice doesn't reach your mic." },
+  { icon: Timer, text: "Pause for about a second when you finish. That's how Zara knows it's her turn." },
+  { icon: RotateCcw, text: "Retry your weakest answer straight away, while the feedback is fresh." },
+];
+
+const fade = (delay = 0) => ({
+  initial: { opacity: 0, y: 10 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.2 },
+  transition: { duration: 0.6, delay, ease },
+});
 
 export default function HowItWorksPage() {
   return (
-    // the in-app pages are always dark, so this page pins the .dp tokens to dark too
-    <main data-theme="dark" className="dp pb-24 text-dp-ink">
-      {/* ── Hero ── */}
-      <section className="dp-glow relative flex flex-col items-center text-center px-6 pt-16 sm:pt-24 pb-44 sm:pb-52">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: EASE }}
-          className="flex flex-col items-center max-w-[860px]"
-        >
-          <Eyebrow>How it works</Eyebrow>
-          <h1 className="mt-6 font-bold text-[38px] sm:text-[56px] lg:text-[68px] leading-[1.02] tracking-[-0.04em]">
-            From zero to interview-ready{" "}
-            <span className="text-dp-mu">in three steps.</span>
-          </h1>
-          <p className="mt-6 text-dp-mu text-[16px] sm:text-[18px] leading-relaxed max-w-[560px]">
-            DevPrep simulates a real interview — role-specific questions, a live voice conversation with Zara, and feedback the moment you finish.
-          </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-            <Link
-              href="/dashboard/ai-interview"
-              className="dp-mono dp-btn-ember inline-flex items-center gap-2.5 h-14 px-8 rounded-full text-[14px] font-bold uppercase tracking-[0.06em] cursor-pointer transition-transform active:scale-95"
-            >
-              Start practicing <ArrowRight size={16} />
-            </Link>
-            <button
-              type="button"
-              onClick={() => document.getElementById("session-flow")?.scrollIntoView({ behavior: "smooth" })}
-              className="dp-mono inline-flex items-center h-14 px-8 rounded-full border border-dp-ln bg-dp-sf/70 backdrop-blur-md text-[14px] font-bold uppercase tracking-[0.06em] cursor-pointer transition-colors hover:border-dp-ink active:scale-95"
-            >
-              See the flow
-            </button>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ── Steps ── */}
-      <section id="session-flow" className="relative max-w-[1120px] mx-auto px-6 scroll-mt-24">
-        <div className="text-center mb-10">
-          <Eyebrow>The session flow</Eyebrow>
-          <h2 className="mt-5 text-[28px] sm:text-[38px] font-bold tracking-[-0.03em] leading-[1.1]">
-            Three steps. <span className="text-dp-mu">One real conversation.</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-          {STEPS.map((step, i) => (
-            <motion.article
-              key={step.num}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ delay: i * 0.08, duration: 0.45, ease: EASE }}
-              className="group relative rounded-[22px] border border-dp-ln bg-dp-sf2 p-7 transition-colors hover:border-dp-ac/50"
-            >
-              <div className="flex items-center justify-between mb-10">
-                <span className="dp-mono text-[13px] font-bold text-dp-ac bg-dp-soft px-2.5 py-1 rounded-md">{step.num}</span>
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-dp-pill border border-dp-ln text-dp-ink group-hover:text-dp-ac transition-colors">
-                  <step.icon size={18} />
+    <AppPage
+      icon={CircleHelp}
+      title="How it works"
+      description="What happens in a DevPrep interview, how your answers are scored, and how to get the most out of it."
+      actions={
+        <Button asChild size="sm" className="h-8 font-semibold">
+          <Link href="/dashboard/ai-interview">
+            <Mic /> Start an interview
+          </Link>
+        </Button>
+      }
+    >
+      <div className="grid gap-4">
+        {/* steps */}
+        <motion.section {...fade()} className={cn(panel, "p-5")}>
+          <h2 className="m-0 text-[14px] font-semibold tracking-[-0.015em]">From role to report</h2>
+          <ol className="relative m-0 mt-5 grid list-none gap-3 p-0 md:grid-cols-4">
+            <span aria-hidden className="absolute left-[10%] right-[10%] top-5 hidden h-px bg-[linear-gradient(90deg,#4d7cff,#a78bfa,#34d399)] opacity-40 md:block" />
+            {STEPS.map((s, i) => (
+              <li key={s.title} className="relative">
+                <span className="relative z-10 mx-auto grid size-10 place-items-center rounded-xl border border-white/10 bg-[#141417] text-white shadow-[0_0_0_4px_#0f0f11] md:mx-0">
+                  <s.icon className="size-[18px]" />
                 </span>
-              </div>
-              <h3 className="text-[19px] font-semibold tracking-[-0.02em] mb-2.5">{step.title}</h3>
-              <p className="text-dp-mu text-[14px] leading-relaxed">{step.body}</p>
-            </motion.article>
-          ))}
-        </div>
-      </section>
+                <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <span className="text-[11.5px] font-medium tabular-nums text-white/35">Step {i + 1}</span>
+                  <h3 className="m-0 mt-1 text-[14px] font-semibold tracking-[-0.015em] text-white">{s.title}</h3>
+                  <p className="m-0 mt-1.5 text-[12.5px] leading-[1.55] text-white/55">{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </motion.section>
 
-      {/* ── Inside a session (mini interview room) ── */}
-      <section className="max-w-[1120px] mx-auto px-6 mt-24">
-        <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 items-center">
-          <div>
-            <Eyebrow>Inside a session</Eyebrow>
-            <h2 className="mt-5 text-[28px] sm:text-[38px] font-bold tracking-[-0.03em] leading-[1.1]">
-              It feels like a call, <span className="text-dp-mu">not a quiz.</span>
-            </h2>
-            <p className="mt-4 text-dp-mu text-[15px] leading-relaxed max-w-[440px]">
-              Speak, pause, and Zara picks it up from there. Your words appear as you finish each answer, and the next question follows naturally from what you said.
-            </p>
-            <ul className="mt-6 space-y-3 text-[14px]">
-              {["Pause about a second to hand the turn to Zara", "Mute or turn your camera off any time", "End whenever you like — progress is saved"].map((tip) => (
-                <li key={tip} className="flex items-start gap-3">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-dp-ok" />
-                  {tip}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          {/* under the hood */}
+          <motion.section {...fade(0.04)} className={cn(panel, "p-5")}>
+            <h2 className="m-0 text-[14px] font-semibold tracking-[-0.015em]">Under the hood</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {UNDER_THE_HOOD.map((f) => (
+                <div key={f.title} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <span className="grid size-8 place-items-center rounded-lg bg-[#4d7cff]/12 text-[#8fb0ff]">
+                    <f.icon className="size-4" />
+                  </span>
+                  <h3 className="m-0 mt-3 text-[13.5px] font-semibold text-white">{f.title}</h3>
+                  <p className="m-0 mt-1 text-[12.5px] leading-[1.55] text-white/55">{f.body}</p>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* scoring */}
+          <motion.section {...fade(0.08)} className={cn(panel, "p-5")}>
+            <h2 className="m-0 text-[14px] font-semibold tracking-[-0.015em]">How answers are scored</h2>
+            <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-white/50">Each answer gets a score out of 10 on four skills. The report adds an overall score out of 100.</p>
+            <ul className="m-0 mt-4 grid list-none gap-2 p-0">
+              {RUBRIC.map((r, i) => (
+                <li key={r.label} className="flex gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-md text-[11px] font-semibold" style={{ background: ["#22c55e22", "#4d7cff22", "#a78bfa22", "#2dd4bf22"][i], color: ["#6ee7b7", "#8fb0ff", "#c4b5fd", "#5eead4"][i] }}>
+                    {i + 1}
+                  </span>
+                  <span>
+                    <span className="block text-[13px] font-semibold text-white">{r.label}</span>
+                    <span className="block text-[12px] leading-[1.5] text-white/50">{r.body}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </motion.section>
+        </div>
+
+        {/* tips + cta */}
+        <motion.section {...fade(0.1)} className={cn(panel, "fx-grain relative grid gap-5 overflow-hidden p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-6")}>
+          <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 size-[280px] rounded-full bg-[#a78bfa]/20 blur-[80px]" />
+          <div className="relative">
+            <h2 className="m-0 text-[16px] font-semibold tracking-[-0.02em]">Before you start</h2>
+            <ul className="m-0 mt-3 grid list-none gap-2 p-0 sm:grid-cols-3">
+              {TIPS.map((t) => (
+                <li key={t.text} className="flex items-start gap-2.5 text-[12.5px] leading-[1.5] text-white/65">
+                  <t.icon className="mt-0.5 size-3.5 shrink-0 text-white/45" />
+                  {t.text}
                 </li>
               ))}
             </ul>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5, ease: EASE }}
-            aria-hidden="true"
-            className="dp-glow dp-glow--cta relative overflow-hidden rounded-[26px] border border-dp-ln bg-dp-bg px-5 pt-6 pb-28 sm:px-7"
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-dp-pill border border-dp-ln text-[18px] font-extrabold">
-                D<span className="text-dp-ac">.</span>
-              </span>
-              <div>
-                <p className="text-[14px] font-semibold">DevPrep Interviewer</p>
-                <p className="text-[13px] text-dp-ok">Speaking to you…</p>
-              </div>
-            </div>
-            <div className="mt-5 space-y-4 sm:pl-[60px]">
-              <div className="max-w-[90%] rounded-[18px] bg-dp-sf2 border border-dp-ln px-4 py-3 text-[14px] leading-relaxed">
-                Could you explain how the event loop keeps a browser UI responsive?
-              </div>
-              <div className="ml-auto w-fit max-w-[85%] rounded-[18px] bg-gradient-to-b from-[#ff4f1f] to-[#eb3a14] px-4 py-3 text-[14px] text-white">
-                Sure — the call stack runs sync code, and queued tasks only run once it&apos;s empty…
-              </div>
-            </div>
-            <div className="absolute inset-x-0 bottom-6 flex justify-center gap-3">
-              <span className="dp-mono dp-btn-ember rounded-full px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.06em]">End interview</span>
-              <span className="dp-mono rounded-full border border-dp-ln bg-dp-sf/70 backdrop-blur px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.06em]">Having problem</span>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="max-w-[1120px] mx-auto px-6 mt-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-          {FEATURES.map((f, i) => (
-            <motion.article
-              key={f.title}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ delay: i * 0.08, duration: 0.45, ease: EASE }}
-              className="rounded-[22px] border border-dp-ln bg-dp-sf2 p-7"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-full dp-btn-ember mb-6">
-                <f.icon size={18} />
-              </span>
-              <h3 className="text-[17px] font-semibold tracking-[-0.02em] mb-2">{f.title}</h3>
-              <p className="text-dp-mu text-[14px] leading-relaxed">{f.body}</p>
-            </motion.article>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="max-w-[1120px] mx-auto px-6 mt-24">
-        <div className="dp-glow dp-glow--cta dp-glow--rise relative overflow-hidden rounded-[28px] border border-dp-ln bg-[#0e0e10] text-white text-center px-8 pt-14 pb-36 sm:pt-16 sm:pb-44">
-          <h2 className="text-[28px] sm:text-[40px] font-bold tracking-[-0.03em] leading-[1.1]">
-            Ready when you are.
-          </h2>
-          <p className="mt-3 text-white/70 text-[15px] sm:text-[16px] max-w-[460px] mx-auto">
-            Pick a role and have your first conversation with Zara in under a minute.
-          </p>
-          <Link
-            href="/dashboard/ai-interview"
-            className="dp-mono dp-btn-ember mt-8 inline-flex items-center gap-2.5 h-14 px-9 rounded-full text-[14px] font-bold uppercase tracking-[0.06em] cursor-pointer transition-transform active:scale-95"
-          >
-            Choose a role <ArrowRight size={16} />
-          </Link>
-        </div>
-      </section>
-    </main>
+          <Button asChild className="relative h-10 rounded-xl px-5 font-semibold">
+            <Link href="/dashboard/ai-interview">
+              Choose a role <ArrowRight />
+            </Link>
+          </Button>
+        </motion.section>
+      </div>
+    </AppPage>
   );
 }

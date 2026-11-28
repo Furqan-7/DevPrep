@@ -7,7 +7,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { submitAttempt, transcribe, ReportApiError, type AttemptResult } from "@/lib/interview/report";
-import { MicIcon, primaryBtn, secondaryBtn } from "./ui";
+import { Mic, RotateCcw, Square } from "lucide-react";
+import { primaryBtn, secondaryBtn } from "./ui";
 
 const MAX_SECONDS = 180;
 const BARS = 32;
@@ -129,11 +130,11 @@ export function VoiceRetry({
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
   return (
-    <div className="mt-4 rounded-[14px] bg-[#0a0a0a] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]" aria-live="polite">
+    <div className="mt-4 rounded-xl border border-white/[0.08] bg-[#0b0b0e] p-4" aria-live="polite">
       {(phase.name === "idle" || phase.name === "requesting") && (
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={start} disabled={phase.name === "requesting"} className={primaryBtn}>
-            <MicIcon />
+            <Mic />
             {phase.name === "requesting" ? "Waiting for microphone…" : "Start recording"}
           </button>
           <button type="button" onClick={onCancel} className={secondaryBtn}>
@@ -144,23 +145,24 @@ export function VoiceRetry({
       )}
 
       {phase.name === "recording" && (
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={stop}
             aria-label="Stop recording"
-            className="relative grid h-12 w-12 shrink-0 cursor-pointer place-items-center rounded-full bg-[#bec8ff] text-[#0a0a0a] after:absolute after:-inset-1.5 after:animate-ping after:rounded-full after:shadow-[0_0_0_2px_rgba(190,200,255,0.45)] motion-reduce:after:animate-none"
+            className="relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-[#ef4444] text-white after:absolute after:-inset-1.5 after:animate-ping after:rounded-full after:shadow-[0_0_0_2px_rgba(239,68,68,0.45)] motion-reduce:after:animate-none"
           >
-            <svg viewBox="0 0 16 16" aria-hidden="true" className="h-4 w-4">
-              <rect x="4" y="4" width="8" height="8" rx="2" fill="currentColor" />
-            </svg>
+            <Square className="size-3.5 fill-white" />
           </button>
-          <div className="flex h-8 flex-1 items-center gap-[3px]" aria-hidden="true">
+          <div className="flex h-9 flex-1 items-center gap-[3px]" aria-hidden="true">
             {levels.map((l, i) => (
-              <i key={i} className="block flex-1 rounded-[3px] bg-[#bec8ff]/60" style={{ height: `${Math.max(12, Math.min(100, l * 130))}%` }} />
+              <i key={i} className="block flex-1 rounded-full bg-[linear-gradient(180deg,#8fb0ff,#4d7cff)]" style={{ height: `${Math.max(10, Math.min(100, l * 130))}%` }} />
             ))}
           </div>
-          <span className="w-10 text-right text-[13px] tabular-nums text-white/50">{clock}</span>
+          <span className="flex w-14 items-center justify-end gap-1.5 text-[13px] font-medium tabular-nums text-white/70">
+            <span className="size-1.5 animate-pulse rounded-full bg-[#ef4444]" />
+            {clock}
+          </span>
           <span className="sr-only">Recording. Press stop when you&rsquo;re done.</span>
         </div>
       )}
@@ -169,8 +171,8 @@ export function VoiceRetry({
 
       {(phase.name === "review" || phase.name === "scoring" || (phase.name === "error" && phase.transcript)) && (
         <div>
-          <div className="mb-1.5 text-[12px] text-white/40">Your new answer</div>
-          <p className="m-0 text-[14px] leading-[1.55] text-white/85">{"transcript" in phase ? phase.transcript : ""}</p>
+          <div className="mb-2 text-[12px] font-medium text-white/45">Your new answer</div>
+          <p className="m-0 rounded-lg bg-white/[0.03] p-3 text-[13.5px] leading-[1.6] text-white/85">{"transcript" in phase ? phase.transcript : ""}</p>
         </div>
       )}
 
@@ -180,7 +182,7 @@ export function VoiceRetry({
             Score this answer
           </button>
           <button type="button" onClick={start} className={secondaryBtn}>
-            <MicIcon />
+            <RotateCcw />
             Record again
           </button>
           <button type="button" onClick={onCancel} className={secondaryBtn}>
@@ -193,7 +195,7 @@ export function VoiceRetry({
 
       {phase.name === "error" && (
         <div className={phase.transcript ? "mt-3" : ""}>
-          <p role="alert" className="m-0 text-[13.5px] text-[#ffb4b4]">
+          <p role="alert" className="m-0 rounded-lg border border-[#f87171]/25 bg-[#f87171]/[0.07] px-3 py-2 text-[13px] text-[#fecaca]">
             {phase.message}
           </p>
           <div className="mt-3 flex flex-wrap gap-2.5">
@@ -203,7 +205,7 @@ export function VoiceRetry({
               </button>
             ) : null}
             <button type="button" onClick={start} className={phase.transcript ? secondaryBtn : primaryBtn}>
-              <MicIcon />
+              <Mic />
               Record again
             </button>
             <button type="button" onClick={onCancel} className={secondaryBtn}>
@@ -219,7 +221,7 @@ export function VoiceRetry({
 function Pending({ label, className = "" }: { label: string; className?: string }) {
   return (
     <div className={`flex items-center gap-2.5 text-[13px] text-white/55 ${className}`}>
-      <span aria-hidden="true" className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-[#bec8ff] motion-reduce:animate-none" />
+      <span aria-hidden="true" className="size-3.5 animate-spin rounded-full border-2 border-white/15 border-t-[#8fb0ff] motion-reduce:animate-none" />
       {label}
     </div>
   );

@@ -6,18 +6,22 @@
  * panel to pick a level, optionally tailor the interview (resume, target job) and start.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import { ArrowUpRight, Clock3, FileChartColumn, Headphones, ListChecks, Loader2, Mic, MessagesSquare } from "lucide-react";
 import api from "@/lib/api";
+import { AppPage } from "@/components/app/AppPage";
+import { Chip, Ring, scoreColor } from "@/components/app/kit";
 import { ROLES, ROLE_CATEGORIES, roleSlug } from "@/data/roles";
 import { ROLE_STUDY_QUESTIONS } from "@/data/roleQuestions";
 import { getResume } from "@/lib/career";
 import { formatDate, levelLabel, listSessions, type SessionSummary } from "@/lib/interview/report";
-import { ease, revealProps, useMotionMode } from "@/lib/motion";
+import { ease, useMotionMode } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import { categoryMeta } from "./categories";
 import { MIN_JOB_CHARS, TailorOptions } from "./TailorOptions";
-
 
 // Sent as the session's "difficulty"; the backend passes it to Zara's prompt as-is.
 const LEVELS = [
@@ -31,17 +35,17 @@ const LEVEL_KEY = "devprep-level";
 const ORDERED = ROLE_CATEGORIES.flatMap((c) => ROLES.filter((r) => r.category === c));
 
 const STEPS = [
-  { title: "Tell me about yourself", body: "Zara opens with your introduction and uses it later." },
-  { title: "10 questions, out loud", body: "One at a time, with follow-ups on what you actually say." },
-  { title: "Your report", body: "A score for every answer, what was missing, a stronger version. Retry any of them." },
+  { icon: MessagesSquare, title: "Tell me about yourself", body: "Zara opens with your introduction and uses it later." },
+  { icon: Mic, title: "10 questions, out loud", body: "One at a time, with follow-ups on what you actually say." },
+  { icon: FileChartColumn, title: "Your report", body: "A score for every answer, what was missing and a stronger version. Retry any of them." },
 ];
 
 export function RoleBrief({ slug }: { slug: string }) {
   const router = useRouter();
   const mode = useMotionMode();
-  const reveal = (d: number) => revealProps(mode, d);
   const index = ORDERED.findIndex((r) => roleSlug(r.title) === slug);
   const role = ORDERED[index]!;
+  const meta = categoryMeta(role.category);
   const questions = ROLE_STUDY_QUESTIONS[slug] ?? [];
   const here = `/dashboard/ai-interview/${slug}`;
 
@@ -142,196 +146,248 @@ export function RoleBrief({ slug }: { slug: string }) {
   };
 
   const levelInfo = LEVELS.find((l) => l.value === level)!;
+  const scored = history.filter((s) => s.overallScore !== null);
+  const best = scored.length ? Math.max(...scored.map((s) => s.overallScore!)) : null;
 
   return (
-    <main className="mx-auto grid max-w-[1200px] gap-x-14 px-4 pb-24 pt-9 sm:px-6 lg:grid-cols-[1fr_360px]">
-      {/* ── header ── */}
-      <div className="lg:col-start-1">
-        <motion.nav {...reveal(0)} aria-label="Breadcrumb" className="flex gap-2 text-[13px] text-white/45">
-          <Link href="/dashboard/ai-interview" className="transition-colors hover:text-[#f0f0f0]">
-            Interviews
-          </Link>
-          <span aria-hidden="true">/</span>
-          <span>{role.category}</span>
-        </motion.nav>
-        <motion.div {...reveal(0.05)} className="mt-10 flex gap-3.5 text-[12.5px] tabular-nums text-white/40">
-          <span>{String(index + 1).padStart(2, "0")}</span>
-          <span>{role.category}</span>
-          <span>{role.duration} min</span>
-          <span>Voice</span>
-        </motion.div>
-        <motion.h1 {...reveal(0.1)} className="m-0 mt-3 text-[40px] font-medium leading-[1.02] tracking-[-0.05em] sm:text-[64px]">
-          {role.title}
-        </motion.h1>
-        <motion.p {...reveal(0.15)} className="m-0 mt-[18px] text-[15px] leading-[1.5] text-white/55">
-          Covers <span className="text-white/80">{role.skills.join(" · ")}</span>
-        </motion.p>
-      </div>
-
-      {/* ── start panel (sticky beside the content on large screens) ── */}
-      <motion.aside {...reveal(0.2)} className="mt-10 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0">
-        <div className="relative isolate overflow-hidden rounded-[20px] bg-[#0d0d0f] p-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] lg:sticky lg:top-[96px]">
-          <div aria-hidden="true" className="pointer-events-none absolute -bottom-[300px] left-1/2 -z-10 h-[420px] w-[700px] -translate-x-1/2 bg-[radial-gradient(ellipse_45%_45%_at_50%_55%,rgba(150,160,255,0.24),rgba(10,10,10,0)_72%)]" />
-          <h2 className="m-0 text-[22px] font-medium tracking-[-0.04em]">
-            Ready when{" "}
-            <em className="fx-accent not-italic">
-              you are.
-            </em>
-          </h2>
-
-          <div id="level-label" className="mb-2 mt-[22px] text-[12.5px] text-white/45">
-            Your level
-          </div>
-          <div role="radiogroup" aria-labelledby="level-label" className="relative grid grid-cols-3 rounded-[11px] bg-[#0a0a0a] p-1 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.07)]">
-            {LEVELS.map((l) => {
-              const on = l.value === level;
-              return (
-                <button
-                  key={l.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  onClick={() => chooseLevel(l.value)}
-                  className={`relative h-9 cursor-pointer rounded-[8px] text-[13px] transition-colors duration-300 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#bec8ff]/60 ${on ? "text-[#0a0a0a]" : "text-white/55 hover:text-white/80"}`}
-                >
-                  {on && <motion.span layoutId="level-pill" transition={{ duration: mode === "reduce" ? 0 : 0.45, ease }} className="absolute inset-0 -z-0 rounded-[8px] bg-[#f0f0f0]" />}
-                  <span className="relative">{l.label}</span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="m-0 mt-2 min-h-[36px] text-[12.5px] leading-[1.45] text-white/45" aria-live="polite">
-            {levelInfo.hint}
-          </p>
-
-          <TailorOptions resumeName={resumeName} useResume={useResume} onUseResume={setUseResume} job={job} onJob={setJob} />
-
-          <dl className="m-0 mt-4 border-t border-white/[0.08] text-[13.5px]">
-            {[
-              ["Length", `~${role.duration} min`],
-              ["Questions", "Intro + 10"],
-              ["You'll need", "A microphone"],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between border-b border-white/[0.08] py-[11px]">
-                <dt className="text-white/55">{k}</dt>
-                <dd className="m-0 text-[#f0f0f0]">{v}</dd>
+    <AppPage back={{ href: "/dashboard/ai-interview", label: "All interviews" }} className="max-w-[1320px]">
+      {/* ── hero ── */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease }}
+        className="fx-grain relative mb-6 overflow-hidden rounded-3xl border border-white/[0.07] bg-card px-6 py-7 sm:px-8"
+      >
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="fx-grid absolute inset-0 opacity-60" />
+          <div className="absolute -right-24 -top-32 size-[380px] rounded-full opacity-30 blur-[100px]" style={{ background: meta.color }} />
+        </div>
+        <div className="relative flex flex-wrap items-end justify-between gap-6">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-9 place-items-center rounded-xl" style={{ background: `${meta.color}22`, color: meta.color }}>
+                <meta.icon className="size-[18px]" />
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-white/50">
+                <span>{role.category}</span>
+                <span className="text-white/20">·</span>
+                <Clock3 className="size-3" /> {role.duration} min
+                <span className="text-white/20">·</span>
+                <Headphones className="size-3" /> Voice
               </div>
-            ))}
-          </dl>
-
-          {error && (
-            <p role="alert" className="m-0 mt-4 text-[13px] text-[#ffb4b4]">
-              {error}
-            </p>
+            </div>
+            <h1 className="m-0 mt-4 text-[34px] font-semibold leading-[1.05] tracking-[-0.045em] text-white sm:text-[46px]">{role.title}</h1>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {role.skills.map((s) => (
+                <span key={s} className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[12.5px] text-white/70">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+          {history.length > 0 && (
+            <div className="flex gap-2">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-black/30 px-4 py-3 backdrop-blur">
+                <Ring value={best ?? 0} size={42} color={best !== null ? scoreColor(best) : "#71717a"}>
+                  {best ?? "—"}
+                </Ring>
+                <div>
+                  <div className="text-[11.5px] text-white/45">Best score</div>
+                  <div className="text-[14px] font-semibold text-white">
+                    {history.length} {history.length === 1 ? "interview" : "interviews"}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
-          <button
-            type="button"
-            onClick={start}
-            disabled={starting}
-            className="mt-5 flex h-[50px] w-full cursor-pointer items-center justify-center gap-2 rounded-[11px] bg-[#f0f0f0] text-[15px] font-medium tracking-[-0.02em] text-[#0a0a0a] transition-[background-color,transform] duration-200 hover:bg-white active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bec8ff] disabled:cursor-wait disabled:bg-white/70"
-          >
-            {starting ? (
+        </div>
+      </motion.section>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* ── content ── */}
+        <div className="grid min-w-0 content-start gap-6">
+          <Block title="How it runs" mode={mode}>
+            <ol className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3">
+              {STEPS.map((s, i) => (
+                <li key={s.title} className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-8 place-items-center rounded-lg bg-white/[0.06] text-white">
+                      <s.icon className="size-4" />
+                    </span>
+                    <span className="text-[11.5px] tabular-nums text-white/30">{String(i + 1).padStart(2, "0")}</span>
+                  </div>
+                  <h3 className="m-0 mt-3 text-[14px] font-semibold tracking-[-0.015em] text-white">{s.title}</h3>
+                  <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-white/50">{s.body}</p>
+                </li>
+              ))}
+            </ol>
+          </Block>
+
+          <Block title="Questions to prepare" aside={questions.length ? <Chip>{questions.length} questions</Chip> : null} mode={mode} flush>
+            {questions.length ? (
               <>
-                <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black/70 motion-reduce:animate-none" />
-                Starting…
+                <ol className="m-0 list-none divide-y divide-white/[0.05] p-0">
+                  {questions.map((q, i) => (
+                    <li key={q} className="group flex gap-4 px-5 py-3.5 transition-colors hover:bg-white/[0.02]">
+                      <span className="grid size-6 shrink-0 place-items-center rounded-md bg-white/[0.05] text-[11px] font-medium tabular-nums text-white/50 group-hover:bg-white group-hover:text-black">
+                        {i + 1}
+                      </span>
+                      <span className="text-[14px] leading-[1.55] text-white/80">{q}</span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="m-0 flex items-start gap-2 border-t border-white/[0.05] px-5 py-3.5 text-[12.5px] leading-[1.5] text-white/40">
+                  <ListChecks className="mt-0.5 size-3.5 shrink-0" />
+                  A study list for this role. Zara writes her own questions during the interview and follows up on your answers, so expect different wording.
+                </p>
               </>
             ) : (
-              <>
-                <svg viewBox="0 0 16 16" aria-hidden="true" className="h-[15px] w-[15px]">
-                  <rect x="5.6" y="1.8" width="4.8" height="8" rx="2.4" fill="currentColor" />
-                  <path d="M3.4 7.6a4.6 4.6 0 0 0 9.2 0M8 12.2v2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-                Start interview
-              </>
-            )}
-          </button>
-          <p className="m-0 mt-2.5 text-center text-[12.5px] text-white/40">You&rsquo;ll check your mic before Zara starts.</p>
-        </div>
-      </motion.aside>
-
-      {/* ── content ── */}
-      <div className="lg:col-start-1">
-        <Section title="How it runs" mode={mode}>
-          <ol className="m-0 grid list-none p-0 sm:grid-cols-3">
-            {STEPS.map((s, i) => (
-              <li key={s.title} className="border-b border-white/[0.08] py-[18px] sm:pr-[18px] sm:[&+li]:border-l sm:[&+li]:pl-[18px]">
-                <span className="text-[12px] tabular-nums text-white/30">{String(i + 1).padStart(2, "0")}</span>
-                <h3 className="m-0 mb-1 mt-2 text-[15px] font-medium tracking-[-0.02em]">{s.title}</h3>
-                <p className="m-0 text-[13.5px] leading-[1.5] text-white/50">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-        </Section>
-
-        <Section title="Questions to prepare" count={questions.length || undefined} mode={mode}>
-          {questions.length ? (
-            <>
-              <ol className="m-0 list-none p-0">
-                {questions.map((q, i) => (
-                  <li key={q} className="grid grid-cols-[44px_1fr] border-b border-white/[0.08] py-4 text-[15.5px] leading-[1.45] tracking-[-0.02em] text-white/82">
-                    <span className="pt-1 text-[12px] tabular-nums text-white/30">{String(i + 1).padStart(2, "0")}</span>
-                    {q}
-                  </li>
-                ))}
-              </ol>
-              <p className="m-0 mt-3 text-[13px] leading-[1.5] text-white/42">
-                A study list for this role. Zara writes her own questions during the interview and follows up on your answers, so expect different wording.
+              <p className="m-0 px-5 py-5 text-[14px] leading-[1.55] text-white/55">
+                There&rsquo;s no study list for {role.title} yet. Zara writes questions for this role during the interview and follows up on your answers, and your report shows what to work on.
               </p>
-            </>
-          ) : (
-            <p className="m-0 py-4 text-[14.5px] leading-[1.55] text-white/55">
-              There&rsquo;s no study list for {role.title} yet. Zara writes questions for this role during the interview and follows up on your answers, and your report shows what to work on.
-            </p>
-          )}
-        </Section>
+            )}
+          </Block>
 
-        {history.length > 0 && (
-          <Section title={`Your ${role.title} interviews`} count={history.length} mode={mode}>
-            <ul className="m-0 list-none p-0">
-              {history.map((s) => {
-                const body = (
-                  <>
-                    <span className="text-white/80">{formatDate(s.createdAt)}</span>
-                    <span className="hidden text-white/40 sm:block">{levelLabel(s.difficulty)}</span>
-                    <span className="text-[12.5px] text-white/40">{s.answered}/{s.totalQuestions} answered</span>
-                    <span className="text-right tabular-nums text-[#cfd6ff]">{s.overallScore ?? (s.answered ? <span className="text-[13px] text-[#bec8ff]">Get report →</span> : <span className="text-white/35">—</span>)}</span>
-                  </>
-                );
-                const cls = "grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-white/[0.08] py-3.5 text-[14px] sm:grid-cols-[1fr_110px_120px_90px]";
+          {history.length > 0 && (
+            <Block title={`Your ${role.title} interviews`} aside={<Chip>{history.length}</Chip>} mode={mode} flush>
+              <ul className="m-0 list-none divide-y divide-white/[0.05] p-0">
+                {history.map((s) => {
+                  const body = (
+                    <>
+                      <span className="min-w-0">
+                        <span className="block text-[13.5px] text-white">{formatDate(s.createdAt)}</span>
+                        <span className="block text-[12px] text-white/40">
+                          {levelLabel(s.difficulty)} · {s.answered}/{s.totalQuestions} answered
+                        </span>
+                      </span>
+                      {s.overallScore !== null ? (
+                        <span className="flex items-center gap-2 text-[14px] font-semibold tabular-nums" style={{ color: scoreColor(s.overallScore) }}>
+                          {s.overallScore}
+                          <ArrowUpRight className="size-3.5 text-white/25" />
+                        </span>
+                      ) : s.answered ? (
+                        <span className="text-[12.5px] font-medium text-[#8fb0ff]">Get report →</span>
+                      ) : (
+                        <span className="text-white/30">—</span>
+                      )}
+                    </>
+                  );
+                  const cls = "flex items-center justify-between gap-4 px-5 py-3";
+                  return (
+                    <li key={s.id}>
+                      {s.answered > 0 ? (
+                        <Link href={`/dashboard/reports/${s.id}`} className={cn(cls, "transition-colors hover:bg-white/[0.02]")}>
+                          {body}
+                        </Link>
+                      ) : (
+                        <div className={cls}>{body}</div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Block>
+          )}
+        </div>
+
+        {/* ── setup panel ── */}
+        <motion.aside initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease }} className="lg:sticky lg:top-[72px] lg:self-start">
+          <div className="relative isolate overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0d0d10] p-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,1)]">
+            <div aria-hidden className="pointer-events-none absolute -bottom-40 left-1/2 -z-10 h-[300px] w-[500px] -translate-x-1/2 rounded-full bg-[#4d7cff]/15 blur-[80px]" />
+            <h2 className="m-0 text-[17px] font-semibold tracking-[-0.025em] text-white">Set up your interview</h2>
+            <p className="m-0 mt-1 text-[12.5px] text-white/45">Choose a level, tailor it if you like, then start.</p>
+
+            <div id="level-label" className="mb-2 mt-5 text-[12px] font-medium text-white/55">
+              Level
+            </div>
+            <div role="radiogroup" aria-labelledby="level-label" className="grid gap-1.5">
+              {LEVELS.map((l) => {
+                const on = l.value === level;
                 return (
-                  <li key={s.id}>
-                    {s.answered > 0 ? (
-                      <Link href={`/dashboard/reports/${s.id}`} className={`${cls} transition-colors hover:bg-white/[0.02]`}>
-                        {body}
-                      </Link>
-                    ) : (
-                      <div className={cls}>{body}</div>
+                  <button
+                    key={l.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => chooseLevel(l.value)}
+                    className={cn(
+                      "relative flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-ring",
+                      on ? "border-[#4d7cff]/50 bg-[#4d7cff]/[0.08]" : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]",
                     )}
-                  </li>
+                  >
+                    <span className={cn("mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border", on ? "border-[#4d7cff]" : "border-white/25")}>
+                      {on && <motion.span layoutId="level-dot" transition={{ duration: mode === "reduce" ? 0 : 0.3, ease }} className="size-2 rounded-full bg-[#4d7cff]" />}
+                    </span>
+                    <span>
+                      <span className="block text-[13.5px] font-medium text-white">{l.label}</span>
+                      <span className="block text-[12px] leading-[1.45] text-white/45">{l.hint}</span>
+                    </span>
+                  </button>
                 );
               })}
-            </ul>
-          </Section>
-        )}
+            </div>
+            <span className="sr-only" aria-live="polite">
+              {levelInfo.label} selected
+            </span>
+
+            <TailorOptions resumeName={resumeName} useResume={useResume} onUseResume={setUseResume} job={job} onJob={setJob} />
+
+            <dl className="m-0 mt-4 grid grid-cols-3 gap-2">
+              {[
+                ["Length", `~${role.duration} min`],
+                ["Questions", "Intro + 10"],
+                ["Needs", "Microphone"],
+              ].map(([k, v]) => (
+                <div key={k} className="flex flex-col-reverse rounded-xl bg-white/[0.03] px-3 py-2">
+                  <dt className="text-[11px] text-white/40">{k}</dt>
+                  <dd className="m-0 truncate text-[12.5px] font-medium text-white">{v}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {error && (
+              <p role="alert" className="m-0 mt-4 rounded-xl border border-[#f87171]/25 bg-[#f87171]/[0.07] px-3 py-2.5 text-[12.5px] text-[#fecaca]">
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={start}
+              disabled={starting}
+              className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white text-[14.5px] font-semibold tracking-[-0.02em] text-black shadow-[0_10px_30px_-12px_rgba(255,255,255,0.5)] transition-[background-color,transform] duration-200 hover:bg-white/90 active:scale-[0.985] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-wait disabled:bg-white/70"
+            >
+              {starting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin motion-reduce:animate-none" /> Starting…
+                </>
+              ) : (
+                <>
+                  <Mic className="size-4" /> Start interview
+                </>
+              )}
+            </button>
+            <p className="m-0 mt-2.5 text-center text-[12px] text-white/40">You&rsquo;ll check your mic before Zara starts.</p>
+          </div>
+        </motion.aside>
       </div>
-    </main>
+    </AppPage>
   );
 }
 
-function Section({ title, count, mode, children }: { title: string; count?: number; mode: ReturnType<typeof useMotionMode>; children: React.ReactNode }) {
+function Block({ title, aside, mode, flush, children }: { title: string; aside?: ReactNode; mode: ReturnType<typeof useMotionMode>; flush?: boolean; children: ReactNode }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       whileInView={mode === "pending" ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
-      transition={mode === "reduce" ? { duration: 0 } : { duration: 0.7, ease }}
-      className="mt-14"
+      transition={mode === "reduce" ? { duration: 0 } : { duration: 0.6, ease }}
+      className="overflow-hidden rounded-2xl border border-white/[0.07] bg-card"
     >
-      <h2 className="m-0 flex items-baseline justify-between border-b border-white/[0.08] pb-3 text-[13px] font-medium text-white/60">
-        {title}
-        {count !== undefined && <span className="text-[12.5px] font-normal tabular-nums text-white/35">{count}</span>}
-      </h2>
-      {children}
+      <header className="flex min-h-[52px] items-center justify-between gap-3 px-5">
+        <h2 className="m-0 text-[14px] font-semibold tracking-[-0.015em] text-white">{title}</h2>
+        {aside}
+      </header>
+      <div className={flush ? "border-t border-white/[0.05]" : "px-5 pb-5"}>{children}</div>
     </motion.section>
   );
 }

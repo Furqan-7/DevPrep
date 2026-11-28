@@ -6,7 +6,7 @@ import { Code, FileChartColumn, Flame, Gauge, TrendingDown, TrendingUp, type Luc
 import { AnimatedNumber } from "@/components/app/AnimatedNumber";
 import type { Insights } from "@/lib/insights";
 import { cn } from "@/lib/utils";
-import { InfoTip, ease } from "./parts";
+import { InfoTip, ease } from "@/components/app/kit";
 
 const DAY_MS = 86_400_000;
 

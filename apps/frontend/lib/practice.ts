@@ -51,7 +51,14 @@ export const submitSolution = (input: { problem: string; code: string; passed: n
   call(api.post<{ submission: Submission }>("/api/coding/submissions", { ...input, language: "javascript" })).then((d) => d.submission);
 
 export const DIFFICULTY_TONE: Record<CodingProblem["difficulty"], string> = {
-  Easy: "text-[#7ee2a8]",
-  Medium: "text-[#f5c46b]",
-  Hard: "text-[#ff8f8f]",
+  Easy: "text-[#6ee7b7]",
+  Medium: "text-[#fcd34d]",
+  Hard: "text-[#fca5a5]",
+};
+
+/** Pill styles for a difficulty label. */
+export const DIFFICULTY_CHIP: Record<CodingProblem["difficulty"], string> = {
+  Easy: "bg-[#34d399]/10 text-[#6ee7b7] ring-[#34d399]/20",
+  Medium: "bg-[#fbbf24]/10 text-[#fcd34d] ring-[#fbbf24]/20",
+  Hard: "bg-[#f87171]/10 text-[#fca5a5] ring-[#f87171]/20",
 };

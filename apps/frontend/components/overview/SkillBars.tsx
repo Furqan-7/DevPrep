@@ -8,7 +8,7 @@
 import { motion } from "motion/react";
 import type { Insights } from "@/lib/insights";
 import type { Rubric } from "@/lib/interview/report";
-import { ease } from "./parts";
+import { ease } from "@/components/app/kit";
 
 export const RUBRIC: { key: keyof Rubric; label: string; short: string; advice: string }[] = [
   { key: "relevance", label: "Answering the question", short: "Answering", advice: "Restate the question in a line, then answer it first before adding context." },

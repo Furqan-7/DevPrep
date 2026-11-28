@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ShieldCheck } from "lucide-react";
 import { AppPage, EmptyState, PanelTitle, panel } from "@/components/app/AppPage";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -46,7 +47,7 @@ export function AdminView() {
   }
 
   return (
-    <AppPage title="Admin" description="How DevPrep is being used.">
+    <AppPage icon={ShieldCheck} title="Admin" description="How DevPrep is being used.">
       {!stats ? (
         <div className="grid gap-4">
           <Skeleton className="h-[104px] rounded-xl" />
@@ -78,7 +79,7 @@ function Dashboard({ stats }: { stats: AdminStats }) {
         {tiles.map(([label, value], i) => (
           <div key={label} className={cn("border-white/[0.06] px-5 py-4", i % 4 !== 0 && "sm:border-l", i % 2 === 1 && "border-l", i >= 2 && "border-t", i < 4 && "sm:border-t-0")}>
             <dt className="text-[12.5px] text-muted-foreground">{label}</dt>
-            <dd className="m-0 mt-1.5 text-[24px] font-medium tabular-nums tracking-[-0.03em]">{value.toLocaleString()}</dd>
+            <dd className="m-0 mt-1.5 text-[24px] font-semibold tabular-nums tracking-[-0.03em]">{value.toLocaleString()}</dd>
           </div>
         ))}
       </dl>

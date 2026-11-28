@@ -1,9 +1,32 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* ===== shadcn/ui tokens. The whole product is dark; [data-theme="dark"] repeats the
-   same values so components that still set it locally keep working. ===== */
-:root,
+/* ===== shadcn/ui tokens. Light by default; dark wherever data-theme="dark" is set
+   (the interview session sets it on its own wrapper, so it is always dark). ===== */
+:root {
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: #1d1d1f;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f4f4f5;
+  --muted-foreground: #6b6b73;
+  --accent: #f4f4f5;
+  --accent-foreground: #1d1d1f;
+  --destructive: #dc2626;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #a27ce9;
+  --brand: #5934d3;
+  --brand-soft: #a27ce9;
+  --radius: 0.625rem;
+}
+
 [data-theme="dark"] {
   --background: #08080a;
   --foreground: #ededef;
@@ -25,14 +48,10 @@
   --ring: #5b8cff;
   --brand: #4d7cff;
   --brand-soft: #8fb0ff;
-  --radius: 0.625rem;
 
-  /* raised surfaces inside cards (stat tiles, list rows) */
+  /* raised surfaces inside cards, plus the chart and status colours of the app */
   --surface: #141416;
   --surface-2: #19191c;
-  --sidebar: #0b0b0d;
-
-  /* chart and status colours, the same hues the dashboard uses everywhere */
   --chart-1: #4d7cff;
   --chart-2: #f59e0b;
   --chart-3: #22c55e;
@@ -44,8 +63,6 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-jbmono), ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -68,7 +85,6 @@
   --color-brand-soft: var(--brand-soft);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
-  --color-sidebar: var(--sidebar);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -79,33 +95,7 @@
   --color-danger: var(--danger);
 }
 
-html {
-  color-scheme: dark;
-  background: var(--background);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-optical-sizing: auto;
-  font-feature-settings: "cv11", "ss01", "ss03";
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-::selection {
-  background: rgba(77, 124, 255, 0.32);
-  color: #fff;
-}
-
-/* thin, quiet scrollbars like a native app */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
-}
-
-/* ===== Older --dp-* tokens, still used by the how-it-works, interview and privacy pages ===== */
+/* ===== DevPrep landing theme — append to the END of app/globals.css (Tailwind v4) ===== */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* Light tokens are global; dark tokens only apply inside a .dp wrapper when the site
@@ -222,10 +212,89 @@ body {
   }
 }
 
+.dp-dark-glow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden
+}
+
+.dp-dark-glow::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -300px;
+  width: 80%;
+  height: 360px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(235, 58, 20, .35), transparent 70%);
+  filter: blur(40px)
+}
+
+.dp-fade-x {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent)
+}
+
+.dp-vs-glow::after {
+  content: "";
+  position: absolute;
+  right: -120px;
+  bottom: -160px;
+  width: 420px;
+  height: 320px;
+  pointer-events: none;
+  background: radial-gradient(ellipse, #ffb25a 0%, #ff5a24 45%, transparent 72%);
+  filter: blur(50px);
+  opacity: .28
+}
+
 @media (prefers-reduced-motion:reduce) {
   .dp-glow::before {
     animation: none
   }
+}
+
+/* Ember glow pinned to the bottom of the viewport (interview + dashboard pages) */
+.dp-ember {
+  position: fixed;
+  z-index: 0;
+  left: 50%;
+  bottom: -40vh;
+  width: max(150vw, 900px);
+  height: 72vh;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, #fff2d2 0%, #ffcb73 12%, #ff7a2e 27%, #ee3a14 41%, rgba(22, 9, 6, .94) 60%, rgba(12, 12, 12, 0) 76%);
+  filter: blur(26px);
+  animation: dp-ember 8s ease-in-out infinite
+}
+
+.dp-ember--soft {
+  opacity: .9;
+  bottom: -50vh
+}
+
+@keyframes dp-ember {
+  50% {
+    transform: translateX(-50%) scale(1.04, 1.08);
+    opacity: .9
+  }
+}
+
+@media (max-width: 640px) {
+  .dp-ember {
+    bottom: -26vh;
+    height: 46vh;
+    width: 190vw
+  }
+}
+
+/* Fade scrolling chat text into the glow instead of hard-cutting it */
+.dp-fade-y {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 48px), transparent)
 }
 
 .dp-mono {
@@ -243,19 +312,204 @@ body {
   background: linear-gradient(180deg, #ff5d30 0%, #f0431c 100%)
 }
 
+@media (prefers-reduced-motion:reduce) {
+  .dp-ember {
+    animation: none
+  }
+}
+
 /* Stronger rising glow for dark CTA cards */
 .dp-glow--rise::before {
   bottom: -170px;
   height: 400px
 }
 
-/* ===== Twinkling stars (interview backdrop) ===== */
+/* ===== Hero v2 — crisp planet horizon (replaces the blurred .dp-glow in the hero) ===== */
+.dp-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  --hz-peak: 150px; /* distance from the hero's bottom edge to the top of the arc */
+}
+
+/* wrapper for the decorative layers: fades everything out before the hero's bottom edge */
+.dp-hero__fx {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 150px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 150px), transparent 100%)
+}
+
+/* faint engineering grid behind the headline, fading out radially */
+.dp-hero__grid {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--dp-ink) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--dp-ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 38%, #000 10%, transparent 75%);
+  mask-image: radial-gradient(ellipse 60% 55% at 50% 38%, #000 10%, transparent 75%)
+}
+
+/* atmosphere: smooth gradient above the rim, no blur filter so it stays sharp */
+.dp-hero__atmo {
+  position: absolute;
+  z-index: -2;
+  left: 50%;
+  bottom: calc(var(--hz-peak) - 520px);
+  width: min(1500px, 170vw);
+  height: 1040px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 22% 8% at 50% 50%, rgba(255, 236, 200, .95) 0%, rgba(255, 170, 90, .55) 45%, transparent 100%),
+    radial-gradient(ellipse 50% 30% at 50% 50%, rgba(255, 110, 45, .55) 0%, rgba(235, 58, 20, .28) 40%, rgba(235, 58, 20, .08) 65%, transparent 85%);
+  animation: dp-atmo 8s ease-in-out infinite
+}
+
+/* the planet: a huge circle whose top edge is the horizon */
+.dp-hero__planet {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: calc(100% - var(--hz-peak));
+  width: max(2400px, 200vw);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--dp-ac) 22%, var(--dp-bg)) 0%, var(--dp-bg) 9%);
+  box-shadow:
+    0 0 0 1px rgba(255, 196, 140, .85),
+    0 -2px 18px 0 rgba(255, 140, 70, .75),
+    0 -10px 70px 4px rgba(235, 58, 20, .55),
+    inset 0 1px 0 0 rgba(255, 246, 230, .95),
+    inset 0 18px 40px -16px rgba(255, 120, 60, .6)
+}
+
+/* bright flare where the sun sits on the rim */
+.dp-hero__flare {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: calc(var(--hz-peak) - 3px);
+  width: min(560px, 80vw);
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, #fff 0%, rgba(255, 220, 170, .9) 30%, rgba(255, 140, 70, 0) 100%)
+}
+
+:root:not([data-theme="dark"]) .dp-hero__atmo { opacity: .55 }
+
+@keyframes dp-atmo {
+  50% { opacity: .82 }
+}
+
+@media (max-width: 640px) {
+  .dp-hero { --hz-peak: 110px }
+  .dp-hero__planet { width: 1500px }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-hero__atmo { animation: none }
+}
+
+/* fading secondary headline */
+.dp-text-fade {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--dp-ink) 70%, transparent) 0%, var(--dp-mu) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent
+}
+
+/* hero buttons */
+.dp-btn-primary {
+  position: relative;
+  background: linear-gradient(180deg, #ff5a26 0%, #eb3a14 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .35),
+    inset 0 -1px 0 rgba(0, 0, 0, .15),
+    0 0 0 1px rgba(235, 58, 20, .9),
+    0 8px 24px -6px rgba(235, 58, 20, .65);
+  transition: box-shadow .25s, background .25s
+}
+
+.dp-btn-primary:hover {
+  background: linear-gradient(180deg, #ff6a3a 0%, #f2441c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .4),
+    inset 0 -1px 0 rgba(0, 0, 0, .15),
+    0 0 0 1px rgba(255, 90, 40, 1),
+    0 14px 36px -8px rgba(235, 58, 20, .8)
+}
+
+.dp-btn-primary .dp-btn-chip {
+  transition: transform .25s cubic-bezier(.16, 1, .3, 1)
+}
+
+.dp-btn-primary:hover .dp-btn-chip { transform: translateX(3px) }
+
+.dp-btn-ghost {
+  color: var(--dp-ink);
+  background: color-mix(in srgb, var(--dp-sf) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--dp-ink) 14%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: border-color .25s, background .25s
+}
+
+.dp-btn-ghost:hover {
+  border-color: color-mix(in srgb, var(--dp-ink) 30%, transparent);
+  background: color-mix(in srgb, var(--dp-sf) 90%, transparent)
+}
+
+/* ===== Landing features: live demo loops ===== */
+@keyframes dp-fx-ring { from { transform: scale(1); opacity: .9 } to { transform: scale(1.45); opacity: 0 } }
+@keyframes dp-fx-bar { 0%, 100% { height: 15% } 50% { height: var(--h, 80%) } }
+@keyframes dp-fx-blink { 50% { opacity: 0 } }
+@keyframes dp-fx-up { to { transform: translateY(-50%) } }
+
+/* ===== Landing how-it-works ===== */
+@keyframes dp-hiw-halo { 0% { opacity: .9; transform: scale(.6) } 100% { opacity: 0; transform: scale(1.6) } }
+@keyframes dp-hiw-click { 50% { transform: scale(.8) } }
+
+/* ===== Landing what's inside ===== */
+@keyframes dp-wi-marquee { to { transform: translateX(-50%) } }
+
+/* ===== Landing pricing ===== */
+@keyframes dp-pr-sheen { to { left: 130% } }
+
+/* ===== Landing final CTA ===== */
 @keyframes dp-cta-twinkle { 50% { opacity: .12 } }
 
 /* Interview report: "reviewing your answers" orb */
 @keyframes dp-rep-breathe { 50% { transform: scale(1.08); box-shadow: 0 0 90px rgba(140, 150, 255, .6) } }
 
-/* ===== Premium dark effects shared by the landing page, auth and the app ===== */
+
+/* ===== Signed-in app (DashboardShell sets data-app). Nothing here reaches the landing
+   or auth pages, which keep their own styles. ===== */
+[data-app] {
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-app] ::selection {
+  background: rgba(77, 124, 255, 0.32);
+  color: #fff;
+}
+
+[data-app] * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
 
 /* film grain over large dark areas, so gradients don't band */
 .fx-grain::after {
@@ -268,110 +522,34 @@ body {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
-/* 1px gradient hairline border; set --fx-border to change the colours */
-.fx-border {
-  position: relative;
-  isolation: isolate;
-}
-.fx-border::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  padding: 1px;
-  border-radius: inherit;
-  background: var(--fx-border, linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0.02)));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* cursor spotlight: the element sets --mx/--my from the pointer */
-.fx-spotlight {
-  position: relative;
-  isolation: isolate;
-}
-.fx-spotlight::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s;
-  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), var(--fx-spot, rgba(120, 140, 255, 0.13)), transparent 60%);
-}
-.fx-spotlight:hover::after {
-  opacity: 1;
-}
-
 /* faint square grid that fades out toward the edges */
 .fx-grid {
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
-  background-size: 64px 64px;
+  background-size: 48px 48px;
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 20%, transparent 75%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 20%, transparent 75%);
 }
 
-/* headline text that fades from white to grey */
-.fx-text-fade {
-  background: linear-gradient(180deg, #fff 30%, rgba(255, 255, 255, 0.55));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* animated gradient text for accent words */
-.fx-text-aurora {
-  background: linear-gradient(100deg, #9db4ff 0%, #c4a6ff 30%, #ff9ecf 55%, #9db4ff 80%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: fx-pan 8s linear infinite;
-}
-
-@keyframes fx-pan {
-  to {
-    background-position: -200% 0;
-  }
-}
-
-/* moving sheen across a line of text */
-.fx-shimmer {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.45) 0%, #fff 45%, rgba(255, 255, 255, 0.45) 60%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: fx-pan 3.2s linear infinite;
-}
-
-/* horizontal fade at both ends (marquees) */
-.fx-fade-x {
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-}
-
-@keyframes fx-marquee {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-/* diagonal stripes used as the empty track of dashboard bars */
+/* diagonal stripes used as the empty track of bars */
 .fx-stripes {
   background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 7px);
+}
+
+/* accent word in in-app headings */
+.fx-accent {
+  font-style: normal;
+  background: linear-gradient(100deg, #8fb0ff, #c4a6ff 60%, #f0abfc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 @keyframes fx-wave {
   0%,
   100% {
-    transform: scaleY(0.35);
+    transform: scaleY(0.3);
   }
   50% {
     transform: scaleY(1);
@@ -381,38 +559,16 @@ body {
 @keyframes fx-pulse-ring {
   from {
     transform: scale(1);
-    opacity: 0.7;
+    opacity: 0.6;
   }
   to {
-    transform: scale(1.8);
+    transform: scale(1.7);
     opacity: 0;
   }
 }
 
-@keyframes fx-float {
-  50% {
-    transform: translateY(-6px);
+@keyframes fx-spin-slow {
+  to {
+    transform: rotate(360deg);
   }
-}
-
-@keyframes fx-caret {
-  50% {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fx-text-aurora,
-  .fx-shimmer {
-    animation: none;
-  }
-}
-
-/* accent word in in-app headings ("Choose what to practise.") */
-.fx-accent {
-  font-style: normal;
-  background: linear-gradient(100deg, #8fb0ff, #c4a6ff 60%, #f0abfc);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
